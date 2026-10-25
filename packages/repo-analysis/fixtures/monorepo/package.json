@@ -1,0 +1,6 @@
+{
+  "name": "acme-monorepo",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": { "build": "turbo run build" }
+}

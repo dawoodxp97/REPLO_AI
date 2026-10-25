@@ -1,0 +1,104 @@
+{
+  "framework": "React Router",
+  "symbols": [
+    {
+      "qualifiedName": "router",
+      "name": "router",
+      "kind": "variable",
+      "startLine": 5,
+      "endLine": 8,
+      "exported": false,
+      "signature": "const router = createBrowserRouter([",
+      "symbolKey": "src/main.tsx#router",
+      "path": "src/main.tsx"
+    },
+    {
+      "qualifiedName": "App",
+      "name": "App",
+      "kind": "component",
+      "startLine": 10,
+      "endLine": 12,
+      "exported": true,
+      "signature": "function App() {",
+      "symbolKey": "src/main.tsx#App",
+      "path": "src/main.tsx"
+    },
+    {
+      "qualifiedName": "Home",
+      "name": "Home",
+      "kind": "component",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function Home() {",
+      "symbolKey": "src/pages/Home.tsx#Home",
+      "path": "src/pages/Home.tsx"
+    },
+    {
+      "qualifiedName": "TaskPage",
+      "name": "TaskPage",
+      "kind": "component",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function TaskPage() {",
+      "symbolKey": "src/pages/TaskPage.tsx#TaskPage",
+      "path": "src/pages/TaskPage.tsx"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "src/main.tsx",
+      "toPath": "src/pages/Home.tsx",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/main.tsx",
+      "toPath": "src/pages/TaskPage.tsx",
+      "kind": "import"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "src/main.tsx",
+      "kind": "router",
+      "score": 70,
+      "reason": "createBrowserRouter"
+    }
+  ],
+  "routes": [
+    {
+      "framework": "react-router",
+      "method": "GET",
+      "pattern": "/",
+      "path": "src/main.tsx",
+      "line": 6
+    },
+    {
+      "framework": "react-router",
+      "method": "GET",
+      "pattern": "/tasks/:taskId",
+      "path": "src/main.tsx",
+      "line": 7
+    }
+  ],
+  "metrics": {
+    "src/main.tsx": {
+      "fanIn": 0,
+      "fanOut": 2,
+      "pageRank": 0.25974
+    },
+    "src/pages/Home.tsx": {
+      "fanIn": 1,
+      "fanOut": 0,
+      "pageRank": 0.37013
+    },
+    "src/pages/TaskPage.tsx": {
+      "fanIn": 1,
+      "fanOut": 0,
+      "pageRank": 0.37013
+    }
+  },
+  "unresolvedImports": 0,
+  "parseErrors": []
+}

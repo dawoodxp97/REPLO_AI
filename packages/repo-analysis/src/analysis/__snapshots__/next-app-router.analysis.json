@@ -1,0 +1,259 @@
+{
+  "framework": "Next.js",
+  "symbols": [
+    {
+      "qualifiedName": "About",
+      "name": "About",
+      "kind": "component",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function About() {",
+      "symbolKey": "app/(marketing)/about/page.tsx#About",
+      "path": "app/(marketing)/about/page.tsx"
+    },
+    {
+      "qualifiedName": "GET",
+      "name": "GET",
+      "kind": "function",
+      "startLine": 3,
+      "endLine": 5,
+      "exported": true,
+      "signature": "async function GET() {",
+      "symbolKey": "app/api/posts/route.ts#GET",
+      "path": "app/api/posts/route.ts"
+    },
+    {
+      "qualifiedName": "POST",
+      "name": "POST",
+      "kind": "function",
+      "startLine": 7,
+      "endLine": 9,
+      "exported": true,
+      "signature": "async function POST(request: Request) {",
+      "symbolKey": "app/api/posts/route.ts#POST",
+      "path": "app/api/posts/route.ts"
+    },
+    {
+      "qualifiedName": "Post",
+      "name": "Post",
+      "kind": "component",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function Post({ params }: { params: { slug: string } }) {",
+      "symbolKey": "app/blog/[slug]/page.tsx#Post",
+      "path": "app/blog/[slug]/page.tsx"
+    },
+    {
+      "qualifiedName": "RootLayout",
+      "name": "RootLayout",
+      "kind": "component",
+      "startLine": 3,
+      "endLine": 9,
+      "exported": true,
+      "signature": "function RootLayout({ children }: { children: ReactNode }) {",
+      "symbolKey": "app/layout.tsx#RootLayout",
+      "path": "app/layout.tsx"
+    },
+    {
+      "qualifiedName": "Home",
+      "name": "Home",
+      "kind": "component",
+      "startLine": 4,
+      "endLine": 7,
+      "exported": true,
+      "signature": "async function Home() {",
+      "symbolKey": "app/page.tsx#Home",
+      "path": "app/page.tsx"
+    },
+    {
+      "qualifiedName": "Button",
+      "name": "Button",
+      "kind": "component",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function Button({ label }: { label: string }) {",
+      "symbolKey": "components/Button.tsx#Button",
+      "path": "components/Button.tsx"
+    },
+    {
+      "qualifiedName": "Post",
+      "name": "Post",
+      "kind": "interface",
+      "startLine": 1,
+      "endLine": 4,
+      "exported": true,
+      "signature": "interface Post {",
+      "symbolKey": "lib/posts.ts#Post",
+      "path": "lib/posts.ts"
+    },
+    {
+      "qualifiedName": "POSTS",
+      "name": "POSTS",
+      "kind": "variable",
+      "startLine": 6,
+      "endLine": 6,
+      "exported": true,
+      "signature": "const POSTS: Post[] = [{ slug: 'hello', title: 'Hello' }]",
+      "symbolKey": "lib/posts.ts#POSTS",
+      "path": "lib/posts.ts"
+    },
+    {
+      "qualifiedName": "getPosts",
+      "name": "getPosts",
+      "kind": "function",
+      "startLine": 8,
+      "endLine": 10,
+      "exported": true,
+      "signature": "function getPosts(): Post[] {",
+      "symbolKey": "lib/posts.ts#getPosts",
+      "path": "lib/posts.ts"
+    },
+    {
+      "qualifiedName": "middleware",
+      "name": "middleware",
+      "kind": "function",
+      "startLine": 3,
+      "endLine": 5,
+      "exported": true,
+      "signature": "function middleware(request: NextRequest) {",
+      "symbolKey": "middleware.ts#middleware",
+      "path": "middleware.ts"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "app/api/posts/route.ts",
+      "toPath": "lib/posts.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "app/page.tsx",
+      "toPath": "components/Button.tsx",
+      "kind": "import"
+    },
+    {
+      "fromPath": "app/page.tsx",
+      "toPath": "lib/posts.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "components/Button.test.tsx",
+      "toPath": "components/Button.tsx",
+      "kind": "import"
+    },
+    {
+      "fromPath": "components/Button.test.tsx",
+      "toPath": "components/Button.tsx",
+      "kind": "test_of"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "app/layout.tsx",
+      "kind": "app_root",
+      "score": 85,
+      "reason": "app/layout"
+    },
+    {
+      "path": "middleware.ts",
+      "kind": "middleware",
+      "score": 60,
+      "reason": "request middleware"
+    },
+    {
+      "path": "app/page.tsx",
+      "kind": "page",
+      "score": 40,
+      "reason": "app/page"
+    }
+  ],
+  "routes": [
+    {
+      "framework": "nextjs",
+      "method": "GET",
+      "pattern": "/about",
+      "path": "app/(marketing)/about/page.tsx",
+      "line": 1
+    },
+    {
+      "framework": "nextjs",
+      "method": "GET",
+      "pattern": "/api/posts",
+      "path": "app/api/posts/route.ts",
+      "line": 1
+    },
+    {
+      "framework": "nextjs",
+      "method": "POST",
+      "pattern": "/api/posts",
+      "path": "app/api/posts/route.ts",
+      "line": 1
+    },
+    {
+      "framework": "nextjs",
+      "method": "GET",
+      "pattern": "/blog/:slug",
+      "path": "app/blog/[slug]/page.tsx",
+      "line": 1
+    },
+    {
+      "framework": "nextjs",
+      "method": "GET",
+      "pattern": "/",
+      "path": "app/page.tsx",
+      "line": 1
+    }
+  ],
+  "metrics": {
+    "app/(marketing)/about/page.tsx": {
+      "fanIn": 0,
+      "fanOut": 0,
+      "pageRank": 0.08658
+    },
+    "app/api/posts/route.ts": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.08658
+    },
+    "app/blog/[slug]/page.tsx": {
+      "fanIn": 0,
+      "fanOut": 0,
+      "pageRank": 0.08658
+    },
+    "app/layout.tsx": {
+      "fanIn": 0,
+      "fanOut": 0,
+      "pageRank": 0.08658
+    },
+    "app/page.tsx": {
+      "fanIn": 0,
+      "fanOut": 2,
+      "pageRank": 0.08658
+    },
+    "components/Button.test.tsx": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.08658
+    },
+    "components/Button.tsx": {
+      "fanIn": 2,
+      "fanOut": 0,
+      "pageRank": 0.19697
+    },
+    "lib/posts.ts": {
+      "fanIn": 2,
+      "fanOut": 0,
+      "pageRank": 0.19697
+    },
+    "middleware.ts": {
+      "fanIn": 0,
+      "fanOut": 0,
+      "pageRank": 0.08658
+    }
+  },
+  "unresolvedImports": 0,
+  "parseErrors": []
+}

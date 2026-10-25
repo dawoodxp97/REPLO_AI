@@ -1,0 +1,6 @@
+{
+  "name": "fmtcli",
+  "bin": { "fmt": "./dist/cli.js" },
+  "main": "dist/index.js",
+  "scripts": { "build": "tsc" }
+}

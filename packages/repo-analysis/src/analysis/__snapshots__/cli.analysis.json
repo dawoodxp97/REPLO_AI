@@ -1,0 +1,77 @@
+{
+  "framework": null,
+  "symbols": [
+    {
+      "qualifiedName": "format",
+      "name": "format",
+      "kind": "function",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function format(input: string | undefined): string {",
+      "symbolKey": "src/format.ts#format",
+      "path": "src/format.ts"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "src/cli.ts",
+      "toPath": "src/format.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/format.test.ts",
+      "toPath": "src/format.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/format.test.ts",
+      "toPath": "src/format.ts",
+      "kind": "test_of"
+    },
+    {
+      "fromPath": "src/index.ts",
+      "toPath": "src/format.ts",
+      "kind": "import"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "src/cli.ts",
+      "kind": "bin",
+      "score": 90,
+      "reason": "bin.fmt"
+    },
+    {
+      "path": "src/index.ts",
+      "kind": "main",
+      "score": 80,
+      "reason": "main"
+    }
+  ],
+  "routes": [],
+  "metrics": {
+    "src/cli.ts": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.152672
+    },
+    "src/format.test.ts": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.152672
+    },
+    "src/format.ts": {
+      "fanIn": 3,
+      "fanOut": 0,
+      "pageRank": 0.541985
+    },
+    "src/index.ts": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.152672
+    }
+  },
+  "unresolvedImports": 0,
+  "parseErrors": []
+}

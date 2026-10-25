@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: replo
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app -d replo"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://app:app@localhost:5432/replo
+      TEST_DATABASE_URL: postgres://app:app@localhost:5432/replo
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4, version comes from package.json "packageManager"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run lint typecheck test build --affected
+      # Migrations apply cleanly on a fresh database, and the SQL matches the schema.
+      - run: pnpm db:migrate
+      - run: pnpm db:check-drift
+      # Eval smoke: golden index metrics against the baseline, and recorded model probes through the gate.
+      - run: pnpm --filter @replo/evals smoke
+      # TODO(P5): non-blocking job running @typescript/native-preview (TS 7) typecheck.

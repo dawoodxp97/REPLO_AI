@@ -1,0 +1,104 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "monorepo",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/monorepo"
+  },
+  "shape": "monorepo",
+  "size": "small",
+  "entryPoints": ["apps/web/src/main.ts", "packages/core/src/index.ts"],
+  "keyFlows": [
+    {
+      "name": "web prints the catalog",
+      "hops": ["apps/web/src/main.ts", "apps/web/src/catalog.ts"]
+    },
+    {
+      "name": "price formatting",
+      "hops": ["apps/web/src/catalog.ts", "packages/core/src/price.ts"]
+    },
+    {
+      "name": "core barrel",
+      "hops": ["packages/core/src/index.ts", "packages/core/src/price.ts"]
+    }
+  ],
+  "coreModules": [
+    "apps/web/src/main.ts",
+    "apps/web/src/catalog.ts",
+    "packages/core/src/index.ts",
+    "packages/core/src/price.ts"
+  ],
+  "facts": [
+    {
+      "claim": "The workspaces are packages/* and apps/*.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "@acme/core resolves to packages/core/src/index.ts.",
+      "evidencePath": "apps/web/src/main.ts"
+    },
+    {
+      "claim": "formatPrice formats cents as dollars.",
+      "evidencePath": "packages/core/src/price.ts"
+    },
+    {
+      "claim": "The Product type lives in packages/core/src/types.ts.",
+      "evidencePath": "packages/core/src/types.ts"
+    },
+    {
+      "claim": "catalog.ts imports a subpath of @acme/core.",
+      "evidencePath": "apps/web/src/catalog.ts"
+    },
+    {
+      "claim": "apps/web depends on @acme/core with workspace:*.",
+      "evidencePath": "apps/web/package.json"
+    },
+    {
+      "claim": "The apps/web main is src/main.ts.",
+      "evidencePath": "apps/web/package.json"
+    },
+    {
+      "claim": "The packages/core main is src/index.ts.",
+      "evidencePath": "packages/core/package.json"
+    },
+    {
+      "claim": "The core barrel re-exports types with export type.",
+      "evidencePath": "packages/core/src/index.ts"
+    },
+    {
+      "claim": "renderCatalog joins one line per product.",
+      "evidencePath": "apps/web/src/catalog.ts"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "apps/web/src/main.ts",
+        "kind": "main"
+      },
+      {
+        "path": "packages/core/src/index.ts",
+        "kind": "main"
+      }
+    ],
+    "routes": [],
+    "imports": [
+      ["apps/web/src/catalog.ts", "packages/core/src/index.ts"],
+      ["apps/web/src/catalog.ts", "packages/core/src/price.ts"],
+      ["apps/web/src/main.ts", "apps/web/src/catalog.ts"],
+      ["apps/web/src/main.ts", "packages/core/src/index.ts"],
+      ["packages/core/src/index.ts", "packages/core/src/price.ts"],
+      ["packages/core/src/index.ts", "packages/core/src/types.ts"]
+    ],
+    "symbols": [
+      "apps/web/src/catalog.ts#renderCatalog",
+      "packages/core/src/price.ts#formatPrice",
+      "packages/core/src/types.ts#Product"
+    ],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  }
+}

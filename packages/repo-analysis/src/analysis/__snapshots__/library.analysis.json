@@ -1,0 +1,250 @@
+{
+  "framework": null,
+  "symbols": [
+    {
+      "qualifiedName": "broken",
+      "name": "broken",
+      "kind": "variable",
+      "startLine": 3,
+      "endLine": 3,
+      "exported": true,
+      "signature": "const broken = = 3",
+      "symbolKey": "src/broken.ts#broken",
+      "path": "src/broken.ts"
+    },
+    {
+      "qualifiedName": "lazy",
+      "name": "lazy",
+      "kind": "function",
+      "startLine": 8,
+      "endLine": 8,
+      "exported": true,
+      "signature": "const lazy = () => import('./lazy')",
+      "symbolKey": "src/index.ts#lazy",
+      "path": "src/index.ts"
+    },
+    {
+      "qualifiedName": "sum",
+      "name": "sum",
+      "kind": "function",
+      "startLine": 9,
+      "endLine": 9,
+      "exported": true,
+      "signature": "const sum = (a: number, b: number) => add(a, b) + legacy()",
+      "symbolKey": "src/index.ts#sum",
+      "path": "src/index.ts"
+    },
+    {
+      "qualifiedName": "value",
+      "name": "value",
+      "kind": "variable",
+      "startLine": 1,
+      "endLine": 1,
+      "exported": true,
+      "signature": "const value = 2",
+      "symbolKey": "src/lazy.ts#value",
+      "path": "src/lazy.ts"
+    },
+    {
+      "qualifiedName": "helper",
+      "name": "helper",
+      "kind": "variable",
+      "startLine": 1,
+      "endLine": 1,
+      "exported": false,
+      "signature": "const helper = require('./lazy')",
+      "symbolKey": "src/legacy.js#helper",
+      "path": "src/legacy.js"
+    },
+    {
+      "qualifiedName": "add",
+      "name": "add",
+      "kind": "function",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function add(a: number, b: number): number {",
+      "symbolKey": "src/math/add.ts#add",
+      "path": "src/math/add.ts"
+    },
+    {
+      "qualifiedName": "Shape",
+      "name": "Shape",
+      "kind": "interface",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "interface Shape {",
+      "symbolKey": "src/util.ts#Shape",
+      "path": "src/util.ts"
+    },
+    {
+      "qualifiedName": "Id",
+      "name": "Id",
+      "kind": "type",
+      "startLine": 5,
+      "endLine": 5,
+      "exported": true,
+      "signature": "type Id = string",
+      "symbolKey": "src/util.ts#Id",
+      "path": "src/util.ts"
+    },
+    {
+      "qualifiedName": "Color",
+      "name": "Color",
+      "kind": "enum",
+      "startLine": 7,
+      "endLine": 10,
+      "exported": true,
+      "signature": "enum Color {",
+      "symbolKey": "src/util.ts#Color",
+      "path": "src/util.ts"
+    },
+    {
+      "qualifiedName": "Store",
+      "name": "Store",
+      "kind": "class",
+      "startLine": 12,
+      "endLine": 20,
+      "exported": true,
+      "signature": "class Store {",
+      "symbolKey": "src/util.ts#Store",
+      "path": "src/util.ts"
+    },
+    {
+      "qualifiedName": "Store.load",
+      "name": "load",
+      "kind": "method",
+      "startLine": 13,
+      "endLine": 15,
+      "exported": true,
+      "signature": "load() {",
+      "symbolKey": "src/util.ts#Store.load",
+      "path": "src/util.ts"
+    },
+    {
+      "qualifiedName": "Store.save",
+      "name": "save",
+      "kind": "method",
+      "startLine": 17,
+      "endLine": 19,
+      "exported": true,
+      "signature": "save(items: unknown[]) {",
+      "symbolKey": "src/util.ts#Store.save",
+      "path": "src/util.ts"
+    },
+    {
+      "qualifiedName": "util",
+      "name": "util",
+      "kind": "variable",
+      "startLine": 22,
+      "endLine": 22,
+      "exported": true,
+      "signature": "const util = { version: 1 }",
+      "symbolKey": "src/util.ts#util",
+      "path": "src/util.ts"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "src/index.test.ts",
+      "toPath": "src/index.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/index.test.ts",
+      "toPath": "src/index.ts",
+      "kind": "test_of"
+    },
+    {
+      "fromPath": "src/index.ts",
+      "toPath": "src/lazy.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/index.ts",
+      "toPath": "src/legacy.js",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/index.ts",
+      "toPath": "src/math/add.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/index.ts",
+      "toPath": "src/math/index.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/index.ts",
+      "toPath": "src/util.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/legacy.js",
+      "toPath": "src/lazy.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/math/index.ts",
+      "toPath": "src/math/add.ts",
+      "kind": "import"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "src/index.ts",
+      "kind": "main",
+      "score": 80,
+      "reason": "main"
+    }
+  ],
+  "routes": [],
+  "metrics": {
+    "src/broken.ts": {
+      "fanIn": 0,
+      "fanOut": 0,
+      "pageRank": 0.079007
+    },
+    "src/index.test.ts": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.079007
+    },
+    "src/index.ts": {
+      "fanIn": 1,
+      "fanOut": 5,
+      "pageRank": 0.146162
+    },
+    "src/lazy.ts": {
+      "fanIn": 2,
+      "fanOut": 0,
+      "pageRank": 0.192131
+    },
+    "src/legacy.js": {
+      "fanIn": 1,
+      "fanOut": 1,
+      "pageRank": 0.103854
+    },
+    "src/math/add.ts": {
+      "fanIn": 2,
+      "fanOut": 0,
+      "pageRank": 0.192131
+    },
+    "src/math/index.ts": {
+      "fanIn": 1,
+      "fanOut": 1,
+      "pageRank": 0.103854
+    },
+    "src/util.ts": {
+      "fanIn": 1,
+      "fanOut": 0,
+      "pageRank": 0.103854
+    }
+  },
+  "unresolvedImports": 1,
+  "parseErrors": [
+    "src/broken.ts"
+  ]
+}

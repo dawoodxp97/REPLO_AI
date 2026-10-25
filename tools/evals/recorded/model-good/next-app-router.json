@@ -1,0 +1,32 @@
+{
+  "output": {
+    "entryPoints": ["app/layout.tsx", "app/page.tsx", "middleware.ts"],
+    "routes": [
+      {
+        "method": "GET",
+        "pattern": "/about",
+        "path": "app/(marketing)/about/page.tsx"
+      },
+      {
+        "method": "GET",
+        "pattern": "/api/posts",
+        "path": "app/api/posts/route.ts"
+      },
+      {
+        "method": "POST",
+        "pattern": "/api/posts",
+        "path": "app/api/posts/route.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/blog/:slug",
+        "path": "app/blog/[slug]/page.tsx"
+      },
+      {
+        "method": "GET",
+        "pattern": "/",
+        "path": "app/page.tsx"
+      }
+    ]
+  }
+}

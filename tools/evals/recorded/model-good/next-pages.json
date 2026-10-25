@@ -1,0 +1,22 @@
+{
+  "output": {
+    "entryPoints": ["pages/_app.tsx"],
+    "routes": [
+      {
+        "method": "ANY",
+        "pattern": "/api/hello",
+        "path": "pages/api/hello.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/",
+        "path": "pages/index.tsx"
+      },
+      {
+        "method": "GET",
+        "pattern": "/posts/:id",
+        "path": "pages/posts/[id].tsx"
+      }
+    ]
+  }
+}

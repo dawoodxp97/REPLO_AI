@@ -1,0 +1,104 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "redux-spa",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/redux-spa"
+  },
+  "shape": "redux-spa",
+  "size": "medium",
+  "entryPoints": ["src/main.tsx"],
+  "keyFlows": [
+    {
+      "name": "toggle a todo",
+      "hops": ["src/components/TodoList.tsx", "src/features/todos/todosSlice.ts"]
+    },
+    {
+      "name": "store setup",
+      "hops": ["src/app/store.ts", "src/features/todos/todosSlice.ts"]
+    },
+    {
+      "name": "mount the app",
+      "hops": ["src/main.tsx", "src/App.tsx"]
+    }
+  ],
+  "coreModules": [
+    "src/main.tsx",
+    "src/app/store.ts",
+    "src/features/todos/todosSlice.ts",
+    "src/components/TodoList.tsx"
+  ],
+  "facts": [
+    {
+      "claim": "index.html loads src/main.tsx as a module.",
+      "evidencePath": "index.html"
+    },
+    {
+      "claim": "configureStore registers the todos reducer.",
+      "evidencePath": "src/app/store.ts"
+    },
+    {
+      "claim": "toggleTodo flips the done flag.",
+      "evidencePath": "src/features/todos/todosSlice.ts"
+    },
+    {
+      "claim": "TodoList dispatches toggleTodo on click.",
+      "evidencePath": "src/components/TodoList.tsx"
+    },
+    {
+      "claim": "fetchTodos calls /api/todos.",
+      "evidencePath": "src/features/todos/todosApi.ts"
+    },
+    {
+      "claim": "todosSlice exports todosReducer.",
+      "evidencePath": "src/features/todos/todosSlice.ts"
+    },
+    {
+      "claim": "Root wraps App in the redux Provider.",
+      "evidencePath": "src/main.tsx"
+    },
+    {
+      "claim": "App renders TodoList.",
+      "evidencePath": "src/App.tsx"
+    },
+    {
+      "claim": "The slice test covers toggling.",
+      "evidencePath": "src/features/todos/todosSlice.test.ts"
+    },
+    {
+      "claim": "The package declares no router library.",
+      "evidencePath": "package.json"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "src/main.tsx",
+        "kind": "app_root"
+      }
+    ],
+    "routes": [],
+    "imports": [
+      ["src/App.tsx", "src/components/TodoList.tsx"],
+      ["src/app/store.ts", "src/features/todos/todosSlice.ts"],
+      ["src/components/TodoList.tsx", "src/app/store.ts"],
+      ["src/components/TodoList.tsx", "src/features/todos/todosSlice.ts"],
+      ["src/features/todos/todosApi.ts", "src/features/todos/todosSlice.ts"],
+      ["src/features/todos/todosSlice.test.ts", "src/features/todos/todosSlice.ts"],
+      ["src/main.tsx", "src/App.tsx"],
+      ["src/main.tsx", "src/app/store.ts"]
+    ],
+    "symbols": [
+      "src/main.tsx#Root",
+      "src/App.tsx#App",
+      "src/app/store.ts#store",
+      "src/features/todos/todosSlice.ts#todosReducer",
+      "src/features/todos/todosApi.ts#fetchTodos"
+    ],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  }
+}

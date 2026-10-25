@@ -1,0 +1,92 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "cli",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/cli"
+  },
+  "shape": "cli-or-library",
+  "size": "small",
+  "entryPoints": ["src/cli.ts", "src/index.ts"],
+  "keyFlows": [
+    {
+      "name": "cli run",
+      "hops": ["src/cli.ts", "src/format.ts"]
+    },
+    {
+      "name": "library export",
+      "hops": ["src/index.ts", "src/format.ts"]
+    },
+    {
+      "name": "unit test",
+      "hops": ["src/format.test.ts", "src/format.ts"]
+    }
+  ],
+  "coreModules": ["src/cli.ts", "src/format.ts", "src/index.ts"],
+  "facts": [
+    {
+      "claim": "The bin fmt points at dist/cli.js.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "The package main is dist/index.js.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "cli.ts reads the first CLI argument.",
+      "evidencePath": "src/cli.ts"
+    },
+    {
+      "claim": "cli.ts starts with a node shebang.",
+      "evidencePath": "src/cli.ts"
+    },
+    {
+      "claim": "cli.ts writes the result with a trailing newline.",
+      "evidencePath": "src/cli.ts"
+    },
+    {
+      "claim": "format trims and lower-cases its input.",
+      "evidencePath": "src/format.ts"
+    },
+    {
+      "claim": "format treats undefined as an empty string.",
+      "evidencePath": "src/format.ts"
+    },
+    {
+      "claim": "index.ts re-exports format.",
+      "evidencePath": "src/index.ts"
+    },
+    {
+      "claim": "format.test.ts checks trimming and case.",
+      "evidencePath": "src/format.test.ts"
+    },
+    {
+      "claim": "The build script runs tsc.",
+      "evidencePath": "package.json"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "src/cli.ts",
+        "kind": "bin"
+      },
+      {
+        "path": "src/index.ts",
+        "kind": "main"
+      }
+    ],
+    "routes": [],
+    "imports": [
+      ["src/cli.ts", "src/format.ts"],
+      ["src/format.test.ts", "src/format.ts"],
+      ["src/index.ts", "src/format.ts"]
+    ],
+    "symbols": ["src/format.ts#format"],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  }
+}

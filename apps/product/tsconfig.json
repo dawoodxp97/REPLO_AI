@@ -1,0 +1,22 @@
+{
+  "extends": "@replo/config/tsconfig.next.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "src",
+    "e2e",
+    "*.ts",
+    "*.mjs",
+    ".next/types/**/*.ts",
+    "scripts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

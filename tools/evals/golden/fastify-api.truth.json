@@ -1,0 +1,94 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "fastify-api",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/fastify-api"
+  },
+  "shape": "rest-api",
+  "size": "small",
+  "entryPoints": ["src/index.ts"],
+  "keyFlows": [
+    {
+      "name": "start the server",
+      "hops": ["src/index.ts"]
+    },
+    {
+      "name": "ping request",
+      "hops": ["src/index.ts"]
+    },
+    {
+      "name": "register the db plugin",
+      "hops": ["src/index.ts", "src/plugins/db.ts"]
+    }
+  ],
+  "coreModules": ["src/index.ts", "src/plugins/db.ts"],
+  "facts": [
+    {
+      "claim": "The app is created with Fastify().",
+      "evidencePath": "src/index.ts"
+    },
+    {
+      "claim": "GET /ping returns { pong: true }.",
+      "evidencePath": "src/index.ts"
+    },
+    {
+      "claim": "The db plugin is registered with app.register.",
+      "evidencePath": "src/index.ts"
+    },
+    {
+      "claim": "app.listen uses port 3000.",
+      "evidencePath": "src/index.ts"
+    },
+    {
+      "claim": "The bin ping-api points at dist/index.js.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "dbPlugin is an async function.",
+      "evidencePath": "src/plugins/db.ts"
+    },
+    {
+      "claim": "dbPlugin resolves to undefined.",
+      "evidencePath": "src/plugins/db.ts"
+    },
+    {
+      "claim": "The package depends on fastify 5.6.0.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "The package declares no start script.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "The entry file is src/index.ts.",
+      "evidencePath": "src/index.ts"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "src/index.ts",
+        "kind": "bin"
+      },
+      {
+        "path": "src/index.ts",
+        "kind": "server"
+      }
+    ],
+    "routes": [
+      {
+        "method": "GET",
+        "pattern": "/ping",
+        "path": "src/index.ts"
+      }
+    ],
+    "imports": [["src/index.ts", "src/plugins/db.ts"]],
+    "symbols": ["src/index.ts#app", "src/plugins/db.ts#dbPlugin"],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  }
+}

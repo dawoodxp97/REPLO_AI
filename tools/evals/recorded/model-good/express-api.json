@@ -1,0 +1,27 @@
+{
+  "output": {
+    "entryPoints": ["src/server.ts"],
+    "routes": [
+      {
+        "method": "GET",
+        "pattern": "/users",
+        "path": "src/routes/users.ts"
+      },
+      {
+        "method": "POST",
+        "pattern": "/users",
+        "path": "src/routes/users.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/health",
+        "path": "src/server.ts"
+      },
+      {
+        "method": "ANY",
+        "pattern": "/api",
+        "path": "src/server.ts"
+      }
+    ]
+  }
+}

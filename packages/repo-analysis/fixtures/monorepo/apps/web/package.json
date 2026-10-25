@@ -1,0 +1,5 @@
+{
+  "name": "@acme/web",
+  "main": "src/main.ts",
+  "dependencies": { "@acme/core": "workspace:*" }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "replo",
+  "private": true,
+  "description": "Replo — grounded, chaptered tutorials for any TypeScript/JavaScript repository",
+  "packageManager": "pnpm@11.28.6",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "turbo run dev dev:worker",
+    "dev:landing": "turbo run dev --filter=@replo/landing",
+    "dev:product": "turbo run dev --filter=@replo/product",
+    "dev:api": "turbo run dev dev:worker --filter=@replo/api",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "verify": "turbo run lint typecheck test build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "db:generate": "pnpm --filter @replo/api db:generate",
+    "db:migrate": "pnpm --filter @replo/api db:migrate",
+    "db:check-drift": "pnpm --filter @replo/api db:check-drift",
+    "evals": "pnpm --filter @replo/evals start"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "^2.11.0",
+    "typescript": "catalog:"
+  }
+}

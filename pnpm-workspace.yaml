@@ -1,0 +1,35 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools/*
+
+# One version per shared dependency across the repo. Reference as `catalog:` in package.json.
+catalog:
+  typescript: ^6.0.3
+  zod: ^4.6.7
+  vitest: ^3.2.7
+  eslint: ^9.39.5
+  '@eslint/js': ^9.39.5
+  typescript-eslint: ^8.0.0
+  '@types/node': ^24.0.0
+  '@types/react': ^19.2.0
+  '@types/react-dom': ^19.2.0
+  react: ^19.2.0
+  react-dom: ^19.2.0
+  next: ^16.3.0
+  tailwindcss: ^4.3.3
+  '@tailwindcss/postcss': ^4.3.3
+  '@orpc/contract': ^1.15.7
+  '@orpc/server': ^1.15.7
+  '@orpc/client': ^1.15.7
+  '@orpc/tanstack-query': ^1.15.7
+  '@tanstack/react-query': ^5.90.0
+  drizzle-orm: ^0.45.4
+  ai: ^6.0.0
+
+# Supply-chain defaults (see RULES.md → Dependencies).
+minimumReleaseAge: 4320 # minutes (3 days), stricter than the pnpm 11 default of 1 day
+strictDepBuilds: true # install scripts are denied unless allow-listed below
+allowBuilds:
+  esbuild: true # downloads/verifies its platform binary (tsx, tsdown, drizzle-kit, vite/vitest)
+  unrs-resolver: false # eslint-config-next's resolver; ships prebuilt napi binaries, its postinstall is not needed

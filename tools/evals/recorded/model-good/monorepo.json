@@ -1,0 +1,6 @@
+{
+  "output": {
+    "entryPoints": ["apps/web/src/main.ts", "packages/core/src/index.ts"],
+    "routes": []
+  }
+}

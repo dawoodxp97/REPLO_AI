@@ -1,0 +1,127 @@
+{
+  "framework": "Next.js",
+  "symbols": [
+    {
+      "qualifiedName": "loadCatalog",
+      "name": "loadCatalog",
+      "kind": "function",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function loadCatalog(): string[] {",
+      "symbolKey": "lib/data.ts#loadCatalog",
+      "path": "lib/data.ts"
+    },
+    {
+      "qualifiedName": "App",
+      "name": "App",
+      "kind": "component",
+      "startLine": 3,
+      "endLine": 5,
+      "exported": true,
+      "signature": "function App({ Component, pageProps }: AppProps) {",
+      "symbolKey": "pages/_app.tsx#App",
+      "path": "pages/_app.tsx"
+    },
+    {
+      "qualifiedName": "handler",
+      "name": "handler",
+      "kind": "function",
+      "startLine": 3,
+      "endLine": 5,
+      "exported": true,
+      "signature": "function handler(_req: NextApiRequest, res: NextApiResponse) {",
+      "symbolKey": "pages/api/hello.ts#handler",
+      "path": "pages/api/hello.ts"
+    },
+    {
+      "qualifiedName": "Home",
+      "name": "Home",
+      "kind": "component",
+      "startLine": 3,
+      "endLine": 5,
+      "exported": true,
+      "signature": "function Home() {",
+      "symbolKey": "pages/index.tsx#Home",
+      "path": "pages/index.tsx"
+    },
+    {
+      "qualifiedName": "Post",
+      "name": "Post",
+      "kind": "component",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function Post() {",
+      "symbolKey": "pages/posts/[id].tsx#Post",
+      "path": "pages/posts/[id].tsx"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "pages/index.tsx",
+      "toPath": "lib/data.ts",
+      "kind": "import"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "pages/_app.tsx",
+      "kind": "app_root",
+      "score": 85,
+      "reason": "pages/_app"
+    }
+  ],
+  "routes": [
+    {
+      "framework": "nextjs",
+      "method": "ANY",
+      "pattern": "/api/hello",
+      "path": "pages/api/hello.ts",
+      "line": 1
+    },
+    {
+      "framework": "nextjs",
+      "method": "GET",
+      "pattern": "/",
+      "path": "pages/index.tsx",
+      "line": 1
+    },
+    {
+      "framework": "nextjs",
+      "method": "GET",
+      "pattern": "/posts/:id",
+      "path": "pages/posts/[id].tsx",
+      "line": 1
+    }
+  ],
+  "metrics": {
+    "lib/data.ts": {
+      "fanIn": 1,
+      "fanOut": 0,
+      "pageRank": 0.316239
+    },
+    "pages/_app.tsx": {
+      "fanIn": 0,
+      "fanOut": 0,
+      "pageRank": 0.17094
+    },
+    "pages/api/hello.ts": {
+      "fanIn": 0,
+      "fanOut": 0,
+      "pageRank": 0.17094
+    },
+    "pages/index.tsx": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.17094
+    },
+    "pages/posts/[id].tsx": {
+      "fanIn": 0,
+      "fanOut": 0,
+      "pageRank": 0.17094
+    }
+  },
+  "unresolvedImports": 0,
+  "parseErrors": []
+}

@@ -1,0 +1,35 @@
+# Local infrastructure only. App processes run on the host via `pnpm dev`.
+# Production topology (Caddy + product + api + worker + postgres) is described in ARCHITECTURE.md §Deployment.
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: replo
+    ports: ['5432:5432']
+    volumes: ['pgdata:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U app -d replo']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio: # S3-compatible stand-in for Cloudflare R2
+    image: minio/minio
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio12345
+    ports: ['9000:9000', '9001:9001']
+    volumes: ['miniodata:/data']
+
+  redis: # NOT used in release 1. Enable only when the triggers in ARCHITECTURE.md §Queue fire.
+    image: redis:7
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    profiles: ['later']
+    ports: ['6379:6379']
+
+volumes:
+  pgdata: {}
+  miniodata: {}

@@ -1,0 +1,5 @@
+{
+  "output": {
+    "entryPoints": "apps/web/src/main.ts"
+  }
+}

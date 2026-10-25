@@ -1,0 +1,37 @@
+# Mirrors the CI checks so failures surface before push rather than in Actions.
+# Install once:  uvx pre-commit install
+#
+# Replaces a config that ran black, flake8, isort and bandit against `backend/`
+# and `frontend/replo/` — all four tools are now ruff, and neither path exists.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      # Last line of defence for the .env.bak incident: blocks private keys and
+      # similar high-entropy material from being committed.
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^apps/api/
+      - id: ruff-format
+        files: ^apps/api/
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.11.30
+    hooks:
+      # Fails if pyproject.toml changed without regenerating uv.lock — the same
+      # staleness that `uv sync --frozen` catches in CI.
+      - id: uv-lock
+        files: ^apps/api/(pyproject\.toml|uv\.lock)$

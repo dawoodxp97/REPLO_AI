@@ -1,0 +1,103 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "react-router-spa",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/react-router-spa"
+  },
+  "shape": "spa-router",
+  "size": "small",
+  "entryPoints": ["src/main.tsx"],
+  "keyFlows": [
+    {
+      "name": "routes configuration",
+      "hops": ["src/main.tsx"]
+    },
+    {
+      "name": "home page",
+      "hops": ["src/main.tsx", "src/pages/Home.tsx"]
+    },
+    {
+      "name": "task page",
+      "hops": ["src/main.tsx", "src/pages/TaskPage.tsx"]
+    }
+  ],
+  "coreModules": ["src/main.tsx", "src/pages/Home.tsx", "src/pages/TaskPage.tsx"],
+  "facts": [
+    {
+      "claim": "src/main.tsx builds the router with createBrowserRouter.",
+      "evidencePath": "src/main.tsx"
+    },
+    {
+      "claim": "The root path / renders Home.",
+      "evidencePath": "src/main.tsx"
+    },
+    {
+      "claim": "/tasks/:taskId renders TaskPage.",
+      "evidencePath": "src/main.tsx"
+    },
+    {
+      "claim": "App renders a RouterProvider.",
+      "evidencePath": "src/main.tsx"
+    },
+    {
+      "claim": "Home renders the Tasks heading.",
+      "evidencePath": "src/pages/Home.tsx"
+    },
+    {
+      "claim": "TaskPage renders a section.",
+      "evidencePath": "src/pages/TaskPage.tsx"
+    },
+    {
+      "claim": "The project depends on react-router 7.9.0.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "The build script runs vite build.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "Home and TaskPage are named exports.",
+      "evidencePath": "src/pages/Home.tsx"
+    },
+    {
+      "claim": "The app has no server code.",
+      "evidencePath": "package.json"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "src/main.tsx",
+        "kind": "router"
+      }
+    ],
+    "routes": [
+      {
+        "method": "GET",
+        "pattern": "/",
+        "path": "src/main.tsx"
+      },
+      {
+        "method": "GET",
+        "pattern": "/tasks/:taskId",
+        "path": "src/main.tsx"
+      }
+    ],
+    "imports": [
+      ["src/main.tsx", "src/pages/Home.tsx"],
+      ["src/main.tsx", "src/pages/TaskPage.tsx"]
+    ],
+    "symbols": [
+      "src/main.tsx#router",
+      "src/main.tsx#App",
+      "src/pages/Home.tsx#Home",
+      "src/pages/TaskPage.tsx#TaskPage"
+    ],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  }
+}

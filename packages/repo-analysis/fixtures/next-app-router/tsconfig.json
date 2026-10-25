@@ -1,0 +1,6 @@
+{
+  // Path aliases are read by the resolver; the trailing comma below is valid JSONC.
+  "compilerOptions": {
+    "paths": { "@/*": ["./*"] },
+  },
+}

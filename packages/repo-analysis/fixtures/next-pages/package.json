@@ -1,0 +1,5 @@
+{
+  "name": "legacy-shop",
+  "scripts": { "dev": "next dev" },
+  "dependencies": { "next": "15.5.0", "react": "19.0.0" }
+}

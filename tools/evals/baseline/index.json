@@ -1,0 +1,112 @@
+{
+  "cli": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "express-api": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "fastify-api": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "legacy-js": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "library": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "monorepo": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "next-app-router": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "next-pages": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "react-router-spa": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "redux-spa": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  }
+}

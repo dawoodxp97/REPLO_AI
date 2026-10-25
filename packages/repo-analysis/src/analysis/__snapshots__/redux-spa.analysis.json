@@ -1,0 +1,199 @@
+{
+  "framework": null,
+  "symbols": [
+    {
+      "qualifiedName": "App",
+      "name": "App",
+      "kind": "component",
+      "startLine": 3,
+      "endLine": 5,
+      "exported": true,
+      "signature": "function App() {",
+      "symbolKey": "src/App.tsx#App",
+      "path": "src/App.tsx"
+    },
+    {
+      "qualifiedName": "store",
+      "name": "store",
+      "kind": "variable",
+      "startLine": 4,
+      "endLine": 6,
+      "exported": true,
+      "signature": "const store = configureStore({",
+      "symbolKey": "src/app/store.ts#store",
+      "path": "src/app/store.ts"
+    },
+    {
+      "qualifiedName": "RootState",
+      "name": "RootState",
+      "kind": "type",
+      "startLine": 8,
+      "endLine": 8,
+      "exported": true,
+      "signature": "type RootState = ReturnType<typeof store.getState>",
+      "symbolKey": "src/app/store.ts#RootState",
+      "path": "src/app/store.ts"
+    },
+    {
+      "qualifiedName": "TodoList",
+      "name": "TodoList",
+      "kind": "component",
+      "startLine": 5,
+      "endLine": 17,
+      "exported": true,
+      "signature": "function TodoList() {",
+      "symbolKey": "src/components/TodoList.tsx#TodoList",
+      "path": "src/components/TodoList.tsx"
+    },
+    {
+      "qualifiedName": "fetchTodos",
+      "name": "fetchTodos",
+      "kind": "function",
+      "startLine": 3,
+      "endLine": 6,
+      "exported": true,
+      "signature": "async function fetchTodos(): Promise<Todo[]> {",
+      "symbolKey": "src/features/todos/todosApi.ts#fetchTodos",
+      "path": "src/features/todos/todosApi.ts"
+    },
+    {
+      "qualifiedName": "Todo",
+      "name": "Todo",
+      "kind": "interface",
+      "startLine": 3,
+      "endLine": 7,
+      "exported": true,
+      "signature": "interface Todo {",
+      "symbolKey": "src/features/todos/todosSlice.ts#Todo",
+      "path": "src/features/todos/todosSlice.ts"
+    },
+    {
+      "qualifiedName": "slice",
+      "name": "slice",
+      "kind": "variable",
+      "startLine": 9,
+      "endLine": 21,
+      "exported": false,
+      "signature": "const slice = createSlice({",
+      "symbolKey": "src/features/todos/todosSlice.ts#slice",
+      "path": "src/features/todos/todosSlice.ts"
+    },
+    {
+      "qualifiedName": "todosReducer",
+      "name": "todosReducer",
+      "kind": "variable",
+      "startLine": 24,
+      "endLine": 24,
+      "exported": true,
+      "signature": "const todosReducer = slice.reducer",
+      "symbolKey": "src/features/todos/todosSlice.ts#todosReducer",
+      "path": "src/features/todos/todosSlice.ts"
+    },
+    {
+      "qualifiedName": "Root",
+      "name": "Root",
+      "kind": "component",
+      "startLine": 5,
+      "endLine": 11,
+      "exported": true,
+      "signature": "function Root() {",
+      "symbolKey": "src/main.tsx#Root",
+      "path": "src/main.tsx"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "src/App.tsx",
+      "toPath": "src/components/TodoList.tsx",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/app/store.ts",
+      "toPath": "src/features/todos/todosSlice.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/components/TodoList.tsx",
+      "toPath": "src/app/store.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/components/TodoList.tsx",
+      "toPath": "src/features/todos/todosSlice.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/features/todos/todosApi.ts",
+      "toPath": "src/features/todos/todosSlice.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/features/todos/todosSlice.test.ts",
+      "toPath": "src/features/todos/todosSlice.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/features/todos/todosSlice.test.ts",
+      "toPath": "src/features/todos/todosSlice.ts",
+      "kind": "test_of"
+    },
+    {
+      "fromPath": "src/main.tsx",
+      "toPath": "src/App.tsx",
+      "kind": "import"
+    },
+    {
+      "fromPath": "src/main.tsx",
+      "toPath": "src/app/store.ts",
+      "kind": "import"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "src/main.tsx",
+      "kind": "app_root",
+      "score": 85,
+      "reason": "index.html script"
+    }
+  ],
+  "routes": [],
+  "metrics": {
+    "src/App.tsx": {
+      "fanIn": 1,
+      "fanOut": 1,
+      "pageRank": 0.097264
+    },
+    "src/app/store.ts": {
+      "fanIn": 2,
+      "fanOut": 1,
+      "pageRank": 0.161409
+    },
+    "src/components/TodoList.tsx": {
+      "fanIn": 1,
+      "fanOut": 2,
+      "pageRank": 0.15093
+    },
+    "src/features/todos/todosApi.ts": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.068255
+    },
+    "src/features/todos/todosSlice.test.ts": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.068255
+    },
+    "src/features/todos/todosSlice.ts": {
+      "fanIn": 4,
+      "fanOut": 0,
+      "pageRank": 0.385632
+    },
+    "src/main.tsx": {
+      "fanIn": 0,
+      "fanOut": 2,
+      "pageRank": 0.068255
+    }
+  },
+  "unresolvedImports": 0,
+  "parseErrors": []
+}

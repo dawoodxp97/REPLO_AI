@@ -1,0 +1,27 @@
+{
+  "name": "@replo/evals",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Eval harness: golden repos with truth sheets, index regression check and recorded model probes. No live model calls in CI (MEM D-048).",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "smoke": "tsx src/index.ts",
+    "baseline": "tsx src/index.ts --write-baseline",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@replo/repo-analysis": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@replo/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "^4.23.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "output": {
+    "entryPoints": ["src/index.ts"],
+    "routes": [
+      {
+        "method": "GET",
+        "pattern": "/ping",
+        "path": "src/index.ts"
+      }
+    ]
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "express-api",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/express-api"
+  },
+  "shape": "rest-api",
+  "size": "small",
+  "entryPoints": ["src/server.ts"],
+  "keyFlows": [
+    {
+      "name": "boot and listen",
+      "hops": ["src/server.ts"]
+    },
+    {
+      "name": "list users request",
+      "hops": ["src/server.ts", "src/routes/users.ts"]
+    },
+    {
+      "name": "health request",
+      "hops": ["src/server.ts"]
+    }
+  ],
+  "coreModules": ["src/server.ts", "src/routes/users.ts"],
+  "facts": [
+    {
+      "claim": "The app is created with express().",
+      "evidencePath": "src/server.ts"
+    },
+    {
+      "claim": "The server listens on port 4000.",
+      "evidencePath": "src/server.ts"
+    },
+    {
+      "claim": "GET /health responds with { ok: true }.",
+      "evidencePath": "src/server.ts"
+    },
+    {
+      "claim": "The users router is mounted under /api.",
+      "evidencePath": "src/server.ts"
+    },
+    {
+      "claim": "GET /users is registered on the users router.",
+      "evidencePath": "src/routes/users.ts"
+    },
+    {
+      "claim": "POST /users responds with status 201.",
+      "evidencePath": "src/routes/users.ts"
+    },
+    {
+      "claim": "The users router is created with Router().",
+      "evidencePath": "src/routes/users.ts"
+    },
+    {
+      "claim": "The package main is dist/server.js.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "The start script runs node dist/server.js.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "routes/users is resolved through tsconfig baseUrl set to src.",
+      "evidencePath": "tsconfig.json"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "src/server.ts",
+        "kind": "script"
+      },
+      {
+        "path": "src/server.ts",
+        "kind": "main"
+      },
+      {
+        "path": "src/server.ts",
+        "kind": "server"
+      }
+    ],
+    "routes": [
+      {
+        "method": "GET",
+        "pattern": "/users",
+        "path": "src/routes/users.ts"
+      },
+      {
+        "method": "POST",
+        "pattern": "/users",
+        "path": "src/routes/users.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/health",
+        "path": "src/server.ts"
+      },
+      {
+        "method": "ANY",
+        "pattern": "/api",
+        "path": "src/server.ts"
+      }
+    ],
+    "imports": [["src/server.ts", "src/routes/users.ts"]],
+    "symbols": ["src/routes/users.ts#usersRouter", "src/server.ts#app"],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  }
+}

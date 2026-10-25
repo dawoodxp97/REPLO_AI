@@ -1,0 +1,128 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "next-app-router",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/next-app-router"
+  },
+  "shape": "nextjs-saas",
+  "size": "medium",
+  "entryPoints": ["app/layout.tsx", "app/page.tsx", "middleware.ts"],
+  "keyFlows": [
+    {
+      "name": "home page",
+      "hops": ["app/page.tsx", "lib/posts.ts"]
+    },
+    {
+      "name": "posts API",
+      "hops": ["app/api/posts/route.ts", "lib/posts.ts"]
+    },
+    {
+      "name": "button render",
+      "hops": ["app/page.tsx", "components/Button.tsx"]
+    }
+  ],
+  "coreModules": ["app/layout.tsx", "app/page.tsx", "lib/posts.ts", "components/Button.tsx"],
+  "facts": [
+    {
+      "claim": "The root layout renders html and body.",
+      "evidencePath": "app/layout.tsx"
+    },
+    {
+      "claim": "The home page calls getPosts.",
+      "evidencePath": "app/page.tsx"
+    },
+    {
+      "claim": "The home page renders a Button with the post count.",
+      "evidencePath": "app/page.tsx"
+    },
+    {
+      "claim": "The API route exports GET and POST.",
+      "evidencePath": "app/api/posts/route.ts"
+    },
+    {
+      "claim": "Route groups such as (marketing) do not appear in URLs.",
+      "evidencePath": "app/(marketing)/about/page.tsx"
+    },
+    {
+      "claim": "The dynamic segment [slug] becomes :slug in the URL.",
+      "evidencePath": "app/blog/[slug]/page.tsx"
+    },
+    {
+      "claim": "getPosts returns the POSTS array.",
+      "evidencePath": "lib/posts.ts"
+    },
+    {
+      "claim": "Button renders a button with the label prop.",
+      "evidencePath": "components/Button.tsx"
+    },
+    {
+      "claim": "The @/ alias maps to the project root.",
+      "evidencePath": "tsconfig.json"
+    },
+    {
+      "claim": "The middleware returns the request unchanged.",
+      "evidencePath": "middleware.ts"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "app/layout.tsx",
+        "kind": "app_root"
+      },
+      {
+        "path": "middleware.ts",
+        "kind": "middleware"
+      },
+      {
+        "path": "app/page.tsx",
+        "kind": "page"
+      }
+    ],
+    "routes": [
+      {
+        "method": "GET",
+        "pattern": "/about",
+        "path": "app/(marketing)/about/page.tsx"
+      },
+      {
+        "method": "GET",
+        "pattern": "/api/posts",
+        "path": "app/api/posts/route.ts"
+      },
+      {
+        "method": "POST",
+        "pattern": "/api/posts",
+        "path": "app/api/posts/route.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/blog/:slug",
+        "path": "app/blog/[slug]/page.tsx"
+      },
+      {
+        "method": "GET",
+        "pattern": "/",
+        "path": "app/page.tsx"
+      }
+    ],
+    "imports": [
+      ["app/api/posts/route.ts", "lib/posts.ts"],
+      ["app/page.tsx", "components/Button.tsx"],
+      ["app/page.tsx", "lib/posts.ts"],
+      ["components/Button.test.tsx", "components/Button.tsx"]
+    ],
+    "symbols": [
+      "app/layout.tsx#RootLayout",
+      "app/page.tsx#Home",
+      "lib/posts.ts#getPosts",
+      "components/Button.tsx#Button"
+    ],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "library",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/library"
+  },
+  "shape": "cli-or-library",
+  "size": "small",
+  "entryPoints": ["src/index.ts"],
+  "keyFlows": [
+    {
+      "name": "public sum API",
+      "hops": ["src/index.ts", "src/math/add.ts"]
+    },
+    {
+      "name": "store usage",
+      "hops": ["src/index.ts", "src/util.ts"]
+    },
+    {
+      "name": "lazy load",
+      "hops": ["src/index.ts", "src/lazy.ts"]
+    }
+  ],
+  "coreModules": ["src/index.ts", "src/math/add.ts", "src/util.ts", "src/legacy.js"],
+  "facts": [
+    {
+      "claim": "sum adds two numbers and the legacy value.",
+      "evidencePath": "src/index.ts"
+    },
+    {
+      "claim": "The package main is dist/index.js.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "add returns a plus b.",
+      "evidencePath": "src/math/add.ts"
+    },
+    {
+      "claim": "math/index re-exports add.",
+      "evidencePath": "src/math/index.ts"
+    },
+    {
+      "claim": "util.js resolves to util.ts.",
+      "evidencePath": "src/index.ts"
+    },
+    {
+      "claim": "Store has load and save methods.",
+      "evidencePath": "src/util.ts"
+    },
+    {
+      "claim": "lazy is loaded with a dynamic import.",
+      "evidencePath": "src/index.ts"
+    },
+    {
+      "claim": "legacy.js uses require.",
+      "evidencePath": "src/legacy.js"
+    },
+    {
+      "claim": "src/broken.ts has a syntax error.",
+      "evidencePath": "src/broken.ts"
+    },
+    {
+      "claim": "lodash is an external dependency.",
+      "evidencePath": "package.json"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "src/index.ts",
+        "kind": "main"
+      }
+    ],
+    "routes": [],
+    "imports": [
+      ["src/index.test.ts", "src/index.ts"],
+      ["src/index.ts", "src/lazy.ts"],
+      ["src/index.ts", "src/legacy.js"],
+      ["src/index.ts", "src/math/add.ts"],
+      ["src/index.ts", "src/math/index.ts"],
+      ["src/index.ts", "src/util.ts"],
+      ["src/legacy.js", "src/lazy.ts"],
+      ["src/math/index.ts", "src/math/add.ts"]
+    ],
+    "symbols": [
+      "src/index.ts#sum",
+      "src/math/add.ts#add",
+      "src/util.ts#Store",
+      "src/util.ts#Store.load",
+      "src/util.ts#Store.save"
+    ],
+    "unresolvedImports": 1,
+    "parseErrors": ["src/broken.ts"]
+  }
+}

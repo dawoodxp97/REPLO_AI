@@ -1,0 +1,98 @@
+{
+  "framework": "Express",
+  "symbols": [
+    {
+      "qualifiedName": "usersRouter",
+      "name": "usersRouter",
+      "kind": "variable",
+      "startLine": 3,
+      "endLine": 3,
+      "exported": true,
+      "signature": "const usersRouter = Router()",
+      "symbolKey": "src/routes/users.ts#usersRouter",
+      "path": "src/routes/users.ts"
+    },
+    {
+      "qualifiedName": "app",
+      "name": "app",
+      "kind": "variable",
+      "startLine": 4,
+      "endLine": 4,
+      "exported": false,
+      "signature": "const app = express()",
+      "symbolKey": "src/server.ts#app",
+      "path": "src/server.ts"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "src/server.ts",
+      "toPath": "src/routes/users.ts",
+      "kind": "import"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "src/server.ts",
+      "kind": "script",
+      "score": 100,
+      "reason": "scripts.start"
+    },
+    {
+      "path": "src/server.ts",
+      "kind": "main",
+      "score": 80,
+      "reason": "main"
+    },
+    {
+      "path": "src/server.ts",
+      "kind": "server",
+      "score": 75,
+      "reason": "express listen"
+    }
+  ],
+  "routes": [
+    {
+      "framework": "express",
+      "method": "GET",
+      "pattern": "/users",
+      "path": "src/routes/users.ts",
+      "line": 5
+    },
+    {
+      "framework": "express",
+      "method": "POST",
+      "pattern": "/users",
+      "path": "src/routes/users.ts",
+      "line": 9
+    },
+    {
+      "framework": "express",
+      "method": "GET",
+      "pattern": "/health",
+      "path": "src/server.ts",
+      "line": 6
+    },
+    {
+      "framework": "express",
+      "method": "ANY",
+      "pattern": "/api",
+      "path": "src/server.ts",
+      "line": 10
+    }
+  ],
+  "metrics": {
+    "src/routes/users.ts": {
+      "fanIn": 1,
+      "fanOut": 0,
+      "pageRank": 0.649123
+    },
+    "src/server.ts": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.350877
+    }
+  },
+  "unresolvedImports": 0,
+  "parseErrors": []
+}

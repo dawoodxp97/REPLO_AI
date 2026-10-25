@@ -1,0 +1,10 @@
+{
+  "name": "todo-spa",
+  "scripts": { "dev": "vite", "build": "vite build", "test": "vitest run" },
+  "dependencies": {
+    "@reduxjs/toolkit": "2.9.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-redux": "9.2.0"
+  }
+}

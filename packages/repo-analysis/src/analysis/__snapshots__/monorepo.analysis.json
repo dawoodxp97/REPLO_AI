@@ -1,0 +1,125 @@
+{
+  "framework": null,
+  "symbols": [
+    {
+      "qualifiedName": "renderCatalog",
+      "name": "renderCatalog",
+      "kind": "function",
+      "startLine": 4,
+      "endLine": 6,
+      "exported": true,
+      "signature": "function renderCatalog(products: Product[]): string {",
+      "symbolKey": "apps/web/src/catalog.ts#renderCatalog",
+      "path": "apps/web/src/catalog.ts"
+    },
+    {
+      "qualifiedName": "products",
+      "name": "products",
+      "kind": "variable",
+      "startLine": 4,
+      "endLine": 4,
+      "exported": false,
+      "signature": "const products: Product[] = [{ id: 'tea', priceCents: 450 }]",
+      "symbolKey": "apps/web/src/main.ts#products",
+      "path": "apps/web/src/main.ts"
+    },
+    {
+      "qualifiedName": "formatPrice",
+      "name": "formatPrice",
+      "kind": "function",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "function formatPrice(cents: number): string {",
+      "symbolKey": "packages/core/src/price.ts#formatPrice",
+      "path": "packages/core/src/price.ts"
+    },
+    {
+      "qualifiedName": "Product",
+      "name": "Product",
+      "kind": "interface",
+      "startLine": 1,
+      "endLine": 4,
+      "exported": true,
+      "signature": "interface Product {",
+      "symbolKey": "packages/core/src/types.ts#Product",
+      "path": "packages/core/src/types.ts"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "apps/web/src/catalog.ts",
+      "toPath": "packages/core/src/index.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "apps/web/src/catalog.ts",
+      "toPath": "packages/core/src/price.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "apps/web/src/main.ts",
+      "toPath": "apps/web/src/catalog.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "apps/web/src/main.ts",
+      "toPath": "packages/core/src/index.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "packages/core/src/index.ts",
+      "toPath": "packages/core/src/price.ts",
+      "kind": "import"
+    },
+    {
+      "fromPath": "packages/core/src/index.ts",
+      "toPath": "packages/core/src/types.ts",
+      "kind": "import"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "apps/web/src/main.ts",
+      "kind": "main",
+      "score": 80,
+      "reason": "main (apps/web)"
+    },
+    {
+      "path": "packages/core/src/index.ts",
+      "kind": "main",
+      "score": 80,
+      "reason": "main (packages/core)"
+    }
+  ],
+  "routes": [],
+  "metrics": {
+    "apps/web/src/catalog.ts": {
+      "fanIn": 1,
+      "fanOut": 2,
+      "pageRank": 0.162166
+    },
+    "apps/web/src/main.ts": {
+      "fanIn": 0,
+      "fanOut": 2,
+      "pageRank": 0.113801
+    },
+    "packages/core/src/index.ts": {
+      "fanIn": 2,
+      "fanOut": 2,
+      "pageRank": 0.231087
+    },
+    "packages/core/src/price.ts": {
+      "fanIn": 2,
+      "fanOut": 0,
+      "pageRank": 0.280933
+    },
+    "packages/core/src/types.ts": {
+      "fanIn": 1,
+      "fanOut": 0,
+      "pageRank": 0.212013
+    }
+  },
+  "unresolvedImports": 0,
+  "parseErrors": []
+}

@@ -1,0 +1,4 @@
+{
+  "extends": "@replo/config/tsconfig.node.json",
+  "include": ["src", "*.ts"]
+}

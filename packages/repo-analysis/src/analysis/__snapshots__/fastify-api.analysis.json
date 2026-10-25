@@ -1,0 +1,71 @@
+{
+  "framework": "Fastify",
+  "symbols": [
+    {
+      "qualifiedName": "app",
+      "name": "app",
+      "kind": "variable",
+      "startLine": 4,
+      "endLine": 4,
+      "exported": false,
+      "signature": "const app = Fastify()",
+      "symbolKey": "src/index.ts#app",
+      "path": "src/index.ts"
+    },
+    {
+      "qualifiedName": "dbPlugin",
+      "name": "dbPlugin",
+      "kind": "function",
+      "startLine": 1,
+      "endLine": 3,
+      "exported": true,
+      "signature": "async function dbPlugin() {",
+      "symbolKey": "src/plugins/db.ts#dbPlugin",
+      "path": "src/plugins/db.ts"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "src/index.ts",
+      "toPath": "src/plugins/db.ts",
+      "kind": "import"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "src/index.ts",
+      "kind": "bin",
+      "score": 90,
+      "reason": "bin.ping-api"
+    },
+    {
+      "path": "src/index.ts",
+      "kind": "server",
+      "score": 75,
+      "reason": "fastify listen"
+    }
+  ],
+  "routes": [
+    {
+      "framework": "fastify",
+      "method": "GET",
+      "pattern": "/ping",
+      "path": "src/index.ts",
+      "line": 8
+    }
+  ],
+  "metrics": {
+    "src/index.ts": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.350877
+    },
+    "src/plugins/db.ts": {
+      "fanIn": 1,
+      "fanOut": 0,
+      "pageRank": 0.649123
+    }
+  },
+  "unresolvedImports": 0,
+  "parseErrors": []
+}

@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+dist
+coverage
+.turbo
+pnpm-lock.yaml
+Replo_BluePrint.md
+apps/api/drizzle
+packages/repo-analysis/fixtures
+**/__snapshots__/**

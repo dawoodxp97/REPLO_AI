@@ -1,0 +1,5 @@
+{
+  "name": "ping",
+  "bin": { "ping-api": "dist/index.js" },
+  "dependencies": { "fastify": "5.6.0" }
+}

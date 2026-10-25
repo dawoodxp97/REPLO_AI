@@ -1,0 +1,87 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "legacy-js",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/legacy-js"
+  },
+  "shape": "legacy-js",
+  "size": "small",
+  "entryPoints": ["index.js"],
+  "keyFlows": [
+    {
+      "name": "module export",
+      "hops": ["index.js", "lib/router.js"]
+    },
+    {
+      "name": "route lookup",
+      "hops": ["lib/router.js", "lib/handlers.js"]
+    },
+    {
+      "name": "external utility",
+      "hops": ["lib/router.js"]
+    }
+  ],
+  "coreModules": ["index.js", "lib/router.js", "lib/handlers.js"],
+  "facts": [
+    {
+      "claim": "index.js re-exports the router module.",
+      "evidencePath": "index.js"
+    },
+    {
+      "claim": "router.route returns the handler result for a known path.",
+      "evidencePath": "lib/router.js"
+    },
+    {
+      "claim": "handlers.table maps \"/\" to home.",
+      "evidencePath": "lib/handlers.js"
+    },
+    {
+      "claim": "router.js uses lodash noop as the fallback.",
+      "evidencePath": "lib/router.js"
+    },
+    {
+      "claim": "lodash is declared in dependencies.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "The test script runs mocha.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "The code uses CommonJS exports and no ES modules.",
+      "evidencePath": "index.js"
+    },
+    {
+      "claim": "home returns the string home.",
+      "evidencePath": "lib/handlers.js"
+    },
+    {
+      "claim": "No HTTP route is registered in this project.",
+      "evidencePath": "index.js"
+    },
+    {
+      "claim": "The project has no tsconfig.",
+      "evidencePath": "package.json"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "index.js",
+        "kind": "main"
+      }
+    ],
+    "routes": [],
+    "imports": [
+      ["index.js", "lib/router.js"],
+      ["lib/router.js", "lib/handlers.js"]
+    ],
+    "symbols": ["index.js#router", "lib/router.js#route"],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  }
+}

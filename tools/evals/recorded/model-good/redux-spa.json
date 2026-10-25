@@ -1,0 +1,6 @@
+{
+  "output": {
+    "entryPoints": ["src/main.tsx"],
+    "routes": []
+  }
+}

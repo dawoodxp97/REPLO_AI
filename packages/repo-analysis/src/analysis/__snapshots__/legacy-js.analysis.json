@@ -1,0 +1,89 @@
+{
+  "framework": null,
+  "symbols": [
+    {
+      "qualifiedName": "router",
+      "name": "router",
+      "kind": "variable",
+      "startLine": 1,
+      "endLine": 1,
+      "exported": false,
+      "signature": "var router = require('./lib/router')",
+      "symbolKey": "index.js#router",
+      "path": "index.js"
+    },
+    {
+      "qualifiedName": "handlers",
+      "name": "handlers",
+      "kind": "variable",
+      "startLine": 1,
+      "endLine": 1,
+      "exported": false,
+      "signature": "var handlers = require('./handlers')",
+      "symbolKey": "lib/router.js#handlers",
+      "path": "lib/router.js"
+    },
+    {
+      "qualifiedName": "_",
+      "name": "_",
+      "kind": "variable",
+      "startLine": 2,
+      "endLine": 2,
+      "exported": false,
+      "signature": "var _ = require('lodash')",
+      "symbolKey": "lib/router.js#_",
+      "path": "lib/router.js"
+    },
+    {
+      "qualifiedName": "route",
+      "name": "route",
+      "kind": "function",
+      "startLine": 4,
+      "endLine": 7,
+      "exported": false,
+      "signature": "function route(path) {",
+      "symbolKey": "lib/router.js#route",
+      "path": "lib/router.js"
+    }
+  ],
+  "edges": [
+    {
+      "fromPath": "index.js",
+      "toPath": "lib/router.js",
+      "kind": "import"
+    },
+    {
+      "fromPath": "lib/router.js",
+      "toPath": "lib/handlers.js",
+      "kind": "import"
+    }
+  ],
+  "entryPoints": [
+    {
+      "path": "index.js",
+      "kind": "main",
+      "score": 80,
+      "reason": "main"
+    }
+  ],
+  "routes": [],
+  "metrics": {
+    "index.js": {
+      "fanIn": 0,
+      "fanOut": 1,
+      "pageRank": 0.184417
+    },
+    "lib/handlers.js": {
+      "fanIn": 1,
+      "fanOut": 0,
+      "pageRank": 0.474412
+    },
+    "lib/router.js": {
+      "fanIn": 1,
+      "fanOut": 1,
+      "pageRank": 0.341171
+    }
+  },
+  "unresolvedImports": 0,
+  "parseErrors": []
+}

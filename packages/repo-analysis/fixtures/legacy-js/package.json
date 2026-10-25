@@ -1,0 +1,6 @@
+{
+  "name": "old-router",
+  "main": "index.js",
+  "scripts": { "test": "mocha" },
+  "dependencies": { "lodash": "4.17.21" }
+}

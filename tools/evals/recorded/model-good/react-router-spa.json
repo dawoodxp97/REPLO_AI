@@ -1,0 +1,17 @@
+{
+  "output": {
+    "entryPoints": ["src/main.tsx"],
+    "routes": [
+      {
+        "method": "GET",
+        "pattern": "/",
+        "path": "src/main.tsx"
+      },
+      {
+        "method": "GET",
+        "pattern": "/tasks/:taskId",
+        "path": "src/main.tsx"
+      }
+    ]
+  }
+}

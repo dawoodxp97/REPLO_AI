@@ -1,0 +1,6 @@
+{
+  "output": {
+    "entryPoints": ["index.js"],
+    "routes": []
+  }
+}

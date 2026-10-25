@@ -1,0 +1,105 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "next-pages",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/next-pages"
+  },
+  "shape": "nextjs-pages",
+  "size": "small",
+  "entryPoints": ["pages/_app.tsx"],
+  "keyFlows": [
+    {
+      "name": "home renders the catalog",
+      "hops": ["pages/index.tsx", "lib/data.ts"]
+    },
+    {
+      "name": "hello API",
+      "hops": ["pages/api/hello.ts"]
+    },
+    {
+      "name": "app wrapper",
+      "hops": ["pages/_app.tsx"]
+    }
+  ],
+  "coreModules": ["pages/index.tsx", "lib/data.ts", "pages/api/hello.ts"],
+  "facts": [
+    {
+      "claim": "_app.tsx is the application root.",
+      "evidencePath": "pages/_app.tsx"
+    },
+    {
+      "claim": "pages/index.tsx renders at /.",
+      "evidencePath": "pages/index.tsx"
+    },
+    {
+      "claim": "pages/index.tsx imports loadCatalog through baseUrl.",
+      "evidencePath": "pages/index.tsx"
+    },
+    {
+      "claim": "loadCatalog returns two items.",
+      "evidencePath": "lib/data.ts"
+    },
+    {
+      "claim": "pages/api/hello.ts is an API route.",
+      "evidencePath": "pages/api/hello.ts"
+    },
+    {
+      "claim": "The API handler responds with status 200 and { ok: true }.",
+      "evidencePath": "pages/api/hello.ts"
+    },
+    {
+      "claim": "pages/posts/[id].tsx renders at /posts/:id.",
+      "evidencePath": "pages/posts/[id].tsx"
+    },
+    {
+      "claim": "The project depends on next 15.5.0.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "The dev script runs next dev.",
+      "evidencePath": "package.json"
+    },
+    {
+      "claim": "The tsconfig sets baseUrl to the project root.",
+      "evidencePath": "tsconfig.json"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "pages/_app.tsx",
+        "kind": "app_root"
+      }
+    ],
+    "routes": [
+      {
+        "method": "ANY",
+        "pattern": "/api/hello",
+        "path": "pages/api/hello.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/",
+        "path": "pages/index.tsx"
+      },
+      {
+        "method": "GET",
+        "pattern": "/posts/:id",
+        "path": "pages/posts/[id].tsx"
+      }
+    ],
+    "imports": [["pages/index.tsx", "lib/data.ts"]],
+    "symbols": [
+      "pages/_app.tsx#App",
+      "pages/index.tsx#Home",
+      "lib/data.ts#loadCatalog",
+      "pages/api/hello.ts#handler"
+    ],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  }
+}
