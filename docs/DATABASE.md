@@ -8,7 +8,7 @@ PostgreSQL 17 is the **single system of record** (records + job queue), accessed
 - **Relational for what's queried across documents; JSONB for the document itself.** A tutorial version's full content is one immutable, schema-versioned JSONB document; refs, progress and quiz attempts are normalised.
 - **Version chain:** `repository → repo_snapshot (commit SHA + analyzer_version) → tutorial_version` (pinned to exactly one snapshot, records the models used).
 - **Money is integer micro-USD** (`*_micros`, 1 USD = 1,000,000). DTOs convert to USD for display only.
-- **IDs:** app-side UUIDv7 for entity PKs; Better Auth tables use text IDs; `job_events` uses `bigserial`.
+- **IDs:** app-side UUIDv7 for entity PKs; `user` keeps its text ID; `session` and `auth_identity` use `uuid` (`gen_random_uuid()`); `job_events` uses `bigserial`.
 - **Row types never leave a module's `*.repo.ts`**; services map rows to DTOs from `@replo/contracts`.
 - No vector DB, search engine or graph DB in release 1. pgvector is installed (image `pgvector/pgvector:pg17`) but unused; `chunks` is phase 2. Substring search in R1 uses the `pg_trgm` extension only (FR-SRCH-1).
 
@@ -47,7 +47,7 @@ erDiagram
 
 | Group               | Tables                                                                                                                                                           |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth (Better Auth)  | `user`, `session`, `account`, `verification`                                                                                                                     |
+| Auth                | `user`, `session` (hashed token, 30 days), `auth_identity` (one row per provider per user: password hash, or a sealed GitHub token)                                                                                                                     |
 | GitHub              | `github_installations`, `repositories` (global; public snapshots shared), `user_repositories` (PK user+repo, `revoked_at`)                                       |
 | Models/keys         | `provider_keys` (envelope-encrypted: `ciphertext`, `iv`, `key_version`, `last4`), `model_preferences`                                                            |
 | Preferences         | `user_preferences` (PK `user_id`: theme, default audience level, auto-advance, quizzes on or off, browser notifications on or off). FR-SET-1                     |

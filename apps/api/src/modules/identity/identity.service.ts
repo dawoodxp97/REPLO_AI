@@ -1,43 +1,46 @@
-import type { DeleteAccountInput } from '@replo/contracts'
+import type { DeleteAccountInput, SignInMethodsDto } from '@replo/contracts'
+import type { KeyVault } from '../../platform/crypto/key-vault'
 import type { Db } from '../../platform/db/client'
 import type { TutorialManager } from '../tutorials/manager.service'
+import { openGithubToken } from './github-token'
 import { identityRepo } from './identity.repo'
-
-export interface LinkedAccount {
-  id: string
-  providerId: string
-}
-
-export interface LinkedAccounts {
-  list(headers: Headers): Promise<readonly LinkedAccount[]>
-  accessToken(accountId: string, headers: Headers): Promise<string | undefined>
-}
 
 export interface IdentityService {
   deleteAccount(userId: string, input: DeleteAccountInput): Promise<void>
-  githubAccessToken(headers: Headers): Promise<string | undefined>
+  githubAccessToken(userId: string): Promise<string | undefined>
+  signInMethods(userId: string): Promise<SignInMethodsDto>
 }
 
 interface IdentityDeps {
-  db: Pick<Db, 'transaction'>
-  accounts: LinkedAccounts
+  db: Db
+  vault: Pick<KeyVault, 'open'>
   tutorials: Pick<TutorialManager, 'settleOwnerDeletion'>
 }
 
 export function createIdentityService(deps: IdentityDeps): IdentityService {
+  const { db, vault } = deps
   return {
     deleteAccount(userId, input) {
-      return deps.db.transaction(async (tx) => {
+      return db.transaction(async (tx) => {
         await deps.tutorials.settleOwnerDeletion(tx, userId, input.publicTutorials)
         await identityRepo(tx).deleteUser(userId)
       })
     },
 
-    async githubAccessToken(headers) {
-      const github = (await deps.accounts.list(headers)).find(
-        (account) => account.providerId === 'github',
+    async githubAccessToken(userId) {
+      const identity = await identityRepo(db).identityFor(userId, 'github')
+      return identity ? openGithubToken(vault, userId, identity) : undefined
+    },
+
+    async signInMethods(userId) {
+      const providers = new Set(
+        (await identityRepo(db).identitiesOf(userId)).map((identity) => identity.provider),
       )
-      return github ? await deps.accounts.accessToken(github.id, headers) : undefined
+      return {
+        password: providers.has('password'),
+        google: providers.has('google'),
+        github: providers.has('github'),
+      }
     },
   }
 }

@@ -10,14 +10,13 @@ import { fixedProgress } from '../../test/domain'
 import { createTutorialLibrary } from '../tutorials/library.service'
 import { createTutorialManager, type TutorialManager } from '../tutorials/manager.service'
 import { createTutorialReader } from '../tutorials/reader.service'
+import { randomBytes } from 'node:crypto'
+import { KeyVault } from '../../platform/crypto/key-vault'
 import { createIdentityService } from './identity.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 
-const noAccounts = {
-  list: async () => [],
-  accessToken: async () => undefined,
-}
+const vault = KeyVault.fromEnv(randomBytes(32).toString('base64'), 1)
 
 describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => {
   let db: Db
@@ -52,7 +51,7 @@ describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => 
   })
 
   const identityWith = (tutorialsService: Pick<TutorialManager, 'settleOwnerDeletion'>) =>
-    createIdentityService({ db, accounts: noAccounts, tutorials: tutorialsService })
+    createIdentityService({ db, vault, tutorials: tutorialsService })
 
   const seedUser = async () => {
     const id = randomUUID()

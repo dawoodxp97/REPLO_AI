@@ -8,7 +8,7 @@ Next.js 16 App Router: dashboard, import, job progress, learning player, public 
 src/proxy.ts                         per-request CSP nonce (D-068)
 src/app/(app)/…                      signed-in shell (AuthGate + nav): /, /library, /repositories, /import, /jobs/[jobId], /settings/[section]
 src/app/operator/…                   operator screens; a server check returns 404 to everyone else (D-077)
-src/app/login/                       GitHub sign-in (Better Auth client)
+src/app/login/                       sign-in page (GitHub, Google, email and password)
 src/app/tutorials/[owner]/[repo]/[slug]/…   public overview (SSR), learn/[chapterKey]/[lessonKey], code (source explorer), progress, opengraph-image (public only)
 src/components/                      shared components (AppNav, ConfirmDialog, ErrorPanel, LinkButton, PageHeader, RadioCardGroup, Sheet, SafeMarkdown)
 src/features/<name>/                 composites: session, import, keys, jobs, notifications, library, search, dashboard, tutorials, diagram, player, quiz, progress, repositories, settings, operator

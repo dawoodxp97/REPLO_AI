@@ -24,7 +24,6 @@ import type { JobQueue } from './platform/queue/job-queue'
 import { createDomainServices, createServices } from './composition'
 import type { RequestContext, SessionUser } from './context'
 import { router } from './router'
-import { stubAuth } from './test/sse'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 
@@ -74,7 +73,14 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
 
   const clientFor = (session: SessionUser | null) =>
     createRouterClient(router, {
-      context: { user: session, services, idempotencyKey: undefined, requestId: randomUUID() },
+      context: {
+        user: session,
+        sessionId: session ? randomUUID() : null,
+        setSessionToken: () => undefined,
+        services,
+        idempotencyKey: undefined,
+        requestId: randomUUID(),
+      },
     })
 
   beforeAll(async () => {
@@ -87,13 +93,12 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
     const config = loadConfig({
       NODE_ENV: 'test',
       DATABASE_URL,
-      BETTER_AUTH_SECRET: 'x'.repeat(32),
-      BETTER_AUTH_URL: 'http://localhost:4000',
+      API_PUBLIC_URL: 'http://localhost:4000',
       PRODUCT_ORIGIN: 'http://localhost:3001',
       KEY_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
     })
     const domain = createDomainServices({ config, db, queue: unusedQueue })
-    services = createServices({ db, auth: stubAuth, domain })
+    services = createServices({ config, db, domain, oauth: {} })
   })
 
   afterAll(async () => {

@@ -1,6 +1,7 @@
 import type { AddressInfo } from 'node:net'
 import type { App } from '../platform/http'
-import type { Auth } from '../modules/identity/auth'
+import type { AuthService } from '../modules/identity/auth.service'
+import { SESSION_COOKIE } from '../modules/identity/session'
 
 export interface ParsedFrame {
   id: string | undefined
@@ -35,19 +36,17 @@ export async function* parseSse(body: ReadableStream<Uint8Array>): AsyncGenerato
   }
 }
 
-export const stubAuth = {
-  api: {
-    getSession: async ({ headers }: { headers: Headers }) => {
-      const id = headers.get('x-test-user')
-      return id
-        ? {
-            user: { id, name: 'Developer', email: `${id}@test.invalid` },
-            session: { id: 'session' },
-          }
-        : null
-    },
-  },
-} as unknown as Auth
+export const sessionCookieFor = (userId: string) => ({ cookie: `${SESSION_COOKIE}=${userId}` })
+
+export const stubAuth: Pick<AuthService, 'currentSession'> = {
+  currentSession: async (token) =>
+    token
+      ? {
+          sessionId: `session-${token}`,
+          user: { id: token, name: 'Developer', email: `${token}@test.invalid`, image: null },
+        }
+      : null,
+}
 
 export async function listenOnLoopback(app: App): Promise<string> {
   await app.listen({ port: 0, host: '127.0.0.1' })

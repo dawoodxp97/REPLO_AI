@@ -43,7 +43,7 @@ Not verified: the database suites (no Postgres here). Typecheck covers the code 
 ## Fourth pass (query counts)
 
 - `tutorials.list` fetched progress once per row, about six queries each. It now makes three queries in total for a page: the list, the lesson keys of the current versions, and the completed lessons. The batch is `LearningService.completionRatios(userId, targets)`; `overview` and `summary` still use `completionRatio` for one tutorial. `learning.readableOrUndefined` still uses a thrown `NOT_FOUND` as control flow on those single paths.
-- `sessionFromRequest` caches the lookup per request, so the rate-limit key and the `/rpc` handler (and the SSE and GitHub setup routes) share one Better Auth call.
+- `sessionFromRequest` caches the lookup per request, so the rate-limit key and the `/rpc` handler (and the SSE and GitHub setup routes) share one session lookup.
 
 ## Fifth pass (one outcome type)
 

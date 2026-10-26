@@ -64,6 +64,13 @@
       "when": 1792661061895,
       "tag": "0008_drop_unused_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792984518531,
+      "tag": "0009_custom_auth",
+      "breakpoints": true
     }
   ]
 }

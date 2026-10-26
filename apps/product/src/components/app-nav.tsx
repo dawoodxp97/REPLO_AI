@@ -1,12 +1,12 @@
 'use client'
 
 import { Button, cn } from '@replo/ui'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { NotificationBell } from '@/features/notifications/notification-bell'
 import { SearchBox } from '@/features/search/search-box'
-import { signOut } from '@/lib/auth-client'
+import { orpc } from '@/lib/orpc'
 
 const LINKS = [
   { href: '/', label: 'Dashboard' },
@@ -19,11 +19,15 @@ const LINKS = [
 export function AppNav({ className }: { className?: string }) {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const signOut = useMutation(orpc.auth.signOut.mutationOptions())
 
   async function endSession() {
-    await signOut()
-    queryClient.clear()
-    router.replace('/login')
+    try {
+      await signOut.mutateAsync()
+    } finally {
+      queryClient.clear()
+      router.replace('/login')
+    }
   }
 
   return (

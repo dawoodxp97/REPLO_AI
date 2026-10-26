@@ -11,7 +11,13 @@ import { createDb, type Db } from '../../platform/db/client'
 import { generationJobs, jobEvents, repoSnapshots, repositories } from '../../platform/db/schema'
 import type { App } from '../../platform/http'
 import { createLogger } from '../../platform/logger'
-import { listenOnLoopback, parseSse, stubAuth, type ParsedFrame } from '../../test/sse'
+import {
+  listenOnLoopback,
+  parseSse,
+  sessionCookieFor,
+  stubAuth,
+  type ParsedFrame,
+} from '../../test/sse'
 import { registerJobEventsRoute } from './job-events.route'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -118,8 +124,8 @@ describe.skipIf(DATABASE_URL === '')('job events stream against Postgres', () =>
     const jobId = await seedJob(owner, 'running')
 
     expect((await open(jobId, {})).status).toBe(404)
-    expect((await open(jobId, { 'x-test-user': stranger })).status).toBe(404)
-    expect((await open('not-a-uuid', { 'x-test-user': owner })).status).toBe(404)
+    expect((await open(jobId, sessionCookieFor(stranger))).status).toBe(404)
+    expect((await open('not-a-uuid', sessionCookieFor(owner))).status).toBe(404)
   })
 
   it('replays only the events after Last-Event-ID and closes at a terminal status', async () => {
@@ -130,7 +136,7 @@ describe.skipIf(DATABASE_URL === '')('job events stream against Postgres', () =>
     await addEvent(jobId, 'stage_completed')
     await addEvent(jobId, 'succeeded')
 
-    const res = await open(jobId, { 'x-test-user': owner, 'last-event-id': String(first) })
+    const res = await open(jobId, { ...sessionCookieFor(owner), 'last-event-id': String(first) })
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toContain('text/event-stream')
     const frames = parseSse(res.body!)
@@ -153,7 +159,7 @@ describe.skipIf(DATABASE_URL === '')('job events stream against Postgres', () =>
     const jobId = await seedJob(owner, 'running')
     await addEvent(jobId, 'queued')
 
-    const res = await open(jobId, { 'x-test-user': owner })
+    const res = await open(jobId, sessionCookieFor(owner))
     expect(res.headers.get('access-control-allow-origin')).toBeNull()
     const frames = parseSse(res.body!)[Symbol.asyncIterator]()
 
@@ -174,7 +180,7 @@ describe.skipIf(DATABASE_URL === '')('job events stream against Postgres', () =>
     await addEvent(jobId, 'succeeded')
 
     const res = await fetch(`${baseUrl}/jobs/${jobId}/events`, {
-      headers: { 'x-test-user': owner, origin: ORIGIN },
+      headers: { ...sessionCookieFor(owner), origin: ORIGIN },
     })
     expect(res.headers.get('access-control-allow-origin')).toBe(ORIGIN)
     expect(res.headers.get('access-control-allow-credentials')).toBe('true')

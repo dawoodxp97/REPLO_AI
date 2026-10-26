@@ -48,7 +48,7 @@ Workspaces/roles/team plans/SSO · languages other than TS/JS · executing repo 
 
 ### Core journey (Release 1)
 
-1. Sign in with GitHub.
+1. Sign in with GitHub, Google, or an email address and password.
 2. Paste a repo URL **or** pick from repos the GitHub App installation can read.
 3. **Pre-flight** (seconds, no LLM): languages, file count, size, detected framework — or a specific refusal reason.
 4. Choose **audience level** (newcomer / intermediate / expert), **one of your keys** and a **model preset**; see estimated tokens and cost (your provider's bill).
@@ -66,10 +66,11 @@ Priority: **E** = Essential for Release 1 · **V** = after validation · **L** =
 
 | ID        | Requirement                                                                                                                | P   |
 | --------- | -------------------------------------------------------------------------------------------------------------------------- | --- |
-| FR-AUTH-1 | GitHub sign-in via Better Auth; sessions in own DB; httpOnly + Secure + SameSite=Lax cookies                               | E   |
+| FR-AUTH-1 | Sign in with GitHub, Google, or email and password (own code, ADR-009); opaque sessions in own DB, hashed; httpOnly + Secure + SameSite=Lax cookies; OAuth uses PKCE and state | E   |
 | FR-AUTH-2 | Individual accounts only — no workspaces, roles or teams anywhere in schema or UI                                          | E   |
 | FR-AUTH-3 | Account deletion removes keys, progress, private tutorials and blobs; user chooses to delete or anonymise public tutorials | E   |
-| FR-AUTH-4 | Sign out every other session for the user; the current session stays (Better Auth `revokeOtherSessions`) | E   |
+| FR-AUTH-4 | Sign out every other session for the user; the current session stays | E   |
+| FR-AUTH-5 | A GitHub-signed-in user may import private repositories; users who signed in another way see public repositories only. Mechanism pending (MEM open item) | E   |
 
 ### 4.2 Repository import and pre-flight
 
@@ -209,7 +210,7 @@ Full detail: [`ARCHITECTURE.md`](./ARCHITECTURE.md), [`docs/DATABASE.md`](./docs
 ```
 Browser → Cloudflare (DNS/TLS/CDN) ─┬─ apps/landing  (static export, Cloudflare Pages)
                                     └─ Caddy → apps/product (Next.js standalone)
-                                             → apps/api     (Fastify + oRPC + Better Auth + SSE + webhooks)
+                                             → apps/api     (Fastify + oRPC + own auth + SSE + webhooks)
          apps/api worker (pg-boss) ─ Postgres 17 (records + queue) ─ R2 (blobs, backups)
                                    ─ GitHub (repo-scoped token) ─ the user's own provider key (BYOK only)
 ```
@@ -226,12 +227,12 @@ One immutable, schema-versioned JSONB document per `tutorial_version` (`Tutorial
 
 ## 7. Data model (summary)
 
-Postgres 17 + Drizzle. Chain: `repository → snapshot (commit SHA + analyzer_version) → tutorial_version` (pinned to exactly one snapshot, records models used). Tables: Better Auth core · `github_installations` · `repositories` · `user_repositories` · `provider_keys` · `model_preferences` · `repo_snapshots` · `snapshot_files` · `symbols` · `file_edges` · `generation_jobs` · `job_stages` · `job_events` · `llm_calls` · `tutorials` · `tutorial_versions` · `tutorial_source_refs` · `learning_progress` · `quiz_attempts` · `lesson_index` · `notifications` · `user_preferences` · `webhook_deliveries` (+ `chunks` in phase 2). See [`docs/DATABASE.md`](./docs/DATABASE.md).
+Postgres 17 + Drizzle. Chain: `repository → snapshot (commit SHA + analyzer_version) → tutorial_version` (pinned to exactly one snapshot, records models used). Tables: `user` · `session` · `auth_identity` (auth core, ADR-009) · `github_installations` · `repositories` · `user_repositories` · `provider_keys` · `model_preferences` · `repo_snapshots` · `snapshot_files` · `symbols` · `file_edges` · `generation_jobs` · `job_stages` · `job_events` · `llm_calls` · `tutorials` · `tutorial_versions` · `tutorial_source_refs` · `learning_progress` · `quiz_attempts` · `lesson_index` · `notifications` · `user_preferences` · `webhook_deliveries` (+ `chunks` in phase 2). See [`docs/DATABASE.md`](./docs/DATABASE.md).
 
 ## 8. API surface (Release 1)
 
 oRPC procedures: `me.get` · `github.{installUrl,listRepos}` · `keys.{list,add,validate,delete}` · `models.{catalog,getPreferences,setPreferences}` · `repositories.{preflight,import}` · `jobs.{get,cancel,retry}` · `tutorials.{list,get,getChapter,getSource,setVisibility,createShareLink,delete}` · `learning.{getProgress,markLesson,unmarkLesson,submitQuiz}` · `repositories.{list,remove}` · `search.own` · `dashboard.{summary,recent}` · `notifications.{list,unreadCount,markRead,markAllRead,delete}` · `settings.{get,update}`.
-REST/SSE: `/api/auth/*` · `GET /jobs/:id/events` · `POST /webhooks/github` · `GET /healthz` · `GET /readyz`. Details and auth rules: [`docs/API.md`](./docs/API.md).
+oRPC procedures for sign-in and sessions: `auth.{providers,signUp,signIn,signOut,revokeOtherSessions}`. REST: `/auth/:provider/{start,callback}` · `GET /jobs/:id/events` · `POST /webhooks/github` · `GET /healthz` · `GET /readyz`. Details and auth rules: [`docs/API.md`](./docs/API.md).
 
 ## 9. Cost and keys
 

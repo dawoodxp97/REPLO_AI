@@ -17,8 +17,9 @@ import { createJobRuntime, type JobRuntime } from './modules/generation/job-runt
 import { createJobService, type JobService } from './modules/generation/jobs.service'
 import { createGithubService, type GithubService } from './modules/github/github.service'
 import { githubAppFrom } from './modules/github/github.app'
-import { createIdentityService } from './modules/identity/identity.service'
-import { betterAuthAccounts, type Auth } from './modules/identity/auth'
+import { createAuthService, type AuthService } from './modules/identity/auth.service'
+import { createIdentityService, type IdentityService } from './modules/identity/identity.service'
+import type { OAuthClients } from './modules/identity/oauth'
 import { createIndexingService, type IndexingService } from './modules/indexing/indexing.service'
 import { createKeysService, type KeysService } from './modules/keys/keys.service'
 import { createLearningService, type LearningService } from './modules/learning/learning.service'
@@ -181,14 +182,27 @@ export function createDomainServices(deps: {
   }
 }
 
-export function createServices(deps: { db: Db; auth: Auth; domain: DomainServices }): Services {
-  const { db, auth, domain } = deps
+export function createServices(deps: {
+  config: Config
+  db: Db
+  domain: DomainServices
+  oauth: OAuthClients
+}): Services {
+  const { config, db, domain, oauth } = deps
+  const vault = KeyVault.fromEnv(config.KEY_ENCRYPTION_KEY, config.KEY_ENCRYPTION_KEY_VERSION)
+  const auth: AuthService = createAuthService({
+    db,
+    vault,
+    enabled: { google: oauth.google !== undefined, github: oauth.github !== undefined },
+  })
+  const identity: IdentityService = createIdentityService({
+    db,
+    vault,
+    tutorials: domain.tutorialManager,
+  })
   return {
-    identity: createIdentityService({
-      db,
-      accounts: betterAuthAccounts(auth),
-      tutorials: domain.tutorialManager,
-    }),
+    auth,
+    identity,
     github: domain.github,
     repositoryLibrary: domain.repositoryLibrary,
     repositoryImports: domain.repositoryImports,

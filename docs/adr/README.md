@@ -12,5 +12,6 @@ Decisions that are expensive to reverse. Format: **Context → Decision → Cons
 | [006](./006-individual-developers-byok-free-pool.md) | Individual developers only, with BYOK and a free pool       | Partly superseded by 007 |
 | [007](./007-byok-only-no-billing.md)                 | BYOK only, free for everyone, no billing or ads ever        | Accepted |
 | [008](./008-no-runnable-code-in-r1.md)               | No runnable code examples in the player in release 1        | Accepted |
+| [009](./009-own-auth-no-better-auth.md)              | Own authentication instead of Better Auth                   | Accepted |
 
 New ADR: copy the shape of an existing one, number sequentially, add a row here, and link it from the PR.

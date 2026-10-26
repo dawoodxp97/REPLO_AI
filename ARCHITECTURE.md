@@ -11,7 +11,7 @@ replo/
 ├── apps/
 │   ├── landing/    Next.js 16 — static export (Cloudflare Pages): marketing, key guide, docs
 │   ├── product/    Next.js 16 — the app, learning player, public tutorial pages (SSR)
-│   └── api/        Fastify 5 + oRPC + Better Auth — entrypoints: main.http.ts, main.worker.ts
+│   └── api/        Fastify 5 + oRPC + own auth — entrypoints: main.http.ts, main.worker.ts
 ├── packages/
 │   ├── contracts/      Zod 4 schemas + oRPC contract + error codes + tutorial content schema
 │   ├── ai/             AI SDK wrapper, role→model registry, budgets, provider resolution
@@ -47,7 +47,7 @@ flowchart LR
   CF -->|app. / api.| CA[Caddy]
   subgraph VPS["One VPS · 2 vCPU / 4 GB · Docker Compose"]
     CA --> P[apps/product<br/>Next standalone]
-    CA --> A[API process<br/>Fastify + oRPC + Better Auth<br/>webhooks, SSE]
+    CA --> A[API process<br/>Fastify + oRPC + own auth<br/>webhooks, SSE]
     W[Worker process<br/>pg-boss handlers]
     PG[(Postgres 17<br/>records + queue)]
     P --> A
@@ -69,11 +69,11 @@ Postgres ~0.6–1.0 · worker 0.5–1.5 peak (concurrency 1–2) · product ~0.2
 ## 3. Backend layout (`apps/api/src`)
 
 ```
-main.http.ts        Fastify + oRPC router + Better Auth + webhooks + SSE + /healthz /readyz
+main.http.ts        Fastify + oRPC router + auth routes + webhooks + SSE + /healthz /readyz
 main.worker.ts      pg-boss workers + reaper; only HTTP is /healthz
 platform/           config(env), db, queue, storage, logger, crypto (key vault), errors, context
 modules/
-  identity/         Better Auth wiring, sessions, current user
+  identity/         sign-up and sign-in, OAuth (Google, GitHub), sessions, current user
   github/           app installs, token minting, webhooks, access checks
   repositories/     repos, snapshots, pre-flight, cost estimate
   indexing/         orchestrates packages/repo-analysis, stores the index

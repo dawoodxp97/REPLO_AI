@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { Preferences } from '@replo/contracts'
 import { DEFAULT_PREFERENCES } from './fixtures/handlers'
-import { API_URL, APP_ORIGIN } from './support/origins'
 import { mockRpc, type RpcCall } from './support/rpc-mock'
 
 test('a theme change is saved and applied to the page', async ({ page }) => {
@@ -21,18 +20,8 @@ test('a theme change is saved and applied to the page', async ({ page }) => {
 })
 
 test('other sessions are signed out and the result is reported', async ({ page }) => {
-  await mockRpc(page)
-  await page.route(`${API_URL}/api/auth/revoke-other-sessions`, (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      headers: {
-        'access-control-allow-origin': APP_ORIGIN,
-        'access-control-allow-credentials': 'true',
-      },
-      body: JSON.stringify({ status: true }),
-    }),
-  )
+  const calls: RpcCall[] = []
+  await mockRpc(page, {}, calls)
 
   await page.goto('/settings/profile')
   await page.getByRole('button', { name: 'Sign out other sessions' }).click()
@@ -40,6 +29,7 @@ test('other sessions are signed out and the result is reported', async ({ page }
   await expect(
     page.getByRole('status').filter({ hasText: 'Other sessions are signed out.' }),
   ).toBeVisible()
+  expect(calls.map((call) => call.path)).toContain('auth.revokeOtherSessions')
 })
 
 test('the model preset is saved', async ({ page }) => {

@@ -2,7 +2,7 @@
   "name": "@replo/api",
   "version": "0.0.0",
   "private": true,
-  "description": "Fastify 5 + oRPC + Better Auth modular monolith. Two entrypoints (HTTP, worker) from one package.",
+  "description": "Fastify 5 + oRPC modular monolith with its own auth. Two entrypoints (HTTP, worker) from one package.",
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=.env src/main.http.ts",
@@ -25,7 +25,6 @@
     "@replo/ai": "workspace:*",
     "@replo/contracts": "workspace:*",
     "@replo/repo-analysis": "workspace:*",
-    "better-auth": "^1.7.10",
     "drizzle-orm": "catalog:",
     "fastify": "^5.12.7",
     "pg": "^8.23.1",

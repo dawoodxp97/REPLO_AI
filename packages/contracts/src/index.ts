@@ -1,3 +1,4 @@
+import { authContract } from './auth'
 import { dashboardContract } from './dashboard'
 import { jobsContract } from './jobs'
 import { keysContract } from './keys'
@@ -12,6 +13,7 @@ import { settingsContract } from './settings'
 import { tutorialsContract } from './tutorials'
 
 export const contract = {
+  auth: authContract,
   me: meContract,
   github: githubContract,
   keys: keysContract,
@@ -28,6 +30,7 @@ export const contract = {
 }
 export type Contract = typeof contract
 
+export * from './auth'
 export * from './common'
 export * from './jobs'
 export * from './keys'

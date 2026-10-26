@@ -1,6 +1,7 @@
 import type { DashboardService } from './modules/dashboard/dashboard.service'
 import type { JobService } from './modules/generation/jobs.service'
 import type { GithubService } from './modules/github/github.service'
+import type { AuthService } from './modules/identity/auth.service'
 import type { IdentityService } from './modules/identity/identity.service'
 import type { KeysService } from './modules/keys/keys.service'
 import type { LearningService } from './modules/learning/learning.service'
@@ -22,6 +23,7 @@ export interface SessionUser {
 }
 
 export interface Services {
+  auth: AuthService
   identity: IdentityService
   github: GithubService
   repositoryLibrary: RepositoryLibrary
@@ -41,6 +43,8 @@ export interface Services {
 
 export interface RequestContext {
   user: SessionUser | null
+  sessionId: string | null
+  setSessionToken(token: string | null): void
   services: Services
   idempotencyKey: string | undefined
   requestId: string

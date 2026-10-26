@@ -13,7 +13,7 @@ cp apps/product/.env.example apps/product/.env.local
 cp apps/landing/.env.example apps/landing/.env.local
 ```
 
-Edit `apps/api/.env`: set `BETTER_AUTH_SECRET` and `KEY_ENCRYPTION_KEY` (each `openssl rand -base64 32`; the KEK must be base64 of exactly 32 bytes). Everything else has dev defaults.
+Edit `apps/api/.env`: set `KEY_ENCRYPTION_KEY` (`openssl rand -base64 32`; it must be base64 of exactly 32 bytes). Everything else has dev defaults, and email and password sign-in works with no extra setup.
 
 ```bash
 pnpm infra:up        # Postgres :5432 (user/pass/db = app/app/replo) + MinIO :9000
@@ -25,16 +25,20 @@ Run one thing: `pnpm dev:landing`, `pnpm dev:product`, `pnpm dev:api` (api + wor
 
 **Health checks:** `curl localhost:4000/healthz` (liveness), `/readyz` (DB), `curl localhost:4001/healthz` (worker).
 
-### GitHub sign-in (needed to see the logged-in UI)
+### Sign-in providers
 
-The auth provider is only enabled when `GITHUB_APP_CLIENT_ID/SECRET` are set. Create a GitHub App (Settings → Developer settings → GitHub Apps):
+Email and password works out of the box: open `http://localhost:3001/login` and choose **Create account**. Passwords are hashed with scrypt, and sessions are opaque tokens stored hashed in `session`.
 
-- Callback URL: `http://localhost:4000/api/auth/callback/github`
-- Permissions: Repository **Contents: read-only**, **Metadata: read-only** (nothing else)
-- Webhook URL: `https://<tunnel>/webhooks/github` (use smee.io / ngrok to reach localhost:4000), secret = `GITHUB_WEBHOOK_SECRET`; events: Installation, Installation repositories, Repository (Push later)
-- Put App ID, client id/secret, base64 private key (`base64 -i key.pem`), slug in `apps/api/.env`.
+GitHub and Google are optional. Each one appears on the login page only when its credentials are set.
 
-Then open `http://localhost:3001/login` → "Continue with GitHub". The session cookie is set by the API (`localhost:4000`) and sent with `credentials: 'include'`; CORS is locked to `PRODUCT_ORIGIN`.
+- **GitHub:** create a GitHub App (Settings → Developer settings → GitHub Apps). Set the callback URL to `http://localhost:4000/auth/github/callback`. Under account permissions, grant **Email addresses: read**, because sign-in reads the verified email from `/user/emails`. Put the client ID and client secret in `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET`.
+- **Google:** create an OAuth client (Google Cloud → APIs & Services → Credentials, type Web application). Add `http://localhost:4000/auth/google/callback` as an authorised redirect URI, then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+
+Restart `pnpm dev:api` after changing `apps/api/.env`. The session cookie is set by the API (`localhost:4000`) and sent with `credentials: 'include'`; CORS is locked to `PRODUCT_ORIGIN`.
+
+A GitHub or Google login only signs in to an account whose email the provider has verified. If an email/password account already uses that email, sign in with the password first and connect the provider from **Settings → Profile**.
+
+For the GitHub App installs and private repositories, see the GitHub notes in `MEM.md`.
 
 ### What works today vs. stubs
 
@@ -124,7 +128,7 @@ if (importRepo.error && isDefinedError(importRepo.error)) {
 
 - Put screen logic in `src/features/<name>/` (client components); pages in `src/app/**` stay thin.
 - Map error codes to specific copy (see `ERROR_COPY` in `features/import/import-form.tsx`).
-- Auth state: `authClient` (`lib/auth-client.ts`, Better Auth) for sign-in/out; server truth comes from `orpc.me.get`.
+- Auth state: sign-in, sign-out and sessions go through `orpc.auth.*` (`features/session/`); server truth comes from `orpc.me.get`. OAuth starts are plain navigations to `<API>/auth/<provider>/start`.
 - Live progress: `features/jobs/job-progress.tsx` uses `EventSource(.../jobs/:id/events, { withCredentials: true })`.
 - Public/SEO pages (`/t/...`) run on the server: call the API with `API_INTERNAL_URL` there (not the browser URL).
 - Use tokens/components from `@replo/ui`; no hard-coded colours (see `DESIGN.md`).

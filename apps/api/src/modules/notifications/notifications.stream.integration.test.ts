@@ -9,7 +9,7 @@ import { createDb, type Db } from '../../platform/db/client'
 import { notifications } from '../../platform/db/schema'
 import type { App } from '../../platform/http'
 import { createLogger } from '../../platform/logger'
-import { listenOnLoopback, parseSse, stubAuth } from '../../test/sse'
+import { listenOnLoopback, parseSse, sessionCookieFor, stubAuth } from '../../test/sse'
 import { createNotificationsService } from './notifications.service'
 import { registerNotificationsStream } from './notifications.stream.route'
 
@@ -80,7 +80,7 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
   it('pushes the unread count on connect and again when it changes, and ignores read items', async () => {
     const owner = await seedUser(2, 3)
     const controller = new AbortController()
-    const res = await open({ 'x-test-user': owner }, controller.signal)
+    const res = await open(sessionCookieFor(owner), controller.signal)
     expect(res.headers.get('content-type')).toContain('text/event-stream')
     const frames = parseSse(res.body!)[Symbol.asyncIterator]()
 
@@ -99,7 +99,7 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
   it('does not push again while the count is unchanged', async () => {
     const owner = await seedUser(1)
     const controller = new AbortController()
-    const res = await open({ 'x-test-user': owner }, controller.signal)
+    const res = await open(sessionCookieFor(owner), controller.signal)
     const frames = parseSse(res.body!)[Symbol.asyncIterator]()
     expect((await frames.next()).value).toMatchObject({ data: { count: 1 } })
 
@@ -117,11 +117,11 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
   it('limits open streams per user and frees the slot when a stream closes', async () => {
     const owner = await seedUser(0)
     const controller = new AbortController()
-    const first = await open({ 'x-test-user': owner }, controller.signal)
+    const first = await open(sessionCookieFor(owner), controller.signal)
     const frames = parseSse(first.body!)[Symbol.asyncIterator]()
     await frames.next()
 
-    const refused = await open({ 'x-test-user': owner })
+    const refused = await open(sessionCookieFor(owner))
     expect(refused.status).toBe(429)
     expect(refused.headers.get('retry-after')).toBe('60')
     expect(await refused.json()).toMatchObject({ error: 'TOO_MANY_STREAMS' })
@@ -129,7 +129,7 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
     controller.abort()
     let reopened: Response | undefined
     for (let attempt = 0; attempt < 50 && !reopened; attempt++) {
-      const candidate = await open({ 'x-test-user': owner })
+      const candidate = await open(sessionCookieFor(owner))
       if (candidate.status === 200) reopened = candidate
       else await new Promise((resolve) => setTimeout(resolve, 20))
     }

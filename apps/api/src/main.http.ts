@@ -10,9 +10,11 @@ import { registerJobEventsRoute } from './modules/generation/job-events.route'
 import { createGithubWebhookService } from './modules/github/github.webhook.service'
 import { registerGithubWebhook } from './modules/github/github.webhook.route'
 import { registerGithubSetup } from './modules/github/github.setup.route'
-import { createAuth, sessionFromRequest, sessionUserOf } from './modules/identity/auth'
-import { declareQueues } from './jobs/queues'
 import { registerAuthRoutes } from './modules/identity/auth.route'
+import { createOAuthClients } from './modules/identity/oauth'
+import { sessionFromRequest } from './modules/identity/session-request'
+import { createSessionCookie } from './modules/identity/session'
+import { declareQueues } from './jobs/queues'
 import { registerNotificationsStream } from './modules/notifications/notifications.stream.route'
 import { loadConfig } from './platform/config'
 import { createDb } from './platform/db/client'
@@ -39,7 +41,6 @@ const log = createLogger({
   name: 'api',
 })
 const { db, pool } = createDb(config.DATABASE_URL)
-const auth = createAuth(config, db)
 
 const boss = new PgBoss({
   connectionString: config.DATABASE_URL,
@@ -50,9 +51,15 @@ boss.on('error', (err) => log.error({ err }, 'pg-boss error'))
 await boss.start()
 await declareQueues(boss)
 
+const oauth = createOAuthClients(config)
 const domain = createDomainServices({ config, db, queue: pgBossQueue(boss) })
-const services = createServices({ db, auth, domain })
+const services = createServices({ config, db, domain, oauth })
 const githubWebhooks = createGithubWebhookService({ db, sink: domain.repositoryChanges })
+const secureCookies = config.NODE_ENV === 'production'
+const sessionCookie = createSessionCookie({
+  secure: secureCookies,
+  domain: config.AUTH_COOKIE_DOMAIN,
+})
 
 const app = Fastify({
   loggerInstance: log,
@@ -66,7 +73,7 @@ await app.register(cors, { origin: config.PRODUCT_ORIGIN, credentials: true })
 await app.register(rateLimit, { max: GLOBAL_REQUESTS_PER_MINUTE, timeWindow: '1 minute' })
 
 const limitByUserOrIp = async (request: FastifyRequest) => {
-  const session = await sessionFromRequest(auth, request)
+  const session = await sessionFromRequest(services.auth, request)
   return session ? `user:${session.user.id}` : `ip:${request.ip}`
 }
 const limitByIp = async (request: FastifyRequest) => `ip:${request.ip}`
@@ -91,7 +98,7 @@ registerGuards(app, {
       key: limitByUserOrIp,
     },
     {
-      matches: (path) => path.startsWith('/api/auth/sign-in'),
+      matches: (path) => path === '/rpc/auth/signIn' || path === '/rpc/auth/signUp',
       limiter: new FixedWindowLimiter(SIGN_IN_REQUESTS_PER_MINUTE, MINUTE_MS),
       key: limitByIp,
     },
@@ -108,17 +115,24 @@ app.get('/readyz', async (_req, reply) => {
   }
 })
 
-registerAuthRoutes(app, auth)
+registerAuthRoutes(app, {
+  auth: services.auth,
+  clients: oauth,
+  sessionCookie,
+  productOrigin: config.PRODUCT_ORIGIN,
+  apiPublicUrl: config.API_PUBLIC_URL,
+  secure: secureCookies,
+})
 registerGithubWebhook(app, { secret: config.GITHUB_WEBHOOK_SECRET, webhooks: githubWebhooks, log })
 registerGithubSetup(app, {
-  auth,
+  auth: services.auth,
   identity: services.identity,
   github: services.github,
   productOrigin: config.PRODUCT_ORIGIN,
 })
-registerJobEventsRoute(app, { db, auth, productOrigin: config.PRODUCT_ORIGIN })
+registerJobEventsRoute(app, { db, auth: services.auth, productOrigin: config.PRODUCT_ORIGIN })
 registerNotificationsStream(app, {
-  auth,
+  auth: services.auth,
   notifications: services.notifications,
   productOrigin: config.PRODUCT_ORIGIN,
 })
@@ -128,10 +142,16 @@ await app.register(async (scope) => {
   const handler = new RPCHandler(router)
 
   scope.all('/rpc/*', async (request, reply) => {
-    const session = await sessionFromRequest(auth, request)
+    const session = await sessionFromRequest(services.auth, request)
     const idempotencyKey = request.headers['idempotency-key']
     const context: RequestContext = {
-      user: session ? sessionUserOf(session) : null,
+      user: session?.user ?? null,
+      sessionId: session?.sessionId ?? null,
+      setSessionToken: (token) =>
+        reply.header(
+          'set-cookie',
+          token === null ? sessionCookie.clear() : sessionCookie.issue(token),
+        ),
       services,
       idempotencyKey: typeof idempotencyKey === 'string' ? idempotencyKey : undefined,
       requestId: request.id,

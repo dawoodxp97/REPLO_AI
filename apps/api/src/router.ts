@@ -1,6 +1,7 @@
 import { dashboardRouter } from './modules/dashboard/dashboard.router'
 import { jobsRouter } from './modules/generation/generation.router'
 import { githubRouter } from './modules/github/github.router'
+import { authRouter } from './modules/identity/auth.router'
 import { meRouter } from './modules/identity/identity.router'
 import { keysRouter } from './modules/keys/keys.router'
 import { learningRouter } from './modules/learning/learning.router'
@@ -14,6 +15,7 @@ import { tutorialsRouter } from './modules/tutorials/tutorials.router'
 import { os } from './orpc'
 
 export const router = os.router({
+  auth: authRouter,
   me: meRouter,
   github: githubRouter,
   keys: keysRouter,

@@ -27,7 +27,7 @@ Run `pnpm --filter <pkg> typecheck test lint` for what you touched before saying
 
 ## Architecture in 8 lines
 
-- `apps/api` = Fastify + oRPC + Better Auth; two entrypoints `main.http.ts` / `main.worker.ts`; modules in `src/modules/*` with `*.service.ts` / `*.router.ts` / `*.repo.ts`; modules talk via services only.
+- `apps/api` = Fastify + oRPC + own auth (`modules/identity`); two entrypoints `main.http.ts` / `main.worker.ts`; modules in `src/modules/*` with `*.service.ts` / `*.router.ts` / `*.repo.ts`; modules talk via services only.
 - `packages/contracts` (Zod 4 + oRPC) is the **only** FE/BE shared code; product imports contract **types** only.
 - Postgres 17 = records + pg-boss queue. `generation_jobs` is durable truth; queue only delivers; stages idempotent + checkpointed.
 - Progress to browser via SSE `GET /jobs/:id/events` (replay from `job_events`).

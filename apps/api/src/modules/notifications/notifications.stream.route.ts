@@ -1,6 +1,6 @@
 import type { App } from '../../platform/http'
-import type { Auth } from '../identity/auth'
-import { sessionFromRequest } from '../identity/auth'
+import type { AuthService } from '../identity/auth.service'
+import { sessionFromRequest } from '../identity/session-request'
 import { KEEP_ALIVE_FRAME, openEventStream, sseFrame } from '../../platform/sse'
 import type { NotificationsService } from './notifications.service'
 
@@ -9,7 +9,7 @@ export const UNREAD_HEARTBEAT_MS = 15_000
 export const MAX_STREAMS_PER_USER = 5
 
 export interface NotificationsStreamDeps {
-  auth: Auth
+  auth: Pick<AuthService, 'currentSession'>
   notifications: Pick<NotificationsService, 'unreadCount'>
   productOrigin: string
   pollMs?: number

@@ -48,7 +48,7 @@ Two risks could end Replo: **leaking a customer's private source code** and **ex
 
 | Layer      | Controls                                                                                                                                                            |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| API        | Better Auth sessions; authz per procedure; Zod via contracts; rate limits (IP + user); idempotency keys; Origin checks; strict CORS to product origin; webhook HMAC |
+| API        | Own sessions (hashed tokens, httpOnly cookies); scrypt passwords; OAuth with state and PKCE; authz per procedure; Zod via contracts; rate limits (IP + user); idempotency keys; Origin checks; strict CORS to product origin; webhook HMAC |
 | Database   | Separate least-privilege roles (api / worker / migrator); TLS; per-user scoping; no tokens stored; backups; RLS as future defence in depth                          |
 | Worker     | Non-root; read-only root FS + `noexec` temp volume; egress allow-list; per-job temp dir wiped; no installs; per-stage timeouts and memory limits                    |
 | Model      | Read-only snapshot-scoped tools; budgets; output schemas; no private prompts logged; vendor terms checked                                                           |

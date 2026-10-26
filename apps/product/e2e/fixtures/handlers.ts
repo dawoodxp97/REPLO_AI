@@ -81,6 +81,12 @@ export function defaultHandlers(): RpcHandlers {
     'me.get': () => ({ body: USER }),
     'me.deleteAccount': () => ({ body: { ok: true } }),
 
+    'auth.providers': () => ({ body: { google: false, github: true } }),
+    'auth.signIn': () => ({ body: USER }),
+    'auth.signUp': () => ({ body: USER }),
+    'auth.signOut': () => ({ body: { ok: true } }),
+    'auth.revokeOtherSessions': () => ({ body: { ok: true } }),
+
     'keys.list': () => ({ body: [SAVED_KEY] }),
     'keys.add': ({ input }) => {
       const parsed = AddKeyInput.parse(input)

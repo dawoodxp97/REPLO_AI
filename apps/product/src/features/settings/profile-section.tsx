@@ -14,23 +14,28 @@ import {
 } from '@replo/ui'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { ErrorPanel } from '@/components/error-panel'
+import { authNotice } from '@/features/session/auth-notices'
+import { PROVIDER_LABELS, providerStartUrl } from '@/features/session/sign-in-links'
 import { apiErrorDetails } from '@/lib/api-error'
-import { revokeOtherSessions, signOut } from '@/lib/auth-client'
 import { orpc } from '@/lib/orpc'
 
 type PublicTutorials = 'delete' | 'anonymise'
 
+const LINKABLE_PROVIDERS = ['github', 'google'] as const
+
 export function ProfileSection() {
   const me = useQuery(orpc.me.get.queryOptions())
   const deleteAccount = useMutation(orpc.me.deleteAccount.mutationOptions())
+  const signOut = useMutation(orpc.auth.signOut.mutationOptions())
+  const revokeOtherSessions = useMutation(orpc.auth.revokeOtherSessions.mutationOptions())
   const queryClient = useQueryClient()
   const router = useRouter()
+  const params = useSearchParams()
   const [sessionNote, setSessionNote] = useState<string | null>(null)
-  const [sessionsPending, setSessionsPending] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [publicTutorials, setPublicTutorials] = useState<PublicTutorials>('delete')
 
@@ -44,31 +49,38 @@ export function ProfileSection() {
     )
   }
 
-  const user = me.data.user
+  const { user, signInMethods } = me.data
+  const linkNotice = authNotice(params.get('error') ?? undefined)
+  const linked = LINKABLE_PROVIDERS.find((provider) => provider === params.get('linked'))
 
   async function endOtherSessions() {
-    setSessionsPending(true)
-    const result = await revokeOtherSessions()
-    setSessionNote(
-      result.error
-        ? 'Other sessions could not be signed out. Try again.'
-        : 'Other sessions are signed out.',
-    )
-    setSessionsPending(false)
+    try {
+      await revokeOtherSessions.mutateAsync()
+      setSessionNote('Other sessions are signed out.')
+    } catch {
+      setSessionNote('Other sessions could not be signed out. Try again.')
+    }
+  }
+
+  async function endThisSession() {
+    try {
+      await signOut.mutateAsync()
+    } finally {
+      queryClient.clear()
+      router.replace('/login')
+    }
   }
 
   async function removeAccount() {
     await deleteAccount.mutateAsync({ confirm: 'DELETE', publicTutorials })
-    await signOut()
-    queryClient.clear()
-    router.replace('/')
+    await endThisSession()
   }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardDescription>Signed in with GitHub</CardDescription>
+          <CardDescription>Signed in</CardDescription>
           <CardTitle className="flex items-center gap-3">
             {user.image ? (
               <Image
@@ -84,7 +96,48 @@ export function ProfileSection() {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          {user.email ?? 'No email on your GitHub account.'}
+          {user.email ?? 'No email on this account.'}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sign-in methods</CardTitle>
+          <CardDescription>Connect GitHub to import private repositories.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {linkNotice ? (
+            <Alert tone="destructive" role="alert">
+              {linkNotice}
+            </Alert>
+          ) : null}
+          {linked && !linkNotice ? (
+            <Alert role="status">{`${PROVIDER_LABELS[linked]} is connected.`}</Alert>
+          ) : null}
+          <ul className="divide-y divide-border text-sm">
+            <li className="flex items-center justify-between gap-4 py-3">
+              <span>Email and password</span>
+              <span className="text-muted-foreground">
+                {signInMethods.password ? 'Connected' : 'Not set'}
+              </span>
+            </li>
+            {LINKABLE_PROVIDERS.map((provider) => (
+              <li key={provider} className="flex items-center justify-between gap-4 py-3">
+                <span>{PROVIDER_LABELS[provider]}</span>
+                {signInMethods[provider] ? (
+                  <span className="text-muted-foreground">Connected</span>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.assign(providerStartUrl(provider, 'link'))}
+                  >
+                    Connect {PROVIDER_LABELS[provider]}
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
         </CardContent>
       </Card>
 
@@ -96,10 +149,10 @@ export function ProfileSection() {
         <CardContent className="space-y-3">
           <Button
             variant="outline"
-            disabled={sessionsPending}
+            disabled={revokeOtherSessions.isPending}
             onClick={() => void endOtherSessions()}
           >
-            {sessionsPending ? 'Signing out…' : 'Sign out other sessions'}
+            {revokeOtherSessions.isPending ? 'Signing out…' : 'Sign out other sessions'}
           </Button>
           {sessionNote ? <Alert role="status">{sessionNote}</Alert> : null}
         </CardContent>

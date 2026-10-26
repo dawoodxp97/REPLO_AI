@@ -1,7 +1,7 @@
 import type { App } from '../../platform/http'
 import { z } from 'zod'
-import type { Auth } from '../identity/auth'
-import { sessionFromRequest } from '../identity/auth'
+import type { AuthService } from '../identity/auth.service'
+import { sessionFromRequest } from '../identity/session-request'
 import type { Db } from '../../platform/db/client'
 import type { jobEvents } from '../../platform/db/schema'
 import { KEEP_ALIVE_FRAME, openEventStream, sseFrame } from '../../platform/sse'
@@ -28,7 +28,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export interface JobEventsDeps {
   db: Db
-  auth: Auth
+  auth: Pick<AuthService, 'currentSession'>
   productOrigin: string
   pollMs?: number
   heartbeatMs?: number

@@ -8,6 +8,7 @@ import type {
 
 export const USER = {
   user: { id: 'user-1', name: 'Ada Lovelace', email: 'ada@example.com', image: null },
+  signInMethods: { password: true, google: false, github: true },
 }
 
 export const KEY_ID = '0b6f6a52-4c3e-4d2a-9d55-1a2b3c4d5e6f'

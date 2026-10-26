@@ -62,9 +62,9 @@ This replaces the earlier estimate of a closed beta in late February 2027. Front
 
 Code complete; live verification pending (needs a GitHub App and a sign-in with a real session). Database paths verified on Postgres 17 (MEM changelog, 22 Oct 2026).
 
-- [~] Drizzle schema (27 tables incl. 4 Better Auth) + first migration generated and drift-checked; applied to Postgres 17 by the integration suite
-- [~] Better Auth GitHub sign-in end to end (cookie domain setup) — FR-AUTH-1 (wired; needs GitHub App credentials)
-- [~] Revoke other sessions: `POST /api/auth/revoke-other-sessions` mounted by Better Auth; live check with a session pending — FR-AUTH-4
+- [~] Drizzle schema (auth core in `user`, `session`, `auth_identity`; migrations `0000`–`0009`) drift-checked; applied to Postgres 17 by the integration suite
+- [~] Own auth (ADR-009): email and password, GitHub and Google OAuth with PKCE and state; the API-side tests and a local HTTP smoke run pass; live GitHub and Google round trips need OAuth credentials — FR-AUTH-1
+- [~] Revoke other sessions: `auth.revokeOtherSessions` (DB-tested and checked over HTTP); browser check pending — FR-AUTH-4
 - [~] Account deletion: `me.deleteAccount` cascades installations, links and everything owned; public tutorials delete-or-anonymise choice moves to B8 (MEM D-031) — FR-AUTH-3 (public-tutorial delete-or-anonymise choice landed in B8, MEM D-061; live check pending)
 - [x] Individual accounts only: no team or workspace tables or roles in the schema (guard test) — FR-AUTH-2
 - [ ] Dev GitHub App: read-only Contents + Metadata; webhooks `installation`, `installation_repositories`, `repository` (MEM open item)

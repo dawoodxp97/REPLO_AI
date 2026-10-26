@@ -2,6 +2,13 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { OkResult } from './common'
 
+export const SignInMethodsDto = z.object({
+  password: z.boolean(),
+  google: z.boolean(),
+  github: z.boolean(),
+})
+export type SignInMethodsDto = z.infer<typeof SignInMethodsDto>
+
 export const MeDto = z.object({
   user: z.object({
     id: z.string(),
@@ -9,6 +16,7 @@ export const MeDto = z.object({
     email: z.string().nullable(),
     image: z.string().nullable(),
   }),
+  signInMethods: SignInMethodsDto,
 })
 export type MeDto = z.infer<typeof MeDto>
 

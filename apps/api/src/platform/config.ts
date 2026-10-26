@@ -12,10 +12,12 @@ const Env = z.object({
 
   DATABASE_URL: z.string().min(1),
 
-  BETTER_AUTH_SECRET: z.string().min(32, 'BETTER_AUTH_SECRET must be at least 32 characters'),
-  BETTER_AUTH_URL: z.url(),
+  API_PUBLIC_URL: z.url(),
   AUTH_COOKIE_DOMAIN: optionalString,
   PRODUCT_ORIGIN: z.url(),
+
+  GOOGLE_CLIENT_ID: optionalString,
+  GOOGLE_CLIENT_SECRET: optionalString,
 
   GITHUB_APP_ID: optionalString,
   GITHUB_APP_PRIVATE_KEY: optionalString,

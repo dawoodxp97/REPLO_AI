@@ -58,21 +58,20 @@ cp apps/landing/.env.example apps/landing/.env.local
 Generate the two required secrets and put them in `apps/api/.env`:
 
 ```bash
-openssl rand -base64 32    # BETTER_AUTH_SECRET (use at least 32 characters)
 openssl rand -base64 32    # KEY_ENCRYPTION_KEY (must decode to exactly 32 bytes)
 ```
 
 Variables you will most likely change:
 
-| File                      | Variable                                                         | Default                                          | Purpose                                                                  |
-| ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------ |
-| `apps/api/.env`           | `DATABASE_URL`                                                   | `postgres://app:app@localhost:5432/replo`        | Postgres connection                                                      |
-| `apps/api/.env`           | `BETTER_AUTH_SECRET`                                             | none, you must set it                            | Session signing (at least 32 characters)                                 |
-| `apps/api/.env`           | `KEY_ENCRYPTION_KEY`                                             | none, you must set it                            | AES-256-GCM key for stored provider keys (base64 of 32 bytes)            |
-| `apps/api/.env`           | `BETTER_AUTH_URL`, `PRODUCT_ORIGIN`                              | `http://localhost:4000`, `http://localhost:3001` | Where the API and the app are served                                     |
-| `apps/api/.env`           | `GITHUB_APP_*`, `GITHUB_WEBHOOK_SECRET`                          | empty                                            | Optional, for GitHub sign-in and private repositories                    |
-| `apps/product/.env.local` | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_URL`, `API_INTERNAL_URL` | local ports                                      | Used at build time (`NEXT_PUBLIC_*`) and at runtime (`API_INTERNAL_URL`) |
-| `apps/landing/.env.local` | `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`                    | local ports                                      | Links to the app and the canonical site URL                              |
+| File                      | Variable                                                           | Default                                          | Purpose                                                                     |
+| ------------------------- | ------------------------------------------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------- |
+| `apps/api/.env`           | `DATABASE_URL`                                                     | `postgres://app:app@localhost:5432/replo`        | Postgres connection                                                         |
+| `apps/api/.env`           | `KEY_ENCRYPTION_KEY`                                               | none, you must set it                            | AES-256-GCM key for stored provider keys (base64 of 32 bytes)               |
+| `apps/api/.env`           | `API_PUBLIC_URL`, `PRODUCT_ORIGIN`                                 | `http://localhost:4000`, `http://localhost:3001` | Where the API and the app are served (OAuth callbacks use `API_PUBLIC_URL`) |
+| `apps/api/.env`           | `GOOGLE_CLIENT_*`, `GITHUB_APP_CLIENT_*`                           | empty                                            | Optional, for Google and GitHub sign-in (email and password needs nothing)  |
+| `apps/api/.env`           | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` | empty                                            | Optional, for GitHub App installs and repository webhooks                   |
+| `apps/product/.env.local` | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_URL`, `API_INTERNAL_URL`   | local ports                                      | Used at build time (`NEXT_PUBLIC_*`) and at runtime (`API_INTERNAL_URL`)    |
+| `apps/landing/.env.local` | `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`                      | local ports                                      | Links to the app and the canonical site URL                                 |
 
 Never commit a real `.env` file. Only the `.env.example` files belong in git.
 
@@ -216,7 +215,7 @@ Read [`docs/DATABASE.md`](./docs/DATABASE.md) before you change the schema. Brea
 apps/
   landing/        Next.js 16 static export (Cloudflare Pages)         :3000
   product/        Next.js 16 app, learning player and public pages     :3001
-  api/            Fastify 5 + oRPC + Better Auth; HTTP API and worker  :4000 (worker health :4001)
+  api/            Fastify 5 + oRPC; own auth (sessions, email and password, Google, GitHub); HTTP API and worker  :4000 (worker health :4001)
 packages/
   contracts/      Zod 4 + oRPC contract, the only code the frontends and API share
   ai/             Model roles, catalogue, budgets and BYOK model resolution
@@ -232,7 +231,7 @@ OLD_LEGACY_REPLO/ The legacy app, read only as a feature reference (MEM D-016)
 
 - **`pnpm install` fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`.** The workspace refuses package versions younger than three days. This gate is intentional. Lower the version floor in the affected range instead of turning the gate off. [`MEM.md`](./MEM.md) decision D-010 explains the procedure.
 - **`pnpm install` fails with `ERR_PNPM_IGNORED_BUILDS`.** A package with an install script is not listed in `allowBuilds`. See D-011 in [`MEM.md`](./MEM.md).
-- **The API exits at startup with a configuration error.** Check `apps/api/.env`. `BETTER_AUTH_SECRET` needs at least 32 characters, and `KEY_ENCRYPTION_KEY` must decode to exactly 32 bytes.
+- **The API exits at startup with a configuration error.** Check `apps/api/.env`. `KEY_ENCRYPTION_KEY` must decode to exactly 32 bytes.
 - **`/readyz` returns 503.** The API cannot reach the database. Check `DATABASE_URL`, and that `pnpm infra:up` or your local Postgres is running.
 - **`localhost` does not reach the server, but `127.0.0.1` does.** Some macOS setups resolve `localhost` to IPv6 (`::1`), where another process may already listen. Use `127.0.0.1` or stop the other process.
 - **Port 3000, 3001, 4000 or 4001 is already in use.** Find the process with `lsof -iTCP:3001 -sTCP:LISTEN -n -P` and stop it, or change the port in the matching environment file.
