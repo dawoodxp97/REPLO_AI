@@ -40,6 +40,18 @@ A GitHub or Google login only signs in to an account whose email the provider ha
 
 For the GitHub App installs and private repositories, see the GitHub notes in `MEM.md`.
 
+### Public import (dev)
+
+1. Sign in at `http://localhost:3001/login`.
+2. Open **Import**, choose **Public URL**, paste `https://github.com/owner/repo` (no trailing path).
+3. Click **Check repository**. The API calls GitHub’s REST API **without** a token (60 requests/hour per IP on GitHub’s side).
+4. Add a provider key under **Settings → API keys** before **Generate tutorial** (import refuses without a valid key).
+5. After import, **Repositories** lists the repo and links to the job.
+
+Repos with readable text (including Python, Go, and similar) pass preflight; empty or binary-only repos are refused. The **My GitHub App repos** tab needs `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_SLUG` in `apps/api/.env`; until then the UI explains that private import is unavailable.
+
+**GitHub App checklist (private repos, later):** read-only Contents + Metadata; webhooks `installation`, `installation_repositories`, `repository`, `push`; setup URL `<API_PUBLIC_URL>/github/setup`; callback URL for OAuth sign-in is separate from the App install flow. Full steps in `MEM.md`.
+
 ### What works today
 
 Release 1 backend and product UI are implemented against [`docs/API.md`](./API.md). Auth (email and password, Google and GitHub OAuth), import and preflight, BYOK keys, the generation worker pipeline, the learning player, library, settings, and public tutorial pages are wired to Postgres and pg-boss. Local verification still needs your OAuth apps, a GitHub App for private repos, and real provider keys for live generation. Deploy (O1) is not started in this repo yet.

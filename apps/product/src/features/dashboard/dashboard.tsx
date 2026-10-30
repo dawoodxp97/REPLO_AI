@@ -111,7 +111,7 @@ export function Dashboard() {
               <CardHeader>
                 <CardTitle>No tutorials yet</CardTitle>
                 <CardDescription>
-                  Import a TypeScript or JavaScript repository to start one.
+                  Import a GitHub repository to start one.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

@@ -74,8 +74,11 @@ function PreflightSummary({ result }: { result: PreflightResult }) {
       </SummaryRow>
       <SummaryRow label="License">{result.repo.license ?? 'None found'}</SummaryRow>
       <SummaryRow label="Files">
-        {formatCount(result.stats.fileCount)} total, {formatCount(result.stats.sourceFileCount)}{' '}
-        source
+        {formatCount(result.stats.fileCount)} total,{' '}
+        {formatCount(result.stats.indexableFileCount)} readable for tutorials
+        {result.stats.sourceFileCount !== result.stats.indexableFileCount
+          ? ` (${formatCount(result.stats.sourceFileCount)} primary source)`
+          : ''}
       </SummaryRow>
       <SummaryRow label="Size">{formatBytes(result.stats.totalBytes)}</SummaryRow>
       <SummaryRow label="Framework">{result.stats.framework ?? 'None detected'}</SummaryRow>

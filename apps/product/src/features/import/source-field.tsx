@@ -117,14 +117,18 @@ function InstallationPicker({ value, onChange, missing }: InstallationPickerProp
     )
   }
 
+  const installHref = installUrl.data?.url ?? null
+
   if (repositories.data.length === 0) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          The GitHub App has no repositories for your account yet.
+          {installHref
+            ? 'The GitHub App has no repositories for your account yet.'
+            : 'Private repositories need the Replo GitHub App on this server. It is not configured in development yet — use a public URL instead.'}
         </p>
-        {installUrl.data ? (
-          <LinkButton href={installUrl.data.url} variant="outline">
+        {installHref ? (
+          <LinkButton href={installHref} variant="outline">
             Install the GitHub App
           </LinkButton>
         ) : null}

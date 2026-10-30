@@ -19,7 +19,7 @@ interface ActiveInstallation {
 export type LinkOutcome = 'linked' | 'not_accessible' | 'owned_by_another_user'
 
 export interface GithubService {
-  installUrl(): string
+  installUrl(): string | null
   listRepos(userId: string): Promise<GithubRepoDto[]>
   activeInstallations(userId: string): Promise<ActiveInstallation[]>
   installationToken(installationId: number): Promise<string | undefined>
@@ -60,10 +60,13 @@ export function createGithubService(deps: {
 
   const service: GithubService = {
     installUrl() {
-      return installUrlFor(requireGithubApp(deps.app).slug)
+      const app = deps.app
+      if (!app) return null
+      return installUrlFor(app.slug)
     },
 
     async listRepos(userId) {
+      if (!deps.app) return []
       const repos: GithubRepoDto[] = []
       for (const installation of await service.activeInstallations(userId)) {
         const token = await service.installationToken(installation.githubInstallationId)
@@ -87,6 +90,7 @@ export function createGithubService(deps: {
     },
 
     async installationToken(installationId) {
+      if (!deps.app) return undefined
       const body = await rest.request(
         `/app/installations/${installationId}/access_tokens`,
         InstallationToken,

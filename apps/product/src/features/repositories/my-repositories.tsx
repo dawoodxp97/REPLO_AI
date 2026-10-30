@@ -50,7 +50,7 @@ export function MyRepositories() {
           <CardHeader>
             <CardTitle>No repositories yet</CardTitle>
             <CardDescription>
-              Import a TypeScript or JavaScript repository to start.
+              Import a public GitHub repository, or connect the GitHub App for private repos.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -3,7 +3,6 @@
 import {
   Alert,
   Badge,
-  Button,
   Card,
   CardContent,
   CardDescription,
@@ -56,14 +55,14 @@ export function GithubSection() {
             ))}
           </ul>
         )}
-        {install.data ? (
+        {install.data?.url ? (
           <LinkButton href={install.data.url} variant="outline">
             Change repository access
           </LinkButton>
         ) : (
-          <Button variant="outline" disabled>
-            Change repository access
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            The GitHub App is not configured on this server yet.
+          </p>
         )}
       </CardContent>
     </Card>
