@@ -20,15 +20,15 @@ export default function HowItWorksPage() {
   return (
     <Article
       title="How it works"
-      lede="Replo turns a TypeScript or JavaScript repository into a chaptered tutorial. It reads the code, plans the chapters, writes the lessons and checks every reference before anything is published."
+      lede="Replo turns a GitHub repository into a chaptered tutorial. It reads the code, plans the chapters, writes the lessons and checks every reference before anything is published."
     >
       <Section title="From URL to tutorial">
         <ol className={numberedListClass}>
           <li>
             <strong className="font-semibold text-foreground">Pre-flight.</strong> Replo reads the
             repository’s file list through GitHub’s API and checks its size and languages. This step
-            uses no AI. A repo that is too large, or that is not TypeScript or JavaScript, is
-            refused, and the reason is shown.
+            uses no AI. A repo that is too large, or that has no readable text files, is refused,
+            and the reason is shown.
           </li>
           <li>
             <strong className="font-semibold text-foreground">Read.</strong> The import is pinned to
@@ -81,7 +81,10 @@ export default function HowItWorksPage() {
             It runs no code: not your repository’s code, and not the examples the model writes. Code
             blocks are highlighted and copyable, and they link to their source.
           </li>
-          <li>It supports TypeScript and JavaScript only.</li>
+          <li>
+            Symbol-level checks are strongest on TypeScript and JavaScript. Other languages are
+            grounded with commit-pinned file excerpts.
+          </li>
           <li>
             It does not regenerate a tutorial automatically. If a file a tutorial cites changes on
             the default branch, the tutorial is marked stale.

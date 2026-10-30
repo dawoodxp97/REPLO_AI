@@ -9,7 +9,7 @@ These rules apply to every contributor, human or AI agent. They are short on pur
 3. **Provider keys are decrypted only in the worker, in memory, for one job.** The platform holds no provider keys. A failing key fails the job; it is never swapped for another key or provider, and models never change silently (ADR-007).
 4. **Every private read goes through a user-scoped service.** Foreign IDs return **404**, not 403. Authorisation lives in the service layer, never only in the UI.
 5. **The model points, the system quotes.** Models never author repo code or line numbers; the validator resolves refs and inserts excerpts. No path around validation for any model.
-6. **No scope creep past the PRD Non-goals** (teams/roles, other languages, code execution, chat, embeddings…). Propose in `MEM.md` first.
+6. **No scope creep past the PRD Non-goals** (teams/roles, code execution, chat, embeddings…). Propose in `MEM.md` first.
 7. **No pricing, billing, subscriptions, credits, top-ups, ads or platform-funded AI, ever** (ADR-007). Not behind a flag, not "after validation".
 
 ## 1. Repository and dependency graph

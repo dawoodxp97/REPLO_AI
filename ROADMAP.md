@@ -393,7 +393,7 @@ Not scheduled on purpose: FR-GEN-9 and FR-GEN-10 (after validation), FR-LRN-11 (
 
 ## Postponed (do not start without evidence)
 
-Tutor chat · embeddings · incremental regeneration · tutorial editing · any code execution · dependency explorer · languages beyond TS/JS · anything team-related.
+Tutor chat · embeddings · incremental regeneration · tutorial editing · any code execution · dependency explorer · anything team-related.
 
 ## Never (ADR-007)
 

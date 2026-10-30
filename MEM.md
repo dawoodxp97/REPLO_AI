@@ -7,7 +7,7 @@ Entry format: `ID · date · status` → what · why · how to apply.
 ## Product snapshot
 
 - **Name:** Replo. Package scope `@replo/*`. Folder: `Replo AI/`.
-- **One line:** grounded, chaptered tutorials for any TS/JS GitHub repo; free for everyone, BYOK only, individual developers only. No pricing, billing, credits or ads, ever (ADR-007).
+- **One line:** grounded, chaptered tutorials for any GitHub repo; free for everyone, BYOK only, individual developers only. No pricing, billing, credits or ads, ever (ADR-007).
 - **Source docs:** `Replo_BluePrint.md` (research, 14 Oct 2026) → `PRD.md` (build contract).
 - **Current phase:** backend B0–B9 and frontend F0–F7 are implemented with local tests (25 Oct 2026); the landing site (L1) is implemented as drafts pending review. Still open: live verification (GitHub App, real provider keys, staging), the real worker-kill run, and O1–O3 (deploy, beta, maintain). See ROADMAP.md for each item.
 
@@ -368,6 +368,10 @@ The request is that a user who signs in with GitHub can import private repositor
 ### D-089 · 2026-10-26 · active — Migration 0009 replaces the Better Auth tables and keeps GitHub links
 
 `0009_custom_auth` creates `auth_identity`, copies each `account` row with provider `github` into it without its token (Better Auth sealed tokens with its own secret, so they cannot be reused), then drops `account`, `verification` and the old `session`, and creates the new `session`. Nothing is deployed yet (O1 is open), so no production sessions or accounts exist. **How to apply:** a user with a carried-over GitHub link sees `github_not_linked` until they sign in with GitHub once more. For a future table replacement, `drizzle-kit generate` asks rename questions that need a TTY: write the SQL by hand, and generate the snapshot with `generateDrizzleJson` from `drizzle-kit/api`.
+
+### D-090 · 2026-10-30 · active — Any GitHub repo with readable text, not TypeScript/JavaScript only
+
+Preflight refuses a repository only when it has zero indexable text files (empty or binary-only), not when it lacks `.ts` or `.js` sources. `SnapshotStats` adds `indexableFileCount`. TypeScript and JavaScript keep tree-sitter symbol analysis; other languages are stored and quoted by path and line, with symbol checks skipped where no grammar exists. **Why:** the product promise is any GitHub repository. **How to apply:** do not reintroduce a language allow-list at preflight; add grammars in a separate change with an eval run.
 
 ## Assumptions to validate (from blueprint §20)
 

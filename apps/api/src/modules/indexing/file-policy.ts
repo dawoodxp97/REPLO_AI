@@ -2,6 +2,7 @@ import {
   classifyRole,
   detectLanguage,
   isExcludedPath,
+  isIndexableRole,
   MAX_INDEXED_FILE_BYTES,
   type FileRole,
   type Language,
@@ -14,7 +15,7 @@ export function decideFile(path: string, size: number): FileDecision {
   if (isExcludedPath(path)) return { kind: 'skip' }
   const language = detectLanguage(path)
   const role = classifyRole(path, language)
-  const keepContent = (role !== 'asset' || language === 'html') && size <= MAX_INDEXED_FILE_BYTES
+  const keepContent = isIndexableRole(role) && size <= MAX_INDEXED_FILE_BYTES
   return { kind: 'record', language, role, keepContent }
 }
 

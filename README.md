@@ -1,6 +1,6 @@
 # Replo
 
-Grounded, chaptered tutorials for any TypeScript/JavaScript repository. Paste a repo and get a sequenced learning path where every explanation links to the exact file and line at a pinned commit, checked by machine before you read it.
+Grounded, chaptered tutorials for any GitHub repository. Paste a repo and get a sequenced learning path where every explanation links to the exact file and line at a pinned commit, checked by machine before you read it.
 
 Free for everyone. Bring your own provider key (BYOK) only. Built for individual developers.
 

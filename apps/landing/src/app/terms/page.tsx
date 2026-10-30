@@ -25,8 +25,8 @@ export default function TermsPage() {
     >
       <Section title="The service">
         <p>
-          Replo turns a public or private TypeScript or JavaScript repository that you can access
-          into a chaptered tutorial. Each tutorial runs on your own provider key. Replo has no
+          Replo turns a public or private GitHub repository that you can access into a chaptered
+          tutorial. Each tutorial runs on your own provider key. Replo has no
           subscriptions, credits, top-ups or ads. You pay your provider directly for the models a
           run uses.
         </p>

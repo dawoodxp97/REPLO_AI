@@ -21,6 +21,7 @@ export type RepositorySource = z.infer<typeof RepositorySource>
 export const SnapshotStats = z.object({
   fileCount: z.number().int(),
   sourceFileCount: z.number().int(),
+  indexableFileCount: z.number().int(),
   totalBytes: z.number().int(),
   languages: z.record(z.string(), z.number().int()),
   framework: z.string().nullable(),

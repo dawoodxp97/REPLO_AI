@@ -98,7 +98,7 @@ export function createRepositoryImports(deps: RepositoryImportsDeps): Repository
 
     const { summary } = resolution.value
     const pipeline = LITE_PRESETS.has(input.preset) ? 'lite' : 'full'
-    if (pipeline === 'lite' && summary.sourceFileCount > defaults.litePipelineMaxFiles)
+    if (pipeline === 'lite' && summary.indexableFileCount > defaults.litePipelineMaxFiles)
       return refused({
         code: 'PRESET_UNAVAILABLE',
         reason: `the ${input.preset} preset handles repositories up to ${defaults.litePipelineMaxFiles} source files`,

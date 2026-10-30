@@ -68,8 +68,13 @@ const LANGUAGE_BY_EXTENSION: Record<string, Language> = {
   css: 'css',
   scss: 'css',
   html: 'html',
+  htm: 'html',
   yml: 'yaml',
   yaml: 'yaml',
+}
+
+export function isIndexableRole(role: FileRole): boolean {
+  return role === 'source' || role === 'config' || role === 'doc' || role === 'test'
 }
 
 function extensionOf(path: string): string {
@@ -112,11 +117,14 @@ export function classifyRole(path: string, language: Language = detectLanguage(p
   if (GENERATED_FILE.test(path)) return 'generated'
   if (TEST_PATTERN.test(path) || TEST_FILE.test(path)) return 'test'
   if (language === 'markdown') return 'doc'
+  if (language === 'css' || language === 'html') return 'source'
   if (isSupportedSourceLanguage(language)) {
     const file = path.slice(path.lastIndexOf('/') + 1)
     return /\.config\.[cm]?[jt]s$/.test(file) || /^\.[a-z]+rc\.[cm]?[jt]s$/.test(file)
       ? 'config'
       : 'source'
   }
-  return language === 'json' || language === 'yaml' ? 'config' : 'asset'
+  if (language === 'json' || language === 'yaml') return 'config'
+  if (!isBinaryExtension(path)) return 'source'
+  return 'asset'
 }

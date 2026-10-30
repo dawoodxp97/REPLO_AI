@@ -44,6 +44,8 @@ describe('language and role', () => {
     expect(classifyRole('dist/a.min.js')).toBe('generated')
     expect(classifyRole('logo.png')).toBe('asset')
     expect(classifyRole('docs/guide.md')).toBe('doc')
+    expect(classifyRole('main.py')).toBe('source')
+    expect(classifyRole('cmd/server/main.go')).toBe('source')
   })
 })
 

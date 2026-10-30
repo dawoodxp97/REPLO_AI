@@ -99,10 +99,11 @@ describe('OAuth start', () => {
     expect(setCookie).toContain('HttpOnly')
   })
 
-  it('answers 404 for a provider that is not configured', async () => {
+  it('redirects to login when a provider is not configured', async () => {
     const { app } = buildApp()
     const res = await app.inject({ method: 'GET', url: '/auth/google/start' })
-    expect(res.statusCode).toBe(404)
+    expect(res.statusCode).toBe(302)
+    expect(res.headers.location).toBe(`${productOrigin}/login?error=OAUTH_NOT_CONFIGURED`)
   })
 
   it('sends a linking request without a session back to sign in', async () => {

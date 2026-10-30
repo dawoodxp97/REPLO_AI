@@ -14,18 +14,18 @@ const serif = Newsreader({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
-const SITE_TITLE = 'Replo — learn a TypeScript or JavaScript repo, with receipts'
+const SITE_TITLE = 'Replo — learn a GitHub repo, with receipts'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: SITE_TITLE, template: '%s · Replo' },
   description:
-    'Turn a TypeScript or JavaScript repository into a chaptered tutorial where every explanation links to the code it describes. Free to use, bring your own key, no team plans.',
+    'Turn a GitHub repository into a chaptered tutorial where every explanation links to the code it describes. Free to use, bring your own key, no team plans.',
   openGraph: {
     type: 'website',
     siteName: 'Replo',
     title: SITE_TITLE,
-    description: 'Grounded, chaptered tutorials for TypeScript and JavaScript repositories.',
+    description: 'Grounded, chaptered tutorials for GitHub repositories.',
   },
   twitter: { card: 'summary_large_image' },
 }

@@ -326,6 +326,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
         stats: {
           fileCount: data.files.length,
           sourceFileCount: data.files.length,
+          indexableFileCount: data.files.length,
           totalBytes: data.files.reduce((sum, file) => sum + file.sizeBytes, 0),
           languages: { typescript: data.files.length },
           framework: null,

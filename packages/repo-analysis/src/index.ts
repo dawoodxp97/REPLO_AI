@@ -3,6 +3,7 @@ export {
   classifyRole,
   detectLanguage,
   isExcludedPath,
+  isIndexableRole,
   looksBinary,
   type FileRole,
   type Language,

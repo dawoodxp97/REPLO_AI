@@ -8,7 +8,7 @@
 
 ## 1. Summary
 
-**Replo turns a TypeScript/JavaScript GitHub repository into a sequenced, verifiably grounded, interactive tutorial.** A developer pastes a repo URL (or picks a private repo through a read-only GitHub App), chooses one of their own AI keys (OpenRouter recommended; OpenAI, Google AI Studio and Anthropic also work), and within ~10 minutes gets a 5–8 chapter learning path with an architecture diagram, commit-pinned source links on every explanation, and a quiz per chapter.
+**Replo turns a GitHub repository into a sequenced, verifiably grounded, interactive tutorial.** A developer pastes a repo URL (or picks a private repo through a read-only GitHub App), chooses one of their own AI keys (OpenRouter recommended; OpenAI, Google AI Studio and Anthropic also work), and within ~10 minutes gets a 5–8 chapter learning path with an architecture diagram, commit-pinned source links on every explanation, and a quiz per chapter.
 
 It is a **free tool for individual developers**, not a team SaaS. It is free for everyone and never charges. It never pays for AI either: every tutorial runs on the user's own key (BYOK only, [ADR-007](./docs/adr/007-byok-only-no-billing.md)). There are no credits, subscriptions, top-ups or ads.
 
@@ -34,7 +34,7 @@ It is a **free tool for individual developers**, not a team SaaS. It is free for
 
 ### Non-goals (Release 1) — enforced, not aspirational
 
-Workspaces/roles/team plans/SSO · languages other than TS/JS · executing repo code or generated examples in any sandbox (ADR-008) · tutor chat · embeddings/pgvector retrieval · incremental regeneration on push · manual tutorial editing · interactive dependency graph · mobile apps.
+Workspaces/roles/team plans/SSO · executing repo code or generated examples in any sandbox (ADR-008) · tutor chat · embeddings/pgvector retrieval · incremental regeneration on push · manual tutorial editing · interactive dependency graph · mobile apps.
 
 **Never, in any release (ADR-007):** pricing, billing, subscriptions, prepaid credits or top-ups, platform-funded AI (free pool or credits), and ads of any kind. These are not feature-flagged and not "after validation".
 

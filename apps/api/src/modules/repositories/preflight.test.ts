@@ -88,6 +88,7 @@ describe('preflight', () => {
         stats: {
           fileCount: 4,
           sourceFileCount: 1,
+          indexableFileCount: 4,
           totalBytes: 670,
           languages: { typescript: 2, markdown: 1, json: 1 },
           framework: 'Next.js',
@@ -174,13 +175,35 @@ describe('preflight', () => {
     })
   })
 
-  it('refuses a repo with no TypeScript or JavaScript source', async () => {
+  it('accepts a Python repo when it has readable text files', async () => {
     const routes = {
       ...healthyRoutes,
       [`/repos/acme/shop/git/trees/${SHA}?recursive=1`]: tree([
-        { path: 'main.py' },
-        { path: 'README.md' },
+        { path: 'main.py', size: 200 },
+        { path: 'README.md', size: 50 },
       ]),
+    }
+    const preflight = createPreflight({
+      rest: fakeRest(routes),
+      installations: noInstallations,
+      limits,
+    })
+    expect(await preflight.run('user-1', { kind: 'public_url', url: PUBLIC_URL })).toMatchObject({
+      kind: 'ok',
+      value: {
+        stats: {
+          sourceFileCount: 1,
+          indexableFileCount: 2,
+          languages: { other: 1, markdown: 1 },
+        },
+      },
+    })
+  })
+
+  it('refuses a repo with no readable text', async () => {
+    const routes = {
+      ...healthyRoutes,
+      [`/repos/acme/shop/git/trees/${SHA}?recursive=1`]: tree([{ path: 'public/logo.png', size: 90_000 }]),
     }
     const preflight = createPreflight({
       rest: fakeRest(routes),

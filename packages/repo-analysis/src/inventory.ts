@@ -1,4 +1,4 @@
-import { classifyRole, detectLanguage, isBinaryExtension, isExcludedPath } from './filters'
+import { classifyRole, detectLanguage, isBinaryExtension, isExcludedPath, isIndexableRole } from './filters'
 
 export interface TreeEntry {
   path: string
@@ -9,6 +9,7 @@ export interface TreeEntry {
 export interface Inventory {
   fileCount: number
   sourceFileCount: number
+  indexableFileCount: number
   totalBytes: number
   languages: Record<string, number>
 }
@@ -29,17 +30,23 @@ const FRAMEWORKS = [
 export type FrameworkLabel = (typeof FRAMEWORKS)[number][1]
 
 export function inventory(entries: readonly TreeEntry[]): Inventory {
-  const summary: Inventory = { fileCount: 0, sourceFileCount: 0, totalBytes: 0, languages: {} }
+  const summary: Inventory = {
+    fileCount: 0,
+    sourceFileCount: 0,
+    indexableFileCount: 0,
+    totalBytes: 0,
+    languages: {},
+  }
   for (const entry of entries) {
     if (entry.type !== 'blob' || isExcludedPath(entry.path)) continue
     const language = detectLanguage(entry.path)
     const role = classifyRole(entry.path, language)
     summary.fileCount += 1
     if (role === 'source') summary.sourceFileCount += 1
+    if (isIndexableRole(role)) summary.indexableFileCount += 1
     if (!isBinaryExtension(entry.path)) summary.totalBytes += entry.size ?? 0
-    if (language !== 'other') {
-      summary.languages[language] = (summary.languages[language] ?? 0) + 1
-    }
+    const languageKey = language === 'other' ? 'other' : language
+    summary.languages[languageKey] = (summary.languages[languageKey] ?? 0) + 1
   }
   return summary
 }

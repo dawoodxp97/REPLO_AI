@@ -14,6 +14,7 @@ describe('inventory', () => {
     expect(summary).toEqual({
       fileCount: 4,
       sourceFileCount: 2,
+      indexableFileCount: 4,
       totalBytes: 670,
       languages: { typescript: 3, markdown: 1 },
     })
@@ -35,7 +36,7 @@ describe('inventory', () => {
     const summary = inventory([blob('public/logo.png', 90_000), blob('src/a.ts', 5)])
     expect(summary.fileCount).toBe(2)
     expect(summary.totalBytes).toBe(5)
-    expect(summary.languages).toEqual({ typescript: 1 })
+    expect(summary.languages).toEqual({ other: 1, typescript: 1 })
   })
 
   it('treats a missing size as zero bytes', () => {

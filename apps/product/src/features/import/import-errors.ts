@@ -7,7 +7,8 @@ const GENERIC_ERROR = 'Something went wrong. Try again.'
 const IMPORT_ERROR_COPY: Record<string, string> = {
   REPO_NOT_ACCESSIBLE:
     'We could not read this repository. For private repos, install the GitHub App and select it.',
-  UNSUPPORTED_LANGUAGE: 'Release 1 supports TypeScript and JavaScript repositories only.',
+  UNSUPPORTED_LANGUAGE:
+    'This repository has no readable text files to turn into a tutorial. Check that it is not empty or binary-only.',
   FREE_PRESET_REQUIRES_OPENROUTER:
     'The Free preset uses OpenRouter :free models. Pick an OpenRouter key, or choose another preset.',
   CUSTOM_MODEL_NOT_ALLOWED:

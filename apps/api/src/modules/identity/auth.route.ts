@@ -71,7 +71,8 @@ export function registerAuthRoutes(app: App, deps: AuthRouteDeps) {
     const params = ProviderParams.safeParse(request.params)
     const query = StartQuery.safeParse(request.query)
     const client = params.success ? deps.clients[params.data.provider] : undefined
-    if (!params.success || !query.success || !client) return reply.code(404).send()
+    if (!params.success || !query.success) return reply.code(404).send()
+    if (!client) return reply.redirect(loginUrl('OAUTH_NOT_CONFIGURED'))
 
     if (query.data.intent === 'link' && !(await sessionFromRequest(deps.auth, request)))
       return reply.redirect(loginUrl())

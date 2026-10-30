@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { limitBreach } from './limits'
 
-const summary = { fileCount: 10, sourceFileCount: 5, totalBytes: 100, languages: {} }
+const summary = { fileCount: 10, sourceFileCount: 5, indexableFileCount: 8, totalBytes: 100, languages: {} }
 
 describe('limitBreach', () => {
   it('passes a repo at the caps', () => {

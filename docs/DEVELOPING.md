@@ -13,7 +13,7 @@ cp apps/product/.env.example apps/product/.env.local
 cp apps/landing/.env.example apps/landing/.env.local
 ```
 
-Edit `apps/api/.env`: set `KEY_ENCRYPTION_KEY` (`openssl rand -base64 32`; it must be base64 of exactly 32 bytes). Everything else has dev defaults, and email and password sign-in works with no extra setup.
+Edit `apps/api/.env`: set `KEY_ENCRYPTION_KEY` (`openssl rand -base64 32`; it must be base64 of exactly 32 bytes) and `API_PUBLIC_URL=http://localhost:4000`. Everything else has dev defaults, and email and password sign-in works with no extra setup.
 
 ```bash
 pnpm infra:up        # Postgres :5432 (user/pass/db = app/app/replo) + MinIO :9000
@@ -29,7 +29,7 @@ Run one thing: `pnpm dev:landing`, `pnpm dev:product`, `pnpm dev:api` (api + wor
 
 Email and password works out of the box: open `http://localhost:3001/login` and choose **Create account**. Passwords are hashed with scrypt, and sessions are opaque tokens stored hashed in `session`.
 
-GitHub and Google are optional. Each one appears on the login page only when its credentials are set.
+GitHub and Google buttons are always on the login page. Set credentials in `apps/api/.env` before a live round trip; without them, **Continue with GitHub** or **Continue with Google** sends you back to `/login?error=OAUTH_NOT_CONFIGURED`.
 
 - **GitHub:** create a GitHub App (Settings → Developer settings → GitHub Apps). Set the callback URL to `http://localhost:4000/auth/github/callback`. Under account permissions, grant **Email addresses: read**, because sign-in reads the verified email from `/user/emails`. Put the client ID and client secret in `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET`.
 - **Google:** create an OAuth client (Google Cloud → APIs & Services → Credentials, type Web application). Add `http://localhost:4000/auth/google/callback` as an authorised redirect URI, then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
@@ -40,9 +40,9 @@ A GitHub or Google login only signs in to an account whose email the provider ha
 
 For the GitHub App installs and private repositories, see the GitHub notes in `MEM.md`.
 
-### What works today vs. stubs
+### What works today
 
-Works: auth routes, `me.get`, `jobs.get`, SSE endpoint, webhook verify+dedupe, worker loop (a job fails with `STAGE_NOT_IMPLEMENTED`). Everything else returns `NOT_IMPLEMENTED` until its phase (see [`API.md`](./API.md), [`ROADMAP.md`](../ROADMAP.md)).
+Release 1 backend and product UI are implemented against [`docs/API.md`](./API.md). Auth (email and password, Google and GitHub OAuth), import and preflight, BYOK keys, the generation worker pipeline, the learning player, library, settings, and public tutorial pages are wired to Postgres and pg-boss. Local verification still needs your OAuth apps, a GitHub App for private repos, and real provider keys for live generation. Deploy (O1) is not started in this repo yet.
 
 ## 2. Write an API endpoint (contract-first)
 

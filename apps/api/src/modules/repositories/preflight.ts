@@ -115,7 +115,7 @@ export function createPreflight(deps: PreflightDeps): Preflight {
     const summary = inventory(tree.tree)
     const breach = limitBreach(summary, limits)
     if (breach) return refused({ code: 'REPO_TOO_LARGE', data: breach })
-    if (summary.sourceFileCount === 0) return refused({ code: 'UNSUPPORTED_LANGUAGE' })
+    if (summary.indexableFileCount === 0) return refused({ code: 'UNSUPPORTED_LANGUAGE' })
 
     return ok({
       repo: access.repo,

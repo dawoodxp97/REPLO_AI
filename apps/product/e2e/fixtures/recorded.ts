@@ -71,6 +71,7 @@ export const PREFLIGHT: PreflightResult = {
   stats: {
     fileCount: 412,
     sourceFileCount: 268,
+    indexableFileCount: 268,
     totalBytes: 1_843_200,
     languages: { TypeScript: 240, JavaScript: 28 },
     framework: 'Next.js',

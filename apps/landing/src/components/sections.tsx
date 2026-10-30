@@ -16,7 +16,7 @@ export function Hero() {
           Free to use · bring your own key
         </Badge>
         <h1 className="font-serif text-5xl font-medium leading-[1.05] tracking-[-0.02em] sm:text-6xl">
-          Learn a TypeScript or JavaScript repo, <em className="text-primary">with receipts.</em>
+          Learn a GitHub repo, <em className="text-primary">with receipts.</em>
         </h1>
         <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
           Paste a repo and get a chaptered tutorial. Every explanation links to the exact file and
@@ -235,7 +235,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: 'What languages are supported?',
-    a: 'TypeScript and JavaScript repositories in release 1. The analysis understands Next.js, React Router, Express and Fastify.',
+    a: 'Any GitHub repository with readable text files, within the size limits shown at import. Symbol-level analysis is strongest on TypeScript and JavaScript (including Next.js, React Router, Express and Fastify). Other languages are taught from pinned file excerpts.',
   },
   {
     q: 'Does Replo cost anything?',
