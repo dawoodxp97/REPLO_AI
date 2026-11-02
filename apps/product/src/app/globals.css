@@ -3,15 +3,5 @@
 @source '../../../../packages/ui/src';
 
 .code-token {
-  color: var(--shiki-light);
-}
-
-:root[data-theme='dark'] .code-token {
-  color: var(--shiki-dark);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .code-token {
-    color: var(--shiki-dark);
-  }
+  color: light-dark(var(--shiki-light), var(--shiki-dark));
 }

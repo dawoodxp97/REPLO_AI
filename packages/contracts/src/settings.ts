@@ -2,7 +2,7 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { Audience } from './common'
 
-export const Theme = z.enum(['light', 'dark'])
+export const Theme = z.enum(['system', 'light', 'dark'])
 export type Theme = z.infer<typeof Theme>
 
 export const Preferences = z.object({

@@ -1,6 +1,7 @@
 import type { OperatorJobDetail, OperatorJobRow } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
-import { notFound } from '../../platform/errors'
+import { notFound, requireFound } from '../../platform/errors'
+import { decodeOffset, offsetPage } from '../../platform/pagination'
 import type { JobHistory } from '../generation/job-history.service'
 import { operatorRepo } from './operator.repo'
 
@@ -31,23 +32,18 @@ export function createOperatorService(deps: OperatorDeps): OperatorService {
   return {
     async jobs(userId, input) {
       await requireOperator(userId)
-      const offset = Number(input.cursor ?? 0)
+      const offset = decodeOffset(input.cursor)
       const rows = await deps.jobs.operatorJobs({
         status: input.status,
         limit: input.limit + 1,
         offset,
       })
-      return {
-        items: rows.slice(0, input.limit),
-        nextCursor: rows.length > input.limit ? String(offset + input.limit) : null,
-      }
+      return offsetPage(rows, offset, input.limit)
     },
 
     async job(userId, jobId) {
       await requireOperator(userId)
-      const detail = await deps.jobs.operatorJob(jobId)
-      if (!detail) notFound('Job')
-      return detail
+      return requireFound(await deps.jobs.operatorJob(jobId), 'Job')
     },
   }
 }

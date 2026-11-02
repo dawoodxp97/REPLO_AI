@@ -4,7 +4,12 @@ import type { FixedWindowLimiter } from './rate-limit'
 
 const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
-interface RateRule {
+export function normalizePath(url: string): string {
+  const path = (url.split('?')[0] ?? '').replace(/\/{2,}/g, '/').replace(/\/+$/, '')
+  return path === '' ? '/' : path
+}
+
+export interface RateRule {
   matches(path: string): boolean
   limiter: FixedWindowLimiter
   key(request: FastifyRequest): Promise<string>
@@ -27,7 +32,7 @@ export function registerGuards(app: App, options: GuardOptions): void {
         return refuse(reply, 403, 'BAD_ORIGIN')
     }
 
-    const path = request.url.split('?')[0] ?? ''
+    const path = normalizePath(request.url)
     for (const rule of options.rules) {
       if (!rule.matches(path)) continue
       const decision = rule.limiter.take(await rule.key(request))

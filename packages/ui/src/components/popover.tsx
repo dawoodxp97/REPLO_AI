@@ -1,30 +1,32 @@
 import { Popover as BasePopover } from '@base-ui/react/popover'
 import type { ComponentProps } from 'react'
 import { cn } from '../lib/cn'
+import { floatingPanelClass } from '../lib/overlay'
+import type { BaseProps } from '../lib/types'
 
 export const Popover = BasePopover.Root
 export const PopoverTrigger = BasePopover.Trigger
 export const PopoverClose = BasePopover.Close
 
+type PositionerProps = ComponentProps<typeof BasePopover.Positioner>
+
 export function PopoverContent({
   className,
   align = 'end',
-  sideOffset = 8,
+  side = 'bottom',
+  sideOffset = 6,
   children,
   ...props
-}: Omit<ComponentProps<typeof BasePopover.Popup>, 'className'> & {
-  className?: string
-  align?: ComponentProps<typeof BasePopover.Positioner>['align']
+}: BaseProps<typeof BasePopover.Popup> & {
+  align?: PositionerProps['align']
+  side?: PositionerProps['side']
   sideOffset?: number
 }) {
   return (
     <BasePopover.Portal>
-      <BasePopover.Positioner align={align} sideOffset={sideOffset} className="z-50">
+      <BasePopover.Positioner align={align} side={side} sideOffset={sideOffset} className="z-50">
         <BasePopover.Popup
-          className={cn(
-            'w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-lg outline-none',
-            className,
-          )}
+          className={cn(floatingPanelClass, 'w-[min(22rem,calc(100vw-2rem))] p-2', className)}
           {...props}
         >
           {children}

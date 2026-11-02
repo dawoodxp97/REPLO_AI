@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { ModelPreset, ModelRole, Provider } from './common'
+import { BudgetUsd, ModelPreset, ModelRole, Provider } from './common'
 
 export const Pipeline = z.enum(['full', 'lite'])
 export type Pipeline = z.infer<typeof Pipeline>
@@ -32,7 +32,7 @@ export const CustomModelRefusal = z.object({
 export const ModelPreferences = z.object({
   preset: ModelPreset,
   customModels: CustomModels.nullable(),
-  defaultBudgetUsd: z.number().positive().max(50).nullable(),
+  defaultBudgetUsd: BudgetUsd.nullable(),
 })
 export type ModelPreferences = z.infer<typeof ModelPreferences>
 

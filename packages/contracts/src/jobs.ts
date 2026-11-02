@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { CommitSha } from './common'
+import { CommitSha, TutorialRef } from './common'
 
 export const JOB_STATUSES = [
   'queued',
@@ -38,6 +38,7 @@ export const GenerationJobDto = z.object({
   budgetUsd: z.number(),
   spentUsd: z.number(),
   tutorialId: z.uuid().nullable().default(null),
+  tutorial: TutorialRef.nullable().default(null),
   error: z.object({ code: z.string() }).nullable().default(null),
 })
 export type GenerationJobDto = z.infer<typeof GenerationJobDto>

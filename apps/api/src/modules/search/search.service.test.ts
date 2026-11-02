@@ -11,6 +11,10 @@ const tutorialHit = {
 }
 const lessonHit = {
   tutorialId: 'tutorial-1',
+  tutorialTitle: 'Shop internals',
+  owner: 'acme',
+  repo: 'shop',
+  slug: 'shop-internals',
   versionId: 'version-1',
   chapterKey: 'chapter-1',
   lessonKey: 'lesson-2',

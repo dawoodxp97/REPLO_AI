@@ -6,6 +6,7 @@ import { inArray } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ModelPlan } from '@replo/contracts'
+import { encodeCursor } from './modules/notifications/notifications.cursor'
 import { user } from './platform/db/auth-schema'
 import { createDb, type Db } from './platform/db/client'
 import {
@@ -132,10 +133,6 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
       ['notifications.markRead', () => stranger.notifications.markRead({ id: world.noteId })],
       ['notifications.delete', () => stranger.notifications.delete({ id: world.noteId })],
       [
-        'notifications.list (foreign cursor)',
-        () => stranger.notifications.list({ limit: 25, cursor: world.noteId }),
-      ],
-      [
         'tutorials.get',
         () => stranger.tutorials.get({ owner: 'acme', repo: 'shop', slug: 'shop' }),
       ],
@@ -211,6 +208,29 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
       if (code !== 'NOT_FOUND') misses.push(`${name}: ${code}`)
     }
     expect(misses).toEqual([])
+  })
+
+  it('never returns another user’s notifications for a foreign or forged cursor', async () => {
+    const owner = await sessionUser()
+    const strangerClient = clientFor(await sessionUser())
+    const world = await seedWorld(owner.id)
+    const forged = encodeCursor({
+      at: new Date(Date.now() + 60_000).toISOString().replace(/Z$/, '000Z'),
+      id: world.noteId,
+    })
+
+    const attempts = [world.noteId, 'not-a-cursor', forged]
+    for (const cursor of attempts) {
+      const outcome = await strangerClient.notifications.list({ limit: 25, cursor }).then(
+        (page) => ({ code: 'resolved', body: JSON.stringify(page) }),
+        (error: unknown) => ({
+          code: error instanceof ORPCError ? error.code : String(error),
+          body: '',
+        }),
+      )
+      expect(['resolved', 'BAD_REQUEST']).toContain(outcome.code)
+      expect(outcome.body).not.toContain(world.noteId)
+    }
   })
 
   it('keeps the owner’s rows out of every listing and search a stranger can run', async () => {

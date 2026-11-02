@@ -48,5 +48,8 @@ export const githubContract = {
   installUrl: oc
     .route({ method: 'GET', path: '/github/install-url' })
     .output(z.object({ url: z.url().nullable() })),
-  listRepos: oc.route({ method: 'GET', path: '/github/repos' }).output(z.array(GithubRepoDto)),
+  listRepos: oc
+    .route({ method: 'GET', path: '/github/repos' })
+    .output(z.array(GithubRepoDto))
+    .errors({ GITHUB_RELINK_REQUIRED: {} }),
 }

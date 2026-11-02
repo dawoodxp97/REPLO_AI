@@ -19,10 +19,16 @@ export const VISIBILITIES = ['private', 'link', 'public'] as const
 export const Visibility = z.enum(VISIBILITIES)
 export type Visibility = z.infer<typeof Visibility>
 
+export const TutorialRef = z.object({ owner: z.string(), repo: z.string(), slug: z.string() })
+export type TutorialRef = z.infer<typeof TutorialRef>
+
 export const MICROS_PER_USD = 1_000_000
 
 export const OffsetCursor = z.string().regex(/^\d{1,9}$/)
 export const IdCursor = z.uuid()
+
+export const MAX_BUDGET_USD = 50
+export const BudgetUsd = z.number().positive().max(MAX_BUDGET_USD)
 
 export const pageInput = (cursor: z.ZodType<string>) =>
   z.object({
@@ -30,4 +36,10 @@ export const pageInput = (cursor: z.ZodType<string>) =>
     cursor: cursor.optional(),
   })
 
+export const pageOutput = <Item extends z.ZodType, Cursor extends z.ZodType>(
+  item: Item,
+  cursor: Cursor,
+) => z.object({ items: z.array(item), nextCursor: cursor.nullable() })
+
 export const OkResult = z.object({ ok: z.literal(true) })
+export const OK_RESULT: z.infer<typeof OkResult> = { ok: true }

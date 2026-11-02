@@ -1,27 +1,16 @@
 import { createServer } from 'node:http'
 import { Budget } from '@replo/ai'
-import PgBoss from 'pg-boss'
 import { createDomainServices } from './composition'
 import { handleGenerateTutorial } from './jobs/generate-tutorial.worker'
-import { declareQueues } from './jobs/queues'
 import { GENERATE_TUTORIAL, PURGE_RETENTION, REAP_STALLED_JOBS } from './jobs/schemas'
-import { loadConfig } from './platform/config'
-import { createDb } from './platform/db/client'
-import { createLogger } from './platform/logger'
+import { bootstrap } from './platform/bootstrap'
 import { pgBossQueue } from './platform/queue/job-queue'
+import { installShutdown } from './platform/shutdown'
 
-const config = loadConfig()
-const log = createLogger({
-  level: config.LOG_LEVEL,
-  pretty: config.NODE_ENV === 'development',
-  name: 'worker',
-})
-const { db, pool } = createDb(config.DATABASE_URL)
+const BOSS_STOP_TIMEOUT_MS = 30_000
+const SHUTDOWN_TIMEOUT_MS = 45_000
 
-const boss = new PgBoss({ connectionString: config.DATABASE_URL })
-boss.on('error', (err) => log.error({ err }, 'pg-boss error'))
-await boss.start()
-await declareQueues(boss)
+const { config, log, db, boss, releaseSteps } = await bootstrap('worker')
 
 const services = createDomainServices({ config, db, queue: pgBossQueue(boss) })
 
@@ -57,12 +46,11 @@ log.info(
   'worker started',
 )
 
-const shutdown = async (signal: string) => {
-  log.info({ signal }, 'worker shutting down')
-  health.close()
-  await boss.stop({ graceful: true, timeout: 30_000 })
-  await pool.end()
-  process.exit(0)
-}
-process.on('SIGTERM', () => void shutdown('SIGTERM'))
-process.on('SIGINT', () => void shutdown('SIGINT'))
+installShutdown({
+  steps: [
+    { name: 'health server', run: () => health.close() },
+    ...releaseSteps(BOSS_STOP_TIMEOUT_MS),
+  ],
+  log,
+  timeoutMs: SHUTDOWN_TIMEOUT_MS,
+})

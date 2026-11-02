@@ -1,8 +1,9 @@
+import { JobError } from '../../jobs/errors'
 import type { IndexingService, SnapshotView } from '../indexing/indexing.service'
 import type { LessonDraft, OutlineDraft } from './drafts'
 import { normalisePath } from './grounding/evidence'
 import { SourceIndex } from './grounding/source-index'
-import { groupOf } from './grounding/structure'
+import { groupSizes } from './grounding/structure'
 import { dataSection } from './prompts'
 
 const MAP_FILES = 60
@@ -10,6 +11,8 @@ const MAP_SYMBOLS = 8
 const MAP_GROUPS = 20
 const EXCERPT_CHARS = 8000
 const EXCERPT_FILES = 12
+const BACKFILL_PATHS = 3
+export const FALLBACK_FILES = 12
 
 export function sourceIndexOf(
   view: SnapshotView,
@@ -40,12 +43,7 @@ export function repoMap(
   index: SourceIndex,
   summaries: Readonly<Record<string, string>>,
 ): string {
-  const sizes = new Map<string, number>()
-  for (const file of view.files) {
-    const group = groupOf(file.path)
-    if (group) sizes.set(group, (sizes.get(group) ?? 0) + 1)
-  }
-  const groups = [...sizes.entries()]
+  const groups = [...groupSizes(view.files).entries()]
     .sort(([, a], [, b]) => b - a)
     .slice(0, MAP_GROUPS)
     .map(([name, count]) => `- ${name} (${count} files)`)
@@ -130,22 +128,45 @@ export function normaliseOutline(
   draft: OutlineDraft,
   index: SourceIndex,
   maxChapters: number,
+  fallbackPaths: readonly string[],
 ): OutlineDraft {
   const chapterKeys = new Set<string>()
   const lessonKeys = new Set<string>()
-  const chapters = draft.chapters.slice(0, maxChapters).map((chapter) => ({
-    ...chapter,
-    key: uniqueKey(chapter.key, chapterKeys),
-    lessons: chapter.lessons.map((lesson) => ({
-      ...lesson,
-      key: uniqueKey(lesson.key, lessonKeys),
-      focusPaths: lesson.focusPaths.filter((path) => {
-        const normal = normalisePath(path)
-        return normal !== undefined && index.file(normal) !== undefined
+  const chapters = draft.chapters.slice(0, maxChapters).map((chapter) => {
+    const resolved = chapter.lessons.map((lesson) => existingPaths(lesson.focusPaths, index))
+    const siblingPaths = [...new Set(resolved.flat())]
+    const backfill = (
+      siblingPaths.length > 0 ? siblingPaths : existingPaths(fallbackPaths, index)
+    ).slice(0, BACKFILL_PATHS)
+    if (backfill.length === 0 && resolved.some((paths) => paths.length === 0))
+      throw new JobError('OUTLINE_INVALID', false, 'the outline names no file in this repository')
+
+    return {
+      ...chapter,
+      key: uniqueKey(chapter.key, chapterKeys),
+      lessons: chapter.lessons.map((lesson, position) => {
+        const own = resolved[position] ?? []
+        return {
+          ...lesson,
+          key: uniqueKey(lesson.key, lessonKeys),
+          focusPaths: own.length > 0 ? own : backfill,
+        }
       }),
-    })),
-  }))
+    }
+  })
   return { ...draft, chapters }
+}
+
+export function fallbackFocusPaths(view: SnapshotView, index: SourceIndex): string[] {
+  return existingPaths(rankedPaths(view, FALLBACK_FILES), index).slice(0, BACKFILL_PATHS)
+}
+
+function existingPaths(paths: readonly string[], index: SourceIndex): string[] {
+  const found = paths.flatMap((path) => {
+    const normal = normalisePath(path)
+    return normal !== undefined && index.file(normal) !== undefined ? [normal] : []
+  })
+  return [...new Set(found)]
 }
 
 export function dataFiles(index: SourceIndex, paths: readonly string[]): string {

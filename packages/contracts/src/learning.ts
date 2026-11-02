@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { OffsetCursor, pageInput } from './common'
+import { OffsetCursor, pageInput, pageOutput } from './common'
 
 export const LESSON_STATUSES = ['in_progress', 'completed'] as const
 export const LessonStatus = z.enum(LESSON_STATUSES)
@@ -32,10 +32,7 @@ export const HistoryEntryDto = z.object({
 })
 export type HistoryEntryDto = z.infer<typeof HistoryEntryDto>
 
-export const HistoryPage = z.object({
-  items: z.array(HistoryEntryDto),
-  nextCursor: z.string().nullable(),
-})
+export const HistoryPage = pageOutput(HistoryEntryDto, OffsetCursor)
 export type HistoryPage = z.infer<typeof HistoryPage>
 
 export const learningContract = {

@@ -1,4 +1,4 @@
-import { and, eq, inArray, lt, notExists } from 'drizzle-orm'
+import { and, eq, inArray, lt, notExists, sql } from 'drizzle-orm'
 import type { SnapshotStats } from '@replo/contracts'
 import type { Analysis } from '@replo/repo-analysis'
 import type { DbOrTx } from '../../platform/db/client'
@@ -34,6 +34,10 @@ const snapshotFileColumns = {
 }
 
 export const snapshotsRepo = (db: DbOrTx) => ({
+  async lock(snapshotId: string): Promise<void> {
+    await db.execute(sql`select pg_advisory_xact_lock(hashtext(${snapshotId}))`)
+  },
+
   async ensure(input: { repositoryId: string; commitSha: string }): Promise<string> {
     await db
       .insert(repoSnapshots)

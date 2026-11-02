@@ -3,16 +3,19 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { eq, sql } from 'drizzle-orm'
+import { asc, eq, sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { Budget } from '@replo/ai'
 import { DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
 import PgBoss from 'pg-boss'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { JobStatus } from '@replo/contracts'
 import { user } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   fileEdges,
+  generationJobs,
+  jobEvents,
   jobStages,
   notifications,
   providerKeys,
@@ -126,12 +129,13 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     const noInstallations = {
       activeInstallations: async () => [],
       installationToken: async () => undefined,
+      userCanAccess: async () => false,
     }
 
     indexing = createIndexingService({
       db,
       rest,
-      tokens: { installationToken: async () => undefined },
+      tokens: { installationToken: async () => undefined, userCanAccess: async () => false },
       sources: createRepositorySources(db),
       limits,
       extraction: DEFAULT_EXTRACTION_LIMITS,
@@ -139,7 +143,13 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     })
     const queue = pgBossQueue(boss)
     const notifications = createNotificationsService(db)
-    jobs = createJobService({ db, queue, indexing, notifications })
+    jobs = createJobService({
+      db,
+      queue,
+      indexing,
+      notifications,
+      tutorials: { refOf: async () => undefined },
+    })
     runtime = createJobRuntime({ db, queue, notifications })
     imports = createRepositoryImports({
       db,
@@ -473,5 +483,135 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     await expect(jobs.retry(owner, outcome.value.jobId)).rejects.toMatchObject({
       code: 'CONFLICT',
     })
+  })
+
+  const newJob = async () => {
+    const owner = await seedUser()
+    const keyId = await seedKey(owner, 'anthropic')
+    const outcome = await importFor(owner, keyId)
+    if (outcome.kind !== 'ok') throw new Error('expected ok')
+    return { owner, keyId, jobId: outcome.value.jobId }
+  }
+
+  const setStatus = (jobId: string, status: JobStatus) =>
+    db.update(generationJobs).set({ status }).where(eq(generationJobs.id, jobId))
+
+  const statusOf = async (jobId: string) =>
+    (await db.select().from(generationJobs).where(eq(generationJobs.id, jobId)))[0]!.status
+
+  const eventTypes = async (jobId: string) =>
+    (
+      await db.select().from(jobEvents).where(eq(jobEvents.jobId, jobId)).orderBy(asc(jobEvents.id))
+    ).map((e) => e.type)
+
+  it('does not resurrect a job that already failed when a retryable error arrives late', async () => {
+    const { jobId } = await newJob()
+    await setStatus(jobId, 'running')
+    await runtime.jobStore.finish(jobId, 'failed', { code: 'KEY_REMOVED' })
+
+    expect(await runtime.jobStore.markWaitingRetry(jobId, { code: 'NETWORK' })).toBe(false)
+    expect(await statusOf(jobId)).toBe('failed')
+  })
+
+  it('moves running and stalled jobs to waiting_retry', async () => {
+    const { jobId } = await newJob()
+    await setStatus(jobId, 'running')
+    expect(await runtime.jobStore.markWaitingRetry(jobId, { code: 'NETWORK' })).toBe(true)
+    expect(await statusOf(jobId)).toBe('waiting_retry')
+    await setStatus(jobId, 'stalled')
+    expect(await runtime.jobStore.markWaitingRetry(jobId, { code: 'NETWORK' })).toBe(true)
+    expect(await statusOf(jobId)).toBe('waiting_retry')
+  })
+
+  it('leaves a queued or waiting_retry job untouched when a late retryable error arrives', async () => {
+    const { jobId } = await newJob()
+    for (const status of ['queued', 'waiting_retry'] as const) {
+      await setStatus(jobId, status)
+      expect(await runtime.jobStore.markWaitingRetry(jobId, { code: 'NETWORK' })).toBe(false)
+      expect(await statusOf(jobId)).toBe(status)
+      expect(await eventTypes(jobId)).not.toContain('canceled')
+    }
+  })
+
+  it('finishes a canceling job as canceled when a retry is requested', async () => {
+    const { owner, jobId } = await newJob()
+    await setStatus(jobId, 'running')
+    await jobs.cancel(owner, jobId)
+    expect(await runtime.jobStore.markWaitingRetry(jobId, { code: 'NETWORK' })).toBe(false)
+    expect(await statusOf(jobId)).toBe('canceled')
+    expect((await eventTypes(jobId)).filter((t) => t === 'canceled')).toHaveLength(1)
+  })
+
+  it('records the terminal event and the notification in the finishing transaction, once', async () => {
+    const { owner, jobId } = await newJob()
+    await setStatus(jobId, 'running')
+
+    expect(await runtime.jobStore.finish(jobId, 'failed', { code: 'NETWORK' })).toBe(true)
+    expect(await runtime.jobStore.finish(jobId, 'succeeded')).toBe(false)
+
+    const events = await db.select().from(jobEvents).where(eq(jobEvents.jobId, jobId))
+    const terminal = events.filter((e) => ['succeeded', 'failed', 'canceled'].includes(e.type))
+    expect(terminal.map((e) => e.type)).toEqual(['failed'])
+    expect(terminal[0]!.data).toEqual({ code: 'NETWORK' })
+    const sent = await db.select().from(notifications).where(eq(notifications.jobId, jobId))
+    expect(sent.map((n) => n.userId)).toEqual([owner])
+  })
+
+  it('emits a single succeeded event for a successful finish', async () => {
+    const { jobId } = await newJob()
+    await setStatus(jobId, 'running')
+    expect(await runtime.jobStore.finish(jobId, 'succeeded')).toBe(true)
+    expect((await eventTypes(jobId)).filter((t) => t === 'succeeded')).toHaveLength(1)
+  })
+
+  it('does not persist raw provider text in the failure detail', async () => {
+    const { jobId } = await newJob()
+    await setStatus(jobId, 'running')
+    const { classifyError } = await import('../../jobs/errors')
+    const failure = classifyError(
+      new Error('Incorrect API key provided: sk-proj-abcdefghijklmnopqrstuvwx'),
+    )
+    await runtime.jobStore.finish(jobId, 'failed', { code: failure.code, detail: failure.detail })
+    const [row] = await db.select().from(generationJobs).where(eq(generationJobs.id, jobId))
+    expect(JSON.stringify(row!.errorDetail)).not.toContain('sk-')
+  })
+
+  it.each(['running', 'waiting_retry', 'stalled'] as const)(
+    'cancels a job that is %s whatever state it was read in',
+    async (status) => {
+      const { owner, jobId } = await newJob()
+      await setStatus(jobId, status)
+      const dto = await jobs.cancel(owner, jobId)
+      expect(dto.status).toBe(status === 'running' ? 'canceling' : 'canceled')
+      expect(await statusOf(jobId)).toBe(dto.status)
+    },
+  )
+
+  it('records one canceled event and notification for an idle cancel, and is idempotent', async () => {
+    const { owner, jobId } = await newJob()
+    await jobs.cancel(owner, jobId)
+    await jobs.cancel(owner, jobId)
+    expect((await eventTypes(jobId)).filter((t) => t === 'canceled')).toHaveLength(1)
+    const sent = await db.select().from(notifications).where(eq(notifications.jobId, jobId))
+    expect(sent).toHaveLength(1)
+  })
+
+  it('leaves a finished job untouched on cancel', async () => {
+    const { owner, jobId } = await newJob()
+    await setStatus(jobId, 'running')
+    await runtime.jobStore.finish(jobId, 'succeeded')
+    expect((await jobs.cancel(owner, jobId)).status).toBe('succeeded')
+  })
+
+  it('announces a key-removal failure exactly once through the shared closure', async () => {
+    const { owner, keyId, jobId } = await newJob()
+    await setStatus(jobId, 'running')
+    await db.transaction((tx) => jobs.failForKey(tx, keyId))
+    expect(await statusOf(jobId)).toBe('failed')
+    expect(await runtime.jobStore.finish(jobId, 'succeeded')).toBe(false)
+    const events = (await eventTypes(jobId)).filter((t) => ['succeeded', 'failed'].includes(t))
+    expect(events).toEqual(['failed'])
+    const sent = await db.select().from(notifications).where(eq(notifications.userId, owner))
+    expect(sent.map((n) => n.kind)).toEqual(['job_failed'])
   })
 })

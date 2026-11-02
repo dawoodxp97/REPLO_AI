@@ -9,6 +9,7 @@ import { createDb, type Db } from '../../platform/db/client'
 import { notifications } from '../../platform/db/schema'
 import type { App } from '../../platform/http'
 import { createLogger } from '../../platform/logger'
+import type { AuthService } from '../identity/auth.service'
 import { listenOnLoopback, parseSse, sessionCookieFor, stubAuth } from '../../test/sse'
 import { createNotificationsService } from './notifications.service'
 import { registerNotificationsStream } from './notifications.stream.route'
@@ -135,5 +136,91 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
     }
     expect(reopened?.status).toBe(200)
     await reopened?.body?.cancel()
+  })
+
+  describe('with a revocable session and a long poll interval', () => {
+    const revoked = new Set<string>()
+    const revocableAuth: Pick<AuthService, 'currentSession'> = {
+      currentSession: async (token) =>
+        token && revoked.has(token) ? null : stubAuth.currentSession(token),
+    }
+    let slowApp: App
+    let slowUrl: string
+
+    beforeAll(async () => {
+      slowApp = Fastify({ loggerInstance: createLogger({ level: 'silent', name: 'test' }) })
+      registerNotificationsStream(slowApp, {
+        auth: revocableAuth,
+        notifications: createNotificationsService(db),
+        productOrigin: 'http://localhost:3001',
+        pollMs: 20,
+        heartbeatMs: 60_000,
+        sessionRecheckMs: 40,
+        maxStreamsPerUser: 1,
+      })
+      slowUrl = await listenOnLoopback(slowApp)
+    })
+
+    afterAll(async () => {
+      await slowApp.close()
+    })
+
+    it('tells the client it is unauthorized and ends the stream once the session is revoked', async () => {
+      const owner = await seedUser(1)
+      const res = await fetch(`${slowUrl}/notifications/stream`, {
+        headers: sessionCookieFor(owner),
+      })
+      const frames = parseSse(res.body!)[Symbol.asyncIterator]()
+      expect((await frames.next()).value).toMatchObject({ event: 'unread', data: { count: 1 } })
+
+      revoked.add(owner)
+      expect((await frames.next()).value).toMatchObject({ event: 'unauthorized' })
+      expect((await frames.next()).done).toBe(true)
+    })
+  })
+
+  describe('with a long poll interval', () => {
+    let longApp: App
+    let longUrl: string
+
+    beforeAll(async () => {
+      longApp = Fastify({ loggerInstance: createLogger({ level: 'silent', name: 'test' }) })
+      registerNotificationsStream(longApp, {
+        auth: stubAuth,
+        notifications: createNotificationsService(db),
+        productOrigin: 'http://localhost:3001',
+        pollMs: 60_000,
+        heartbeatMs: 60_000,
+        maxStreamsPerUser: 1,
+      })
+      longUrl = await listenOnLoopback(longApp)
+    })
+
+    afterAll(async () => {
+      await longApp.close()
+    })
+
+    it('frees the per-user slot as soon as the client disconnects, not after the next poll', async () => {
+      const owner = await seedUser(0)
+      const controller = new AbortController()
+      const first = await fetch(`${longUrl}/notifications/stream`, {
+        headers: sessionCookieFor(owner),
+        signal: controller.signal,
+      })
+      const frames = parseSse(first.body!)[Symbol.asyncIterator]()
+      await frames.next()
+
+      controller.abort()
+      let reopened: Response | undefined
+      for (let attempt = 0; attempt < 50 && !reopened; attempt++) {
+        const candidate = await fetch(`${longUrl}/notifications/stream`, {
+          headers: sessionCookieFor(owner),
+        })
+        if (candidate.status === 200) reopened = candidate
+        else await new Promise((resolve) => setTimeout(resolve, 20))
+      }
+      expect(reopened?.status).toBe(200)
+      await reopened?.body?.cancel()
+    })
   })
 })

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { formatBytes, formatCount, formatUsd } from './format'
+import {
+  formatBytes,
+  formatCount,
+  formatDate,
+  formatMinutes,
+  formatPercent,
+  formatUsd,
+} from './format'
 
 describe('formatBytes', () => {
   it('uses whole bytes below one kilobyte', () => {
@@ -25,5 +32,33 @@ describe('formatUsd', () => {
 describe('formatCount', () => {
   it('groups thousands', () => {
     expect(formatCount(12345)).toBe('12,345')
+  })
+})
+
+describe('formatDate', () => {
+  it('renders a stable UTC day', () => {
+    expect(formatDate('2026-10-22T23:30:00.000Z')).toBe('22 Oct 2026')
+  })
+})
+
+describe('formatMinutes', () => {
+  it('stays in minutes below an hour', () => {
+    expect(formatMinutes(12)).toBe('12 min')
+  })
+
+  it('switches to hours and minutes', () => {
+    expect(formatMinutes(60)).toBe('1 h')
+    expect(formatMinutes(95)).toBe('1 h 35 min')
+  })
+
+  it('never goes negative', () => {
+    expect(formatMinutes(-4)).toBe('0 min')
+  })
+})
+
+describe('formatPercent', () => {
+  it('rounds a ratio to a whole percent', () => {
+    expect(formatPercent(0.333)).toBe('33%')
+    expect(formatPercent(1)).toBe('100%')
   })
 })

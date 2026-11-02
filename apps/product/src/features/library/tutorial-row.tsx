@@ -1,48 +1,64 @@
 'use client'
 
 import type { TutorialSummaryDto } from '@replo/contracts'
-import { Badge } from '@replo/ui'
+import {
+  Badge,
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+  Progress,
+} from '@replo/ui'
+import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { formatDate, formatPercent } from '@/lib/format'
 import { tutorialPath } from '@/lib/tutorial-paths'
-import { VisibilityControl } from './visibility-control'
 import { useDeleteTutorial } from './use-library'
+import { VisibilityControl } from './visibility-control'
+
+function ReadProgress({ ratio }: { ratio: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Progress value={ratio * 100} aria-label="Read" className="w-16" />
+      <span className="tabular font-mono text-xs text-muted-foreground">
+        {formatPercent(ratio)} read
+      </span>
+    </div>
+  )
+}
 
 export function TutorialRow({ tutorial }: { tutorial: TutorialSummaryDto }) {
   const remove = useDeleteTutorial()
-  const readPercent = tutorial.progress === null ? null : Math.round(tutorial.progress * 100)
 
   return (
-    <li className="space-y-4 rounded-lg border border-border bg-card p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <Link
-            href={tutorialPath(tutorial)}
-            className="font-serif text-lg font-medium break-words hover:text-primary"
-          >
+    <Collapsible render={<Item />}>
+      <ItemContent>
+        <ItemTitle>
+          <Link href={tutorialPath(tutorial)} className="break-words hover:underline">
             {tutorial.title}
           </Link>
-          <p className="font-mono text-xs text-muted-foreground">
-            {tutorial.owner}/{tutorial.repo} · version {tutorial.currentVersionNo} · updated{' '}
-            {tutorial.updatedAt.slice(0, 10)}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge>{tutorial.visibility}</Badge>
-          {readPercent !== null ? <Badge variant="observed">{readPercent}% read</Badge> : null}
-        </div>
-      </div>
-
-      <details>
-        <summary className="cursor-pointer text-sm text-primary underline underline-offset-4">
+        </ItemTitle>
+        <ItemDescription className="font-mono text-xs">
+          {tutorial.owner}/{tutorial.repo} · v{tutorial.currentVersionNo} · updated{' '}
+          {formatDate(tutorial.updatedAt)}
+        </ItemDescription>
+      </ItemContent>
+      <ItemActions className="flex-wrap">
+        <Badge variant="outline">{tutorial.visibility}</Badge>
+        {tutorial.progress === null ? null : <ReadProgress ratio={tutorial.progress} />}
+        <CollapsibleTrigger
+          render={<Button variant="ghost" size="sm" />}
+          className="[&[data-panel-open]>svg]:rotate-180"
+        >
           Sharing
-        </summary>
-        <div className="pt-4">
-          <VisibilityControl tutorial={tutorial} />
-        </div>
-      </details>
-
-      <div className="flex justify-end">
+          <ChevronDown className="transition-transform" />
+        </CollapsibleTrigger>
         <ConfirmDialog
           triggerLabel="Delete"
           title="Delete this tutorial?"
@@ -51,7 +67,10 @@ export function TutorialRow({ tutorial }: { tutorial: TutorialSummaryDto }) {
           run={() => remove.mutateAsync({ tutorialId: tutorial.id })}
           describeError={() => 'The tutorial could not be deleted. Try again.'}
         />
-      </div>
-    </li>
+      </ItemActions>
+      <CollapsibleContent className="basis-full border-t pt-4">
+        <VisibilityControl tutorial={tutorial} />
+      </CollapsibleContent>
+    </Collapsible>
   )
 }

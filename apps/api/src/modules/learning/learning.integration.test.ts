@@ -16,6 +16,7 @@ import {
 } from '../../platform/db/schema'
 import { createTutorialPublisher, type TutorialPublisher } from '../tutorials/publisher.service'
 import { createTutorialReader } from '../tutorials/reader.service'
+import { learningRepo } from './learning.repo'
 import { createLearningService, type LearningService } from './learning.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -539,6 +540,102 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     })
   })
 
+  it('fills history pages from the lessons the version still has, with a cursor only when more remain', async () => {
+    const owner = await seedUser()
+    const seed = await seedRepo()
+    const first = await publish(owner, seed, cartChapters)
+    for (const lessonKey of ['map', 'cart', 'checkout']) {
+      await learning.markLesson(owner, {
+        versionId: first.versionId,
+        lessonKey,
+        status: 'completed',
+      })
+    }
+    const stamps = {
+      map: '2026-10-01T10:00:00.000Z',
+      cart: '2026-10-01T10:05:00.000Z',
+      checkout: '2026-10-01T10:01:00.000Z',
+    }
+    for (const [lessonKey, at] of Object.entries(stamps)) {
+      await db
+        .update(learningProgress)
+        .set({ updatedAt: new Date(at) })
+        .where(and(eq(learningProgress.userId, owner), eq(learningProgress.lessonKey, lessonKey)))
+    }
+    const second = await publish(owner, seed, revisedChapters)
+    const query = { tutorialId: second.tutorialId, versionId: second.versionId }
+
+    const firstPage = await learning.history(owner, { ...query, limit: 1 })
+    expect(firstPage.items.map((item) => item.lessonKey)).toEqual(['checkout'])
+    expect(firstPage.nextCursor).toBe('1')
+    const secondPage = await learning.history(owner, {
+      ...query,
+      limit: 1,
+      cursor: firstPage.nextCursor ?? undefined,
+    })
+    expect(secondPage.items.map((item) => item.lessonKey)).toEqual(['map'])
+    expect(secondPage.nextCursor).toBeNull()
+  })
+
+  it('keeps a lesson completed in another version completed when it is marked in progress', async () => {
+    const owner = await seedUser()
+    const seed = await seedRepo()
+    const first = await publish(owner, seed, cartChapters)
+    await learning.markLesson(owner, {
+      versionId: first.versionId,
+      lessonKey: 'map',
+      status: 'completed',
+    })
+    const second = await publish(owner, seed, revisedChapters)
+
+    const progress = await learning.markLesson(owner, {
+      versionId: second.versionId,
+      lessonKey: 'map',
+      status: 'in_progress',
+    })
+    expect(progress.lessons).toEqual({ map: 'completed' })
+    expect(
+      await db.select().from(learningProgress).where(eq(learningProgress.userId, owner)),
+    ).toHaveLength(1)
+    expect(await learning.resumeTarget(owner)).toBeNull()
+
+    await learning.unmarkLesson(owner, { versionId: second.versionId, lessonKey: 'map' })
+    const restarted = await learning.markLesson(owner, {
+      versionId: second.versionId,
+      lessonKey: 'map',
+      status: 'in_progress',
+    })
+    expect(restarted.lessons).toEqual({ map: 'in_progress' })
+    expect(await learning.resumeTarget(owner)).toMatchObject({ lessonKey: 'map' })
+  })
+
+  it('never resumes at a lesson that is completed in another version', async () => {
+    const owner = await seedUser()
+    const seed = await seedRepo()
+    const first = await publish(owner, seed, cartChapters)
+    await learning.markLesson(owner, {
+      versionId: first.versionId,
+      lessonKey: 'map',
+      status: 'completed',
+    })
+    const second = await publish(owner, seed, revisedChapters)
+    await db.insert(learningProgress).values({
+      userId: owner,
+      tutorialId: second.tutorialId,
+      versionId: second.versionId,
+      lessonKey: 'map',
+      status: 'in_progress',
+      updatedAt: new Date('2031-01-01T00:00:00.000Z'),
+    })
+    await learning.markLesson(owner, {
+      versionId: second.versionId,
+      lessonKey: 'recap',
+      status: 'in_progress',
+    })
+
+    expect(await learning.resumeTarget(owner)).toMatchObject({ lessonKey: 'recap' })
+  })
+
   it('resumes the latest in-progress lesson and skips rows it cannot resolve', async () => {
     const owner = await seedUser()
     const other = await seedUser()
@@ -580,5 +677,87 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
       repo: otherSeed.name,
       slug: otherSeed.name,
     })
+  })
+
+  it('resumes at an older lesson when newer in-progress rows are all completed elsewhere', async () => {
+    const owner = await seedUser()
+    const seed = await seedRepo()
+    const first = await publish(owner, seed, cartChapters)
+    const second = await publish(owner, seed, revisedChapters)
+    const ghostKeys = Array.from({ length: 25 }, (_, index) => `ghost-${index}`)
+    await db.insert(learningProgress).values(
+      ghostKeys.flatMap((lessonKey, index) => [
+        {
+          userId: owner,
+          tutorialId: first.tutorialId,
+          versionId: first.versionId,
+          lessonKey,
+          status: 'completed' as const,
+          completedAt: new Date('2030-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2030-01-01T00:00:00.000Z'),
+        },
+        {
+          userId: owner,
+          tutorialId: second.tutorialId,
+          versionId: second.versionId,
+          lessonKey,
+          status: 'in_progress' as const,
+          updatedAt: new Date(`2031-01-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`),
+        },
+      ]),
+    )
+    await db.insert(learningProgress).values({
+      userId: owner,
+      tutorialId: second.tutorialId,
+      versionId: second.versionId,
+      lessonKey: 'recap',
+      status: 'in_progress',
+      updatedAt: new Date('2020-01-01T00:00:00.000Z'),
+    })
+
+    expect(await learning.resumeTarget(owner)).toMatchObject({ lessonKey: 'recap' })
+  })
+
+  it('never downgrades a completed lesson when an in-progress write lands after it', async () => {
+    const owner = await seedUser()
+    const seed = await seedRepo()
+    const version = await publish(owner, seed, cartChapters)
+    await learning.markLesson(owner, {
+      versionId: version.versionId,
+      lessonKey: 'map',
+      status: 'completed',
+    })
+
+    const now = new Date()
+    await learningRepo(db).upsert({
+      userId: owner,
+      tutorialId: version.tutorialId,
+      versionId: version.versionId,
+      lessonKey: 'map',
+      status: 'in_progress',
+      completedAt: null,
+      updatedAt: now,
+    })
+
+    const [row] = await db.select().from(learningProgress).where(eq(learningProgress.userId, owner))
+    expect(row?.status).toBe('completed')
+    expect(row?.completedAt).not.toBeNull()
+  })
+
+  it('still lets a completion overwrite an in-progress row', async () => {
+    const owner = await seedUser()
+    const seed = await seedRepo()
+    const version = await publish(owner, seed, cartChapters)
+    await learning.markLesson(owner, {
+      versionId: version.versionId,
+      lessonKey: 'map',
+      status: 'in_progress',
+    })
+    const progress = await learning.markLesson(owner, {
+      versionId: version.versionId,
+      lessonKey: 'map',
+      status: 'completed',
+    })
+    expect(progress.lessons).toEqual({ map: 'completed' })
   })
 })

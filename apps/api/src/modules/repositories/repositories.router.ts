@@ -1,5 +1,5 @@
 import type { ORPCErrorConstructorMap } from '@orpc/server'
-import type { planRefusalErrors, repoRefusalErrors } from '@replo/contracts'
+import { OK_RESULT, type planRefusalErrors, type repoRefusalErrors } from '@replo/contracts'
 import { authed } from '../../orpc'
 import type { PreflightRefusal } from './preflight'
 import type { PlanRefusal } from './imports.service'
@@ -43,7 +43,7 @@ export const repositoriesRouter = {
   ),
   remove: authed.repositories.remove.handler(async ({ input, context }) => {
     await context.services.repositoryLibrary.remove(context.user.id, input.repositoryId)
-    return { ok: true as const }
+    return OK_RESULT
   }),
   preflight: authed.repositories.preflight.handler(async ({ input, context, errors }) => {
     const outcome = await context.services.repositoryImports.preflight(

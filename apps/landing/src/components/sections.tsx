@@ -1,230 +1,261 @@
-import { Badge, buttonVariants, Card, CardContent, CardHeader, CardTitle } from '@replo/ui'
+import {
+  Badge,
+  buttonVariants,
+  cn,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@replo/ui'
+import { ArrowRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { linkClass } from './article'
-import { APP_URL } from './site'
-
-const wrap = 'mx-auto max-w-6xl px-4 sm:px-6 lg:px-8'
+import { Container, displayClass, MonoLabel, PageSection } from './page-section'
+import { ProductFrame } from './product-frame'
+import { APP_URL, LOGIN_URL } from './site'
 
 export function Hero() {
   return (
-    <section
-      className={`${wrap} grid gap-12 py-16 sm:py-24 lg:grid-cols-[1.1fr_0.9fr] lg:items-center`}
-    >
-      <div>
-        <Badge variant="neutral" className="mb-5">
-          Free to use · bring your own key
-        </Badge>
-        <h1 className="font-serif text-5xl font-medium leading-[1.05] tracking-[-0.02em] sm:text-6xl">
-          Learn a GitHub repo, <em className="text-primary">with receipts.</em>
-        </h1>
-        <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-          Paste a repo and get a chaptered tutorial. Every explanation links to the exact file and
-          lines at a pinned commit. A checker tests those links before you read them, and removes or
-          downgrades any it cannot find.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <a href={`${APP_URL}/import`} className={buttonVariants({ size: 'lg' })}>
-            Generate a tutorial for your repo
-          </a>
-          <Link
-            href="/docs/grounding/"
-            className={buttonVariants({ size: 'lg', variant: 'outline' })}
+    <section aria-labelledby="hero-title" className="pt-14 pb-16 sm:pt-20 sm:pb-24">
+      <Container>
+        <div className="max-w-3xl">
+          <h1
+            id="hero-title"
+            className={cn(displayClass, 'text-4xl leading-[1.05] sm:text-5xl lg:text-6xl')}
           >
-            How grounding is checked
-          </Link>
+            Learn an unfamiliar repo from a tutorial that cites its code
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground">
+            Paste a GitHub repository and get a chaptered tutorial. Every explanation links to the
+            exact file and lines at a pinned commit. A checker tests those references before you
+            read them, and removes or downgrades any it cannot find.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <a href={`${APP_URL}/import`} className={buttonVariants({ size: 'lg' })}>
+              Generate a tutorial
+              <ArrowRight aria-hidden="true" />
+            </a>
+            <Link
+              href="/docs/grounding/"
+              className={buttonVariants({ size: 'lg', variant: 'outline' })}
+            >
+              How references are checked
+            </Link>
+          </div>
+          <p className="mt-5 text-sm text-muted-foreground">
+            Free. Runs on your own model key. Read-only GitHub access, and your repo’s code is never
+            executed.
+          </p>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">
-          Read-only GitHub access. Your repo’s code is never executed.
-        </p>
-      </div>
-      <LessonPreview />
+        <div className="mt-12 sm:mt-16">
+          <ProductFrame />
+        </div>
+      </Container>
     </section>
-  )
-}
-
-function LessonPreview() {
-  return (
-    <figure className="min-w-0 rounded-xl border border-border bg-card p-6 shadow-sm">
-      <figcaption className="mb-4 space-y-1 text-xs text-muted-foreground">
-        <span className="block font-medium uppercase tracking-wide text-foreground">
-          Example, not a real tutorial
-        </span>
-        <span className="block">Chapter 3 · What happens on “Add to cart”</span>
-      </figcaption>
-      <p className="prose-lesson text-[1.0625rem]">
-        The button dispatches the{' '}
-        <code className="rounded bg-muted px-1 font-mono text-sm">addItem</code> thunk instead of
-        calling the API directly, so every cart change flows through the store.
-      </p>
-      <p className="mt-2 flex flex-wrap gap-2">
-        <Badge variant="observed" className="font-mono">
-          src/cart/thunks.ts:L9–27
-        </Badge>
-        <Badge variant="observed" className="font-mono">
-          src/ui/ProductCard.tsx:L18–22
-        </Badge>
-      </p>
-      <div className="mt-5 rounded-r-md border-l-4 border-interpretation bg-interpretation/10 px-4 py-3">
-        <Badge variant="interpretation" className="mb-2 h-auto whitespace-normal rounded-md">
-          Interpretation — not confirmed by the code
-        </Badge>
-        <p className="prose-lesson text-[1.0625rem]">
-          Routing writes through a thunk probably keeps optimistic-update logic in one place. The
-          code does not say so.
-        </p>
-      </div>
-      <p className="mt-4 text-xs text-muted-foreground">
-        Green chips are references the checker resolved. Amber marks interpretation.
-      </p>
-    </figure>
   )
 }
 
 const STEPS = [
   {
-    n: '01',
-    title: 'Paste a repo',
-    body: 'A public GitHub URL, or a private repo through a read-only GitHub App you install on the repos you choose. A pre-flight check, which uses no AI, tells you what Replo will do, or why it cannot.',
+    title: 'Import',
+    body: 'Paste a public GitHub URL, or install the read-only GitHub App on the private repos you choose.',
   },
   {
-    n: '02',
-    title: 'Bring your key',
-    body: 'Add an OpenRouter key (recommended), or an OpenAI, Google AI Studio or Anthropic key. Before the run starts you see the model and an estimated cost. The bill is your provider’s.',
+    title: 'Pre-flight',
+    body: 'A check that uses no AI tells you what Replo will do, or why it cannot. You see the model and an estimated cost before the run starts.',
   },
   {
-    n: '03',
-    title: 'Learn it in order',
-    body: 'Chapters with objectives and prerequisites. On wide screens the lesson sits beside the pinned source, and a short quiz closes each chapter.',
+    title: 'Generate',
+    body: 'A model plans the chapters and writes the lessons and quizzes. The checker then tests every reference against the pinned commit.',
+  },
+  {
+    title: 'Read',
+    body: 'Chapters in order, with objectives and prerequisites. On wide screens the lesson sits beside the pinned source, and a short quiz closes each chapter.',
   },
 ]
 
 export function HowItWorks() {
   return (
-    <section id="how" className={`${wrap} py-16`}>
-      <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-        A path, not a map.
-      </h2>
-      <p className="mt-3 max-w-2xl text-muted-foreground">
-        Reference wikis answer questions about a codebase. Replo gives you an order to read it in:
-        where to start, what to read next, and how to check that you understood.
-      </p>
-      <ol className="mt-10 grid gap-6 md:grid-cols-3">
-        {STEPS.map((s) => (
-          <li key={s.n}>
-            <Card className="h-full">
-              <CardHeader>
-                <span className="font-mono text-xs text-muted-foreground">{s.n}</span>
-                <CardTitle className="text-lg">{s.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">{s.body}</CardContent>
-            </Card>
+    <PageSection
+      id="how"
+      title="From a repo URL to a chaptered tutorial in four steps"
+      lede="Replo gives you an order to read a codebase in: where to start, what to read next, and how to check that you understood."
+    >
+      <ol className="grid lg:grid-cols-4">
+        {STEPS.map((step, index) => (
+          <li
+            key={step.title}
+            className="relative border-l pb-10 pl-6 last:pb-0 lg:border-t lg:border-l-0 lg:pt-6 lg:pr-8 lg:pb-0 lg:pl-0"
+          >
+            <span
+              aria-hidden="true"
+              className="absolute top-1.5 -left-[4.5px] size-2 rounded-full bg-foreground lg:-top-[4.5px] lg:left-0"
+            />
+            <MonoLabel className="text-xs">{String(index + 1).padStart(2, '0')}</MonoLabel>
+            <h3 className="mt-1 font-semibold tracking-tight">{step.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-pretty text-muted-foreground">
+              {step.body}
+            </p>
           </li>
         ))}
       </ol>
-    </section>
+    </PageSection>
   )
 }
 
-const GROUNDING = [
+type ReportEntry = {
+  glyph: string
+  status: string
+  detail: string
+  tone: string
+}
+
+const REPORT: readonly ReportEntry[] = [
   {
-    title: 'The model points, the system quotes',
-    body: 'Models never write code or line numbers into a tutorial. They name a symbol or quote a short anchor. The validator resolves that to a file, a line range and the pinned commit, and inserts the excerpt itself.',
+    glyph: '✓',
+    status: 'resolved',
+    detail: 'src/cart/thunks.ts:L9–27',
+    tone: 'text-observed-text',
   },
   {
-    title: 'Every reference is checked',
-    body: 'Paths, symbols, quoted text, identifiers and diagram steps are checked against the pinned snapshot. A reference that fails is dropped, repaired once, or its claim is downgraded.',
+    glyph: '↓',
+    status: 'downgraded',
+    detail: 'claim about caching → interpretation',
+    tone: 'text-interpretation-text',
   },
   {
-    title: 'Honest about uncertainty',
-    body: 'A claim the code does not confirm is labelled interpretation. A tutorial with weakly supported claims is published as a Draft, with a banner.',
+    glyph: '✕',
+    status: 'dropped',
+    detail: 'src/utils/legacy.ts (not in snapshot)',
+    tone: 'text-destructive',
   },
 ]
 
-export function Grounding() {
+function CheckerReport() {
   return (
-    <section id="grounding" className="border-y border-border bg-muted/50 py-16">
-      <div className={wrap}>
-        <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-          Trust you can click.
-        </h2>
-        <div className="mt-10 grid gap-8 md:grid-cols-3">
-          {GROUNDING.map((g) => (
-            <div key={g.title}>
-              <h3 className="font-semibold">{g.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{g.body}</p>
-            </div>
-          ))}
+    <figure className="min-w-0">
+      <figcaption className="mb-3 text-xs text-muted-foreground">
+        Example checker report, not a real tutorial
+      </figcaption>
+      <div className="overflow-hidden rounded-xl border bg-code-bg">
+        <div className="flex h-10 items-center justify-between gap-3 border-b px-4">
+          <MonoLabel className="text-xs text-foreground">validation report</MonoLabel>
+          <MonoLabel>snapshot @3b17b2e</MonoLabel>
         </div>
-        <p className="mt-10 text-sm">
-          <Link href="/docs/grounding/" className={linkClass}>
-            Read how grounding is checked
-          </Link>
+        <ul className="scrollbar-thin overflow-x-auto py-2 font-mono text-[0.8125rem] leading-6">
+          {REPORT.map((entry) => (
+            <li key={entry.status} className="flex w-max min-w-full gap-3 px-4 py-1">
+              <span aria-hidden="true" className={cn('w-4 shrink-0 text-center', entry.tone)}>
+                {entry.glyph}
+              </span>
+              <span className="w-[6.5rem] shrink-0 text-muted-foreground">{entry.status}</span>
+              <span className="whitespace-pre text-foreground">{entry.detail}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="border-t px-4 py-2.5 font-mono text-[0.6875rem] text-muted-foreground">
+          1 resolved · 1 downgraded · 1 dropped
         </p>
       </div>
-    </section>
+    </figure>
   )
 }
 
-const KEY_PROVIDERS: { title: string; badge: string | null; body: ReactNode }[] = [
+export function Grounding() {
+  return (
+    <PageSection id="checks" title="How references are checked">
+      <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="max-w-xl space-y-4 leading-relaxed text-pretty text-muted-foreground">
+          <p>
+            <strong className="font-semibold text-foreground">
+              The model points, the system quotes.
+            </strong>{' '}
+            Models never write code or line numbers into a tutorial. They name a symbol or quote a
+            short anchor. The validator resolves that to a file, a line range and the pinned commit,
+            and inserts the excerpt itself.
+          </p>
+          <p>
+            Paths, symbols, quoted text, identifiers and diagram steps are checked against the
+            pinned snapshot. A reference that fails is dropped, repaired once, or its claim is
+            downgraded to interpretation.
+          </p>
+          <p>
+            A claim the code does not confirm is labelled interpretation. A tutorial with weakly
+            supported claims is published as a Draft, with a banner. The checks show that a
+            reference points at code that exists, not that an explanation is complete.
+          </p>
+          <p>
+            <Link href="/docs/grounding/" className={linkClass}>
+              Read how grounding is checked
+            </Link>
+          </p>
+        </div>
+        <CheckerReport />
+      </div>
+    </PageSection>
+  )
+}
+
+const KEY_PROVIDERS: { name: string; recommended?: boolean; note: ReactNode }[] = [
   {
-    title: 'OpenRouter',
-    badge: 'Recommended',
-    body: (
+    name: 'OpenRouter',
+    recommended: true,
+    note: (
       <>
-        One key reaches many models, including <code className="font-mono">:free</code> models.
-        Those have limits per OpenRouter account.
+        One key reaches many models, including <code className="font-mono">:free</code> models,
+        which have limits per OpenRouter account.
       </>
     ),
   },
-  {
-    title: 'OpenAI',
-    badge: null,
-    body: 'Works with an OpenAI API key. Stored encrypted, shown only as its last four characters.',
-  },
-  {
-    title: 'Google AI Studio',
-    badge: null,
-    body: 'Works with a Google AI Studio key. Stored encrypted, shown only as its last four characters.',
-  },
-  {
-    title: 'Anthropic',
-    badge: null,
-    body: 'Works with an Anthropic API key. Stored encrypted, shown only as its last four characters.',
-  },
+  { name: 'OpenAI', note: 'Works with an OpenAI API key.' },
+  { name: 'Google AI Studio', note: 'Works with a Google AI Studio key.' },
+  { name: 'Anthropic', note: 'Works with an Anthropic API key.' },
 ]
 
 export function KeyProviders() {
   return (
-    <section className={`${wrap} py-16`}>
-      <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-        Free to use. Your key, your bill.
-      </h2>
-      <p className="mt-3 max-w-2xl text-muted-foreground">
-        Replo has no subscriptions, credits or ads, and it never pays for your AI. Every tutorial
-        runs on a key you own, inside a budget you set before the run starts.
-      </p>
-      <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {KEY_PROVIDERS.map((p) => (
-          <Card key={p.title}>
-            <CardHeader>
-              {p.badge ? (
-                <Badge variant="observed" className="mb-2 w-fit">
-                  {p.badge}
-                </Badge>
-              ) : null}
-              <CardTitle>{p.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">{p.body}</CardContent>
-          </Card>
-        ))}
+    <PageSection
+      id="keys"
+      title="Your key, your bill"
+      lede="Replo has no subscriptions, credits or ads, and it never pays for your AI. Every tutorial runs on a key you own, inside a budget you set before the run starts."
+    >
+      <div className="max-w-3xl overflow-hidden rounded-xl border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="px-4">Provider</TableHead>
+              <TableHead className="px-4">Notes</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {KEY_PROVIDERS.map((provider) => (
+              <TableRow key={provider.name}>
+                <TableCell className="px-4 py-3 align-top font-medium whitespace-nowrap">
+                  {provider.name}
+                  {provider.recommended ? (
+                    <Badge variant="secondary" className="ml-2">
+                      Recommended
+                    </Badge>
+                  ) : null}
+                </TableCell>
+                <TableCell className="px-4 py-3 align-top text-muted-foreground">
+                  {provider.note}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
-      <p className="mt-8 text-sm">
+      <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+        Keys are stored encrypted and shown only as their last four characters.{' '}
         <Link href="/keys/" className={linkClass}>
           Read the key guide
         </Link>
       </p>
-    </section>
+    </PageSection>
   )
 }
 
@@ -274,16 +305,39 @@ const FAQ: { q: string; a: ReactNode }[] = [
 
 export function Faq() {
   return (
-    <section id="faq" className={`${wrap} pb-24 pt-4`}>
-      <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">Questions</h2>
-      <dl className="mt-8 grid max-w-3xl gap-6">
-        {FAQ.map((f) => (
-          <div key={f.q}>
-            <dt className="font-semibold">{f.q}</dt>
-            <dd className="mt-1 text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
-          </div>
+    <PageSection id="faq" title="Questions">
+      <div className="max-w-3xl border-t">
+        {FAQ.map((item) => (
+          <details key={item.q} className="group border-b">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-sm py-4 font-medium tracking-tight [&::-webkit-details-marker]:hidden">
+              {item.q}
+              <ChevronDown
+                aria-hidden="true"
+                className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <p className="max-w-[68ch] pb-5 text-sm leading-relaxed text-muted-foreground">
+              {item.a}
+            </p>
+          </details>
         ))}
-      </dl>
+      </div>
+    </PageSection>
+  )
+}
+
+export function ClosingCta() {
+  return (
+    <section aria-label="Get started" className="border-t py-12 sm:py-16">
+      <Container className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <p className={cn(displayClass, 'max-w-xl text-xl sm:text-2xl')}>
+          Sign in, add a key and generate your first tutorial.
+        </p>
+        <a href={LOGIN_URL} className={buttonVariants({ size: 'lg', className: 'self-start' })}>
+          Get started
+          <ArrowRight aria-hidden="true" />
+        </a>
+      </Container>
     </section>
   )
 }

@@ -8,6 +8,7 @@ import { tutorialsRepo, type TutorialRow, type TutorialVersionRow } from './tuto
 
 const SLUG_MAX_LENGTH = 60
 const SUFFIX_LENGTH = 8
+const SLUG_ATTEMPTS = 5
 const FALLBACK_SLUG = 'tutorial'
 
 export interface PublishInput {
@@ -44,22 +45,25 @@ export function createTutorialPublisher(db: Db): TutorialPublisher {
         (await writer.findForUserRepo(input.userId, input.repositoryId)) ??
         (await createTutorial(tx, input))
 
+      await writer.lockById(tutorial.id)
+      const racedReplay = await writer.findVersionByJob(input.jobId)
+      if (racedReplay) return toPublished(racedReplay)
+
       const versionNo = (await writer.latestVersionNo(tutorial.id)) + 1
-      const version =
-        (await writer.insertVersion({
-          tutorialId: tutorial.id,
-          versionNo,
-          snapshotId: input.snapshotId,
-          schemaVersion: content.schemaVersion,
-          status: input.report.draft ? 'draft' : 'published',
-          audience: input.audience,
-          content,
-          validationReport: input.report,
-          generator: input.generator,
-          generationJobId: input.jobId,
-          publishedAt: new Date(),
-        })) ?? (await writer.findVersionByJob(input.jobId))
-      if (!version) throw new Error('tutorial version insert and replay both failed')
+      const version = await writer.insertVersion({
+        tutorialId: tutorial.id,
+        versionNo,
+        snapshotId: input.snapshotId,
+        schemaVersion: content.schemaVersion,
+        status: input.report.draft ? 'draft' : 'published',
+        audience: input.audience,
+        content,
+        validationReport: input.report,
+        generator: input.generator,
+        generationJobId: input.jobId,
+        publishedAt: new Date(),
+      })
+      if (!version) throw new Error(`tutorial version ${versionNo} could not be inserted`)
 
       await writer.insertSourceRefs(sourceRefRows(version.id, content))
       await writer.insertLessons(lessonRows(version.id, content))
@@ -82,25 +86,30 @@ function toPublished(
 
 async function createTutorial(tx: Tx, input: PublishInput): Promise<TutorialRow> {
   const writer = tutorialsRepo(tx)
-  const id = uuidv7()
   const base = slugify(input.content.meta.repo.name)
-  const taken = await writer.slugTaken(input.repositoryId, base)
-  return writer.insertTutorial({
-    id,
-    userId: input.userId,
-    repositoryId: input.repositoryId,
-    slug: taken ? `${base}-${randomBytes(SUFFIX_LENGTH / 2).toString('hex')}` : base,
-    title: input.content.meta.title,
-    visibility: 'private',
-  })
+  for (let attempt = 0; attempt < SLUG_ATTEMPTS; attempt += 1) {
+    const created = await writer.insertTutorial({
+      id: uuidv7(),
+      userId: input.userId,
+      repositoryId: input.repositoryId,
+      slug: attempt === 0 ? base : `${base}-${randomBytes(SUFFIX_LENGTH / 2).toString('hex')}`,
+      title: input.content.meta.title,
+      visibility: 'private',
+    })
+    if (created) return created
+    const existing = await writer.findForUserRepo(input.userId, input.repositoryId)
+    if (existing) return existing
+  }
+  throw new Error('no free tutorial slug after repeated attempts')
 }
 
-function slugify(name: string): string {
+export function slugify(name: string): string {
   const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
+    .slice(0, SLUG_MAX_LENGTH)
     .replace(/^-+|-+$/g, '')
-  return slug.length > 0 ? slug.slice(0, SLUG_MAX_LENGTH) : FALLBACK_SLUG
+  return slug.length > 0 ? slug : FALLBACK_SLUG
 }
 
 function lessonRows(versionId: string, content: TutorialContent) {

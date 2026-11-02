@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdir, rm } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import type { SnapshotStats } from '@replo/contracts'
@@ -19,9 +19,14 @@ import {
 } from '@replo/repo-analysis'
 import type { Db, Tx } from '../../platform/db/client'
 import type { SnapshotAnalysis, SnapshotStatus } from '../../platform/db/schema'
-import type { GithubRest } from '../../platform/github/client'
+import {
+  GithubApiError,
+  GithubTokenRejectedError,
+  type GithubRest,
+} from '../../platform/github/client'
 import { JobError } from '../../jobs/errors'
 import { extractArchive } from './archive'
+import { installDirectory } from './install-directory'
 import { readManifest, readOptional } from './manifest'
 import { snapshotsRepo } from './indexing.repo'
 
@@ -93,7 +98,10 @@ export interface IndexingService {
 export interface IndexingDeps {
   db: Db
   rest: GithubRest
-  tokens: { installationToken(installationId: number): Promise<string | undefined> }
+  tokens: {
+    installationToken(installationId: number): Promise<string | undefined>
+    userCanAccess(userId: string, repository: { owner: string; name: string }): Promise<boolean>
+  }
   sources: {
     ingestSource(userId: string, repositoryId: string): Promise<IngestSource | undefined>
   }
@@ -117,56 +125,87 @@ export function createIndexingService(deps: IndexingDeps): IndexingService {
     return snapshot
   }
 
-  const accessToken = async (userId: string, repositoryId: string) => {
+  const userCanAccess = async (
+    userId: string,
+    repository: { owner: string; name: string },
+  ): Promise<boolean> => {
+    try {
+      return await tokens.userCanAccess(userId, repository)
+    } catch (error) {
+      if (error instanceof GithubTokenRejectedError)
+        throw new JobError(
+          'GITHUB_RELINK_REQUIRED',
+          false,
+          'GitHub rejected your saved sign-in; reconnect GitHub and retry',
+        )
+      if (error instanceof GithubApiError && error.status === 403)
+        throw new JobError('GITHUB_FORBIDDEN', true, 'GitHub temporarily refused the request')
+      throw error
+    }
+  }
+
+  const authorize = async (userId: string, repositoryId: string) => {
     const source = await sources.ingestSource(userId, repositoryId)
     if (!source) throw new JobError('REPO_NOT_ACCESSIBLE', false, 'no active repository link')
     if (source.installationId === null) {
       if (source.isPrivate)
         throw new JobError('REPO_NOT_ACCESSIBLE', false, 'private repo without installation')
-      return { source, token: undefined }
+      return { ...source, installationId: null }
     }
-    const token = await tokens.installationToken(source.installationId)
+    if (!(await userCanAccess(userId, { owner: source.owner, name: source.name })))
+      throw new JobError('REPO_NOT_ACCESSIBLE', false, 'user cannot access the repository')
+    return { ...source, installationId: source.installationId }
+  }
+
+  const accessToken = async (installationId: number | null) => {
+    if (installationId === null) return undefined
+    const token = await tokens.installationToken(installationId)
     if (!token) throw new JobError('REPO_NOT_ACCESSIBLE', false, 'installation no longer exists')
-    return { source, token }
+    return token
   }
 
   const materialize = async (
-    snapshot: { id: string; repositoryId: string; commitSha: string },
-    userId: string,
+    snapshot: { id: string; commitSha: string; status: SnapshotStatus },
+    source: Awaited<ReturnType<typeof authorize>>,
     signal: AbortSignal,
   ): Promise<void> => {
-    const { source, token } = await accessToken(userId, snapshot.repositoryId)
+    const token = await accessToken(source.installationId)
     const response = await rest.download(
       `/repos/${source.owner}/${source.name}/tarball/${snapshot.commitSha}`,
       { token, signal },
     )
-    if (!response?.body) throw new JobError('REPO_NOT_ACCESSIBLE', false)
+    const body = response?.body
+    if (!body) throw new JobError('REPO_NOT_ACCESSIBLE', false)
 
-    const dir = snapshotDir(snapshot.id)
-    await rm(dir, { recursive: true, force: true })
-    await mkdir(dir, { recursive: true })
-    const files = await extractArchive(Readable.fromWeb(response.body), {
-      dir,
-      limits: extraction,
-      maxCompressedBytes: MAX_TARBALL_BYTES,
-      signal,
-    })
-
-    const summary = inventory(
-      files.map((file) => ({ path: file.path, type: 'blob', size: file.sizeBytes })),
+    const { files, stats } = await installDirectory(
+      snapshotDir(snapshot.id),
+      async (staging) => {
+        const extracted = await extractArchive(Readable.fromWeb(body), {
+          dir: staging,
+          limits: extraction,
+          maxCompressedBytes: MAX_TARBALL_BYTES,
+          signal,
+        })
+        const summary = inventory(
+          extracted.map((file) => ({ path: file.path, type: 'blob', size: file.sizeBytes })),
+        )
+        const breach = limitBreach(summary, limits)
+        if (breach)
+          throw new JobError(
+            'REPO_TOO_LARGE',
+            false,
+            `${breach.metric} ${breach.value} > ${breach.limit}`,
+          )
+        const framework = detectFramework(await readManifest(staging))
+        return { files: extracted, stats: { ...summary, framework } satisfies SnapshotStats }
+      },
+      { replaceOccupied: snapshot.status !== 'ready' },
     )
-    const breach = limitBreach(summary, limits)
-    if (breach)
-      throw new JobError(
-        'REPO_TOO_LARGE',
-        false,
-        `${breach.metric} ${breach.value} > ${breach.limit}`,
-      )
 
-    const framework = detectFramework(await readManifest(dir))
-    const stats: SnapshotStats = { ...summary, framework }
+    signal.throwIfAborted()
     await db.transaction(async (tx) => {
       const txRepo = snapshotsRepo(tx)
+      await txRepo.lock(snapshot.id)
       await txRepo.replaceFiles(snapshot.id, files)
       await txRepo.markReady(snapshot.id, stats)
     })
@@ -236,14 +275,16 @@ export function createIndexingService(deps: IndexingDeps): IndexingService {
 
     async ingest({ userId, snapshotId, signal }) {
       const snapshot = await requireSnapshot(snapshotId)
+      const source = await authorize(userId, snapshot.repositoryId)
       if (isMaterialized(snapshot)) return
-      await materialize(snapshot, userId, signal)
+      await materialize(snapshot, source, signal)
     },
 
     async index({ userId, snapshotId, signal }) {
       const snapshot = await requireSnapshot(snapshotId)
+      const source = await authorize(userId, snapshot.repositoryId)
       if (snapshot.analysis?.analyzerVersion === ANALYZER_VERSION) return
-      if (!isMaterialized(snapshot)) await materialize(snapshot, userId, signal)
+      if (!isMaterialized(snapshot)) await materialize(snapshot, source, signal)
 
       const dir = snapshotDir(snapshot.id)
       const session = (await loadAnalyzer()).start({
@@ -272,7 +313,12 @@ export function createIndexingService(deps: IndexingDeps): IndexingService {
         })
       }
       const result = session.finish()
-      await db.transaction((tx) => snapshotsRepo(tx).replaceIndex(snapshot.id, result))
+      signal.throwIfAborted()
+      await db.transaction(async (tx) => {
+        const txRepo = snapshotsRepo(tx)
+        await txRepo.lock(snapshot.id)
+        await txRepo.replaceIndex(snapshot.id, result)
+      })
     },
   }
 }

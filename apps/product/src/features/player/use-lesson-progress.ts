@@ -1,20 +1,21 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { orpc } from '@/lib/orpc'
 
-export function useMarkLesson() {
+function useInvalidateProgress() {
   const queryClient = useQueryClient()
-  return useMutation(
-    orpc.learning.markLesson.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.learning.key() }),
-    }),
-  )
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: orpc.learning.key() }),
+      queryClient.invalidateQueries({ queryKey: orpc.dashboard.key() }),
+    ])
+}
+
+export function useMarkLesson() {
+  const onSuccess = useInvalidateProgress()
+  return useMutation(orpc.learning.markLesson.mutationOptions({ onSuccess }))
 }
 
 export function useUnmarkLesson() {
-  const queryClient = useQueryClient()
-  return useMutation(
-    orpc.learning.unmarkLesson.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.learning.key() }),
-    }),
-  )
+  const onSuccess = useInvalidateProgress()
+  return useMutation(orpc.learning.unmarkLesson.mutationOptions({ onSuccess }))
 }

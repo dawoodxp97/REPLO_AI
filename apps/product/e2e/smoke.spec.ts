@@ -18,7 +18,7 @@ test('sign-in page ships a nonce-based Content Security Policy and no CSP violat
   )
   expect(response?.headers()['content-security-policy']).toContain("frame-ancestors 'none'")
   await expect(page.getByRole('heading', { name: 'Sign in to Replo' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Continue with GitHub' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Continue with GitHub' })).toBeVisible()
   expect(violations).toEqual([])
 })
 

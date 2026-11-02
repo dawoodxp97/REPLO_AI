@@ -1,17 +1,14 @@
 import type { Metadata } from 'next'
 import { ProgressPage } from '@/features/progress/progress-page'
+import { TutorialShell } from '@/features/tutorials/tutorial-shell'
+import type { TutorialRef } from '@/lib/tutorial-paths'
 
 export const metadata: Metadata = { title: 'Your progress' }
 
-export default async function ProgressRoute({
-  params,
-}: {
-  params: Promise<{ owner: string; repo: string; slug: string }>
-}) {
-  const { owner, repo, slug } = await params
+export default async function ProgressRoute({ params }: { params: Promise<TutorialRef> }) {
   return (
-    <main className="mx-auto max-w-4xl space-y-6 px-4 py-10 sm:px-6">
-      <ProgressPage tutorial={{ owner, repo, slug }} />
-    </main>
+    <TutorialShell>
+      <ProgressPage tutorial={await params} />
+    </TutorialShell>
   )
 }

@@ -1,22 +1,28 @@
 export type RateDecision = { allowed: true } | { allowed: false; retryAfterSeconds: number }
 
-const SWEEP_THRESHOLD = 10_000
+export const DEFAULT_MAX_TRACKED_KEYS = 50_000
+
+interface Window {
+  startedAt: number
+  count: number
+}
 
 export class FixedWindowLimiter {
-  private readonly windows = new Map<string, { startedAt: number; count: number }>()
+  private readonly windows = new Map<string, Window>()
 
   constructor(
     private readonly max: number,
     private readonly windowMs: number,
     private readonly now: () => number = Date.now,
+    private readonly maxTrackedKeys: number = DEFAULT_MAX_TRACKED_KEYS,
   ) {}
 
   take(key: string): RateDecision {
     const current = this.now()
-    this.sweep(current)
+    this.dropExpired(current)
     const window = this.windows.get(key)
     if (!window || current - window.startedAt >= this.windowMs) {
-      this.windows.set(key, { startedAt: current, count: 1 })
+      this.open(key, current)
       return { allowed: true }
     }
     if (window.count < this.max) {
@@ -29,10 +35,20 @@ export class FixedWindowLimiter {
     }
   }
 
-  private sweep(current: number): void {
-    if (this.windows.size < SWEEP_THRESHOLD) return
+  private open(key: string, current: number): void {
+    this.windows.delete(key)
+    while (this.windows.size >= this.maxTrackedKeys) {
+      const oldest = this.windows.keys().next()
+      if (oldest.done) break
+      this.windows.delete(oldest.value)
+    }
+    this.windows.set(key, { startedAt: current, count: 1 })
+  }
+
+  private dropExpired(current: number): void {
     for (const [key, window] of this.windows) {
-      if (current - window.startedAt >= this.windowMs) this.windows.delete(key)
+      if (current - window.startedAt < this.windowMs) return
+      this.windows.delete(key)
     }
   }
 }

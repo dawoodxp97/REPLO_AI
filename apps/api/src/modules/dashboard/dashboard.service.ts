@@ -1,4 +1,5 @@
 import type { ActivityItem, ActivityPage, DashboardSummary } from '@replo/contracts'
+import { decodeOffset, offsetPage } from '../../platform/pagination'
 import type { JobHistory, RecentJob } from '../generation/job-history.service'
 import type { LearningService } from '../learning/learning.service'
 import type { RepositoryLibrary } from '../repositories/library.service'
@@ -61,7 +62,7 @@ export function createDashboardService(deps: DashboardDeps): DashboardService {
     },
 
     async recent(userId, { zone, limit, cursor }) {
-      const offset = cursor === undefined ? 0 : Number(cursor)
+      const offset = decodeOffset(cursor)
       const end = offset + limit
       const repositoryIds = await repositories.linkedIds(userId)
       const [published, recentJobs] = await Promise.all([
@@ -69,16 +70,16 @@ export function createDashboardService(deps: DashboardDeps): DashboardService {
         jobs.recentFor(userId, { zone, repositoryIds, limit: end + 1, offset: 0 }),
       ])
       const merged = [...published, ...recentJobs].sort(newestFirst)
-      const window = merged.slice(offset, end)
+      const page = offsetPage(merged.slice(offset), offset, limit)
       const linked = await repositories.describeLinked(
         userId,
-        window.flatMap((entry) => (isActivityItem(entry) ? [] : [entry.repositoryId])),
+        page.items.flatMap((entry) => (isActivityItem(entry) ? [] : [entry.repositoryId])),
       )
       return {
-        items: window
+        items: page.items
           .map((entry) => toActivity(entry, linked))
           .filter((item) => item !== undefined),
-        nextCursor: merged.length > end ? String(end) : null,
+        nextCursor: page.nextCursor,
       }
     },
   }

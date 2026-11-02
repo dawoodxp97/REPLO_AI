@@ -1,11 +1,13 @@
-import type { LearnerQuestion, SourceRef } from '@replo/contracts'
+import type { LearnerQuestion } from '@replo/contracts'
+import { SectionHeader } from '@/components/page-header'
+import type { SourceRefMap } from '@/features/player/source-ref-map'
 import { QuestionCard } from './question-card'
 
 export interface QuizSectionProps {
   versionId: string
   lessonKey: string
   questions: readonly LearnerQuestion[]
-  references: Readonly<Record<string, SourceRef | undefined>>
+  references: SourceRefMap
   onOpenReference: (refId: string) => void
 }
 
@@ -18,12 +20,10 @@ export function QuizSection({
 }: QuizSectionProps) {
   return (
     <section aria-labelledby="quiz-heading" className="space-y-4">
-      <h2 id="quiz-heading" className="font-serif text-2xl font-medium">
-        Check your understanding
-      </h2>
+      <SectionHeader id="quiz-heading" title="Check your understanding" />
       {questions.map((question) => (
         <QuestionCard
-          key={question.key}
+          key={`${lessonKey}:${question.key}`}
           versionId={versionId}
           lessonKey={lessonKey}
           question={question}

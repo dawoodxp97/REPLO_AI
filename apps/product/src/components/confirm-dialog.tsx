@@ -2,25 +2,28 @@
 
 import {
   Alert,
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
+  type ButtonVariantProps,
 } from '@replo/ui'
-import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 
 export interface ConfirmDialogProps {
   triggerLabel: string
   title: string
-  description: string
+  description: ReactNode
   confirmLabel: string
   run: () => Promise<unknown>
   describeError: (error: unknown) => string
   confirmDisabled?: boolean
+  triggerVariant?: ButtonVariantProps['variant']
+  triggerSize?: ButtonVariantProps['size']
+  onOpenChange?: (open: boolean) => void
   children?: ReactNode
 }
 
@@ -32,18 +35,27 @@ export function ConfirmDialog({
   run,
   describeError,
   confirmDisabled = false,
+  triggerVariant = 'outline',
+  triggerSize = 'sm',
+  onOpenChange,
   children,
 }: ConfirmDialogProps) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  function changeOpen(next: boolean) {
+    if (next) setError(null)
+    setOpen(next)
+    onOpenChange?.(next)
+  }
+
   async function confirm() {
     setPending(true)
     setError(null)
     try {
       await run()
-      setOpen(false)
+      changeOpen(false)
     } catch (caught) {
       setError(describeError(caught))
     } finally {
@@ -52,21 +64,23 @@ export function ConfirmDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="destructive" size="sm" />}>
+    <AlertDialog open={open} onOpenChange={changeOpen}>
+      <AlertDialogTrigger render={<Button variant={triggerVariant} size={triggerSize} />}>
         {triggerLabel}
-      </DialogTrigger>
-      <DialogContent>
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <div className="space-y-1.5">
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </div>
         {children}
         {error ? (
-          <Alert tone="destructive" role="alert">
+          <Alert variant="destructive" role="alert">
             {error}
           </Alert>
         ) : null}
-        <div className="flex flex-wrap justify-end gap-2">
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
           <Button
             variant="destructive"
             disabled={pending || confirmDisabled}
@@ -75,7 +89,7 @@ export function ConfirmDialog({
             {pending ? 'Working…' : confirmLabel}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }

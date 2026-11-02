@@ -8,6 +8,20 @@ const MAX_NODE_ID_LENGTH = 32
 const MAX_NODE_LABEL_LENGTH = 80
 const MAX_EDGE_LABEL_LENGTH = 60
 
+const RESERVED_NODE_IDS = new Set([
+  'end',
+  'graph',
+  'flowchart',
+  'subgraph',
+  'style',
+  'class',
+  'classdef',
+  'click',
+  'linkstyle',
+  'direction',
+  'default',
+])
+
 const DIRECTIONS = ['TD', 'TB', 'LR', 'RL', 'BT'] as const
 type Direction = (typeof DIRECTIONS)[number]
 
@@ -138,7 +152,7 @@ export function renderFlowchart(input: {
 
 function parseNode(text: string): FlowNode | undefined {
   const match = NODE.exec(text.trim())
-  if (!match?.[1]) return undefined
+  if (!match?.[1] || RESERVED_NODE_IDS.has(match[1].toLowerCase())) return undefined
   const label = match[2] ?? match[3] ?? match[4]
   return label ? { id: match[1], label } : { id: match[1] }
 }

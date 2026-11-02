@@ -1,7 +1,8 @@
 import type { AddKeyInput, KeyDto, Provider } from '@replo/contracts'
 import { keyAad, type KeyVault } from '../../platform/crypto/key-vault'
 import type { Db, Tx } from '../../platform/db/client'
-import { notFound } from '../../platform/errors'
+import { requireFound } from '../../platform/errors'
+import { isoOrNull } from '../../platform/time'
 import { ok, refused, type Outcome } from '../../platform/outcome'
 import type { KeyChecker } from '@replo/ai'
 import { keysRepo, type ProviderKeyRow } from './keys.repo'
@@ -54,7 +55,7 @@ const toDto = (
   provider: row.provider,
   label: row.label,
   last4: row.last4,
-  lastValidatedAt: row.lastValidatedAt?.toISOString() ?? null,
+  lastValidatedAt: isoOrNull(row.lastValidatedAt),
   createdAt: row.createdAt.toISOString(),
 })
 
@@ -93,8 +94,7 @@ export function createKeysService(deps: KeysDeps): KeysService {
     },
 
     async validate(userId, keyId) {
-      const row = await keysRepo(db).findOwned(userId, keyId)
-      if (!row) notFound('Key')
+      const row = requireFound(await keysRepo(db).findOwned(userId, keyId), 'Key')
       const check = await checker.check(row.provider, open(row))
       if (check === 'unavailable') return refused({ code: 'KEY_CHECK_UNAVAILABLE' })
       if (check === 'valid') await keysRepo(db).markValidated(row.id, new Date())
@@ -103,8 +103,7 @@ export function createKeysService(deps: KeysDeps): KeysService {
 
     async delete(userId, keyId) {
       await db.transaction(async (tx) => {
-        const row = await keysRepo(tx).findOwned(userId, keyId)
-        if (!row) notFound('Key')
+        const row = requireFound(await keysRepo(tx).findOwned(userId, keyId), 'Key')
         await jobs.failForKey(tx, row.id)
         await keysRepo(tx).delete(row.id)
       })

@@ -20,6 +20,7 @@
     "@replo/contracts": "workspace:*",
     "@replo/ui": "workspace:*",
     "@tanstack/react-query": "catalog:",
+    "lucide-react": "catalog:",
     "mermaid": "^12.2.0",
     "next": "catalog:",
     "react": "catalog:",

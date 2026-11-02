@@ -1,6 +1,8 @@
 import type { App } from '../../platform/http'
 import { z } from 'zod'
 import type { AuthService } from '../identity/auth.service'
+import { parseCookies } from '../../platform/cookies'
+import { SESSION_COOKIE } from '../identity/session'
 import { sessionFromRequest } from '../identity/session-request'
 import type { Db } from '../../platform/db/client'
 import type { jobEvents } from '../../platform/db/schema'
@@ -9,6 +11,7 @@ import { TERMINAL_STATUSES, isStatusIn, jobsRepo } from './generation.repo'
 
 export const JOB_EVENTS_POLL_MS = 1000
 export const JOB_EVENTS_HEARTBEAT_MS = 15_000
+export const JOB_EVENTS_SESSION_RECHECK_MS = 30_000
 
 const toSseFrame = (event: typeof jobEvents.$inferSelect) =>
   sseFrame({
@@ -32,11 +35,13 @@ export interface JobEventsDeps {
   productOrigin: string
   pollMs?: number
   heartbeatMs?: number
+  sessionRecheckMs?: number
 }
 
 export function registerJobEventsRoute(app: App, deps: JobEventsDeps) {
   const pollMs = deps.pollMs ?? JOB_EVENTS_POLL_MS
   const heartbeatMs = deps.heartbeatMs ?? JOB_EVENTS_HEARTBEAT_MS
+  const sessionRecheckMs = deps.sessionRecheckMs ?? JOB_EVENTS_SESSION_RECHECK_MS
 
   app.get<{ Params: { id: string } }>('/jobs/:id/events', async (request, reply) => {
     const session = await sessionFromRequest(deps.auth, request)
@@ -52,6 +57,14 @@ export function registerJobEventsRoute(app: App, deps: JobEventsDeps) {
 
     const stream = openEventStream(request, reply, deps.productOrigin)
     let lastWrite = Date.now()
+    let lastSessionCheck = Date.now()
+    const sessionToken = parseCookies(request.headers.cookie).get(SESSION_COOKIE)
+
+    const sessionStillValid = async () => {
+      lastSessionCheck = Date.now()
+      const current = await deps.auth.currentSession(sessionToken)
+      return current?.user.id === session.user.id
+    }
 
     const flush = async () => {
       let events = await jobs.eventsAfter(job.id, cursor)
@@ -67,6 +80,7 @@ export function registerJobEventsRoute(app: App, deps: JobEventsDeps) {
 
     try {
       while (stream.isOpen()) {
+        if (Date.now() - lastSessionCheck >= sessionRecheckMs && !(await sessionStillValid())) break
         await flush()
         const current = await jobs.findById(job.id)
         if (!current || isStatusIn(TERMINAL_STATUSES, current.status)) {

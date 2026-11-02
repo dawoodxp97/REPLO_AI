@@ -2,12 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { SignInInput, SignUpInput } from '@replo/contracts'
-import { Alert, Button, FormField, Input } from '@replo/ui'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { orpc } from '@/lib/orpc'
+import { AuthForm } from './auth-form'
 import { describeAuthError } from './auth-notices'
+import { TextField } from './text-field'
 
 function useEnterApp() {
   const queryClient = useQueryClient()
@@ -28,46 +29,30 @@ export function SignInForm() {
   const errors = form.formState.errors
 
   return (
-    <form
-      noValidate
-      className="space-y-4"
+    <AuthForm
       onSubmit={form.handleSubmit((input) => signIn.mutate(input))}
+      error={signIn.isError ? describeAuthError(signIn.error) : null}
+      pending={signIn.isPending}
+      submitLabel="Sign in"
+      pendingLabel="Signing in…"
     >
-      <FormField
+      <TextField
         id="sign-in-email"
         label="Email"
+        type="email"
+        autoComplete="email"
         error={errors.email ? 'Enter a valid email address.' : undefined}
-      >
-        <Input
-          id="sign-in-email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={errors.email ? true : undefined}
-          {...form.register('email')}
-        />
-      </FormField>
-      <FormField
+        {...form.register('email')}
+      />
+      <TextField
         id="sign-in-password"
         label="Password"
+        type="password"
+        autoComplete="current-password"
         error={errors.password ? 'Enter your password.' : undefined}
-      >
-        <Input
-          id="sign-in-password"
-          type="password"
-          autoComplete="current-password"
-          aria-invalid={errors.password ? true : undefined}
-          {...form.register('password')}
-        />
-      </FormField>
-      {signIn.isError ? (
-        <Alert tone="destructive" role="alert">
-          {describeAuthError(signIn.error)}
-        </Alert>
-      ) : null}
-      <Button type="submit" className="w-full" disabled={signIn.isPending}>
-        {signIn.isPending ? 'Signing in…' : 'Sign in'}
-      </Button>
-    </form>
+        {...form.register('password')}
+      />
+    </AuthForm>
   )
 }
 
@@ -81,58 +66,37 @@ export function SignUpForm() {
   const errors = form.formState.errors
 
   return (
-    <form
-      noValidate
-      className="space-y-4"
+    <AuthForm
       onSubmit={form.handleSubmit((input) => signUp.mutate(input))}
+      error={signUp.isError ? describeAuthError(signUp.error) : null}
+      pending={signUp.isPending}
+      submitLabel="Create account"
+      pendingLabel="Creating account…"
     >
-      <FormField
+      <TextField
         id="sign-up-name"
         label="Name"
+        autoComplete="name"
         error={errors.name ? 'Enter your name.' : undefined}
-      >
-        <Input
-          id="sign-up-name"
-          autoComplete="name"
-          aria-invalid={errors.name ? true : undefined}
-          {...form.register('name')}
-        />
-      </FormField>
-      <FormField
+        {...form.register('name')}
+      />
+      <TextField
         id="sign-up-email"
         label="Email"
+        type="email"
+        autoComplete="email"
         error={errors.email ? 'Enter a valid email address.' : undefined}
-      >
-        <Input
-          id="sign-up-email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={errors.email ? true : undefined}
-          {...form.register('email')}
-        />
-      </FormField>
-      <FormField
+        {...form.register('email')}
+      />
+      <TextField
         id="sign-up-password"
         label="Password"
+        type="password"
+        autoComplete="new-password"
         hint="At least 8 characters."
         error={errors.password ? 'Use 8 to 128 characters.' : undefined}
-      >
-        <Input
-          id="sign-up-password"
-          type="password"
-          autoComplete="new-password"
-          aria-invalid={errors.password ? true : undefined}
-          {...form.register('password')}
-        />
-      </FormField>
-      {signUp.isError ? (
-        <Alert tone="destructive" role="alert">
-          {describeAuthError(signUp.error)}
-        </Alert>
-      ) : null}
-      <Button type="submit" className="w-full" disabled={signUp.isPending}>
-        {signUp.isPending ? 'Creating account…' : 'Create account'}
-      </Button>
-    </form>
+        {...form.register('password')}
+      />
+    </AuthForm>
   )
 }

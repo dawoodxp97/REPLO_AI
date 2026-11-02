@@ -15,7 +15,7 @@ const NOTICES: Record<string, string> = {
 }
 
 export function authNotice(code: string | undefined): string | null {
-  return code ? (NOTICES[code] ?? null) : null
+  return code && Object.hasOwn(NOTICES, code) ? (NOTICES[code] ?? null) : null
 }
 
 export function describeAuthError(error: unknown): string {

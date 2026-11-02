@@ -9,7 +9,7 @@ export function RecommendedKeyNote() {
         href={OPENROUTER_KEYS_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-primary underline underline-offset-4"
+        className="text-link underline underline-offset-4"
       >
         Get an OpenRouter key
       </a>

@@ -15,12 +15,30 @@ const linkedRepositoryColumns = {
   repositoryId: repositories.id,
   owner: repositories.owner,
   name: repositories.name,
+  isPrivate: repositories.isPrivate,
+  defaultBranch: repositories.defaultBranch,
+  installationId: userRepositories.installationId,
 }
 
 const activeLinkOf = (userId: string) =>
   and(eq(userRepositories.userId, userId), isNull(userRepositories.revokedAt))
 
+const qualifiedName = sql`${repositories.owner} || '/' || ${repositories.name}`
+
+const repositoryIdsByGithubIds = (db: DbOrTx, githubRepoIds: number[]) =>
+  db
+    .select({ id: repositories.id })
+    .from(repositories)
+    .where(inArray(repositories.githubRepoId, githubRepoIds))
+
 export const repositoriesRepo = (db: DbOrTx) => {
+  const linkedRepositories = (userId: string, ...predicates: (SQL | undefined)[]) =>
+    db
+      .select(linkedRepositoryColumns)
+      .from(userRepositories)
+      .innerJoin(repositories, eq(repositories.id, userRepositories.repositoryId))
+      .where(and(activeLinkOf(userId), ...predicates))
+
   const revokeWhere = (predicate: SQL | undefined) =>
     db
       .update(userRepositories)
@@ -52,18 +70,17 @@ export const repositoriesRepo = (db: DbOrTx) => {
     },
 
     async findIngestSource(userId: string, repositoryId: string) {
-      const [row] = await db
-        .select({
-          owner: repositories.owner,
-          name: repositories.name,
-          isPrivate: repositories.isPrivate,
-          installationId: userRepositories.installationId,
-        })
-        .from(userRepositories)
-        .innerJoin(repositories, eq(repositories.id, userRepositories.repositoryId))
-        .where(and(activeLinkOf(userId), eq(userRepositories.repositoryId, repositoryId)))
-        .limit(1)
-      return row
+      const [row] = await linkedRepositories(
+        userId,
+        eq(userRepositories.repositoryId, repositoryId),
+      ).limit(1)
+      if (!row) return undefined
+      return {
+        owner: row.owner,
+        name: row.name,
+        isPrivate: row.isPrivate,
+        installationId: row.installationId,
+      }
     },
 
     async findByGithubRepoId(githubRepoId: number) {
@@ -98,37 +115,17 @@ export const repositoriesRepo = (db: DbOrTx) => {
 
     describeLinked(userId: string, repositoryIds: string[]) {
       if (repositoryIds.length === 0) return Promise.resolve([])
-      return db
-        .select(linkedRepositoryColumns)
-        .from(userRepositories)
-        .innerJoin(repositories, eq(repositories.id, userRepositories.repositoryId))
-        .where(and(activeLinkOf(userId), inArray(repositories.id, repositoryIds)))
+      return linkedRepositories(userId, inArray(repositories.id, repositoryIds))
     },
 
     searchLinked(userId: string, pattern: string, limit: number) {
-      return db
-        .select(linkedRepositoryColumns)
-        .from(userRepositories)
-        .innerJoin(repositories, eq(repositories.id, userRepositories.repositoryId))
-        .where(and(activeLinkOf(userId), ilike(repositories.name, pattern)))
-        .orderBy(repositories.name)
+      return linkedRepositories(userId, ilike(qualifiedName, pattern))
+        .orderBy(repositories.owner, repositories.name)
         .limit(limit)
     },
 
     listLinked(userId: string, page: { limit: number; cursor?: string }) {
-      return db
-        .select({
-          repositoryId: repositories.id,
-          owner: repositories.owner,
-          name: repositories.name,
-          isPrivate: repositories.isPrivate,
-          defaultBranch: repositories.defaultBranch,
-        })
-        .from(userRepositories)
-        .innerJoin(repositories, eq(repositories.id, userRepositories.repositoryId))
-        .where(
-          and(activeLinkOf(userId), page.cursor ? lt(repositories.id, page.cursor) : undefined),
-        )
+      return linkedRepositories(userId, page.cursor ? lt(repositories.id, page.cursor) : undefined)
         .orderBy(desc(repositories.id))
         .limit(page.limit)
     },
@@ -143,26 +140,21 @@ export const repositoriesRepo = (db: DbOrTx) => {
     },
 
     async revokeInstallationRepositories(installationId: number, githubRepoIds: number[]) {
-      const removed = db
-        .select({ id: repositories.id })
-        .from(repositories)
-        .where(inArray(repositories.githubRepoId, githubRepoIds))
       await revokeWhere(
         and(
           eq(userRepositories.installationId, installationId),
           isNull(userRepositories.revokedAt),
-          inArray(userRepositories.repositoryId, removed),
+          inArray(userRepositories.repositoryId, repositoryIdsByGithubIds(db, githubRepoIds)),
         ),
       )
     },
 
     async revokeRepository(githubRepoId: number) {
-      const deleted = db
-        .select({ id: repositories.id })
-        .from(repositories)
-        .where(eq(repositories.githubRepoId, githubRepoId))
       await revokeWhere(
-        and(isNull(userRepositories.revokedAt), inArray(userRepositories.repositoryId, deleted)),
+        and(
+          isNull(userRepositories.revokedAt),
+          inArray(userRepositories.repositoryId, repositoryIdsByGithubIds(db, [githubRepoId])),
+        ),
       )
     },
 

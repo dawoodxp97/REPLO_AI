@@ -1,21 +1,10 @@
 import { useEffect, useRef } from 'react'
+import { resolveShortcut, type ShortcutAction } from './shortcut-resolver'
 
-export interface LessonShortcutHandlers {
-  next(): void
-  previous(): void
-  nextReference(): void
-  toggleComplete(): void
-  openPalette(): void
-}
+export type LessonShortcutHandlers = Record<ShortcutAction, () => void>
 
-type ActionName = Exclude<keyof LessonShortcutHandlers, 'openPalette'>
-
-const KEY_ACTIONS: Record<string, ActionName | undefined> = {
-  n: 'next',
-  p: 'previous',
-  r: 'nextReference',
-  m: 'toggleComplete',
-}
+const TEXT_ENTRY_TAGS = ['INPUT', 'TEXTAREA', 'SELECT']
+const DIALOG_SELECTOR = '[role="dialog"],[role="alertdialog"]'
 
 export function useLessonShortcuts(handlers: LessonShortcutHandlers) {
   const latest = useRef(handlers)
@@ -26,17 +15,16 @@ export function useLessonShortcuts(handlers: LessonShortcutHandlers) {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (isTextEntry(event.target)) return
-
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault()
-        latest.current.openPalette()
-        return
-      }
-      if (event.metaKey || event.ctrlKey || event.altKey) return
-
-      const action = KEY_ACTIONS[event.key]
-      if (action === undefined) return
+      const action = resolveShortcut({
+        key: event.key,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        altKey: event.altKey,
+        repeat: event.repeat,
+        inTextEntry: isTextEntry(event.target),
+        inDialog: isInsideDialog(event.target),
+      })
+      if (action === null) return
       event.preventDefault()
       latest.current[action]()
     }
@@ -48,5 +36,9 @@ export function useLessonShortcuts(handlers: LessonShortcutHandlers) {
 
 function isTextEntry(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
-  return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+  return target.isContentEditable || TEXT_ENTRY_TAGS.includes(target.tagName)
+}
+
+function isInsideDialog(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(DIALOG_SELECTOR) !== null
 }

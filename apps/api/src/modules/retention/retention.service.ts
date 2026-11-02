@@ -1,9 +1,10 @@
+import { daysAgo } from '../../platform/time'
+import type { SessionService } from '../identity/session.service'
 import type { JobHistory } from '../generation/job-history.service'
 import type { IndexingService } from '../indexing/indexing.service'
 import type { NotificationsService } from '../notifications/notifications.service'
 import type { PipelineService } from '../pipeline/pipeline.service'
 
-const DAY_MS = 24 * 60 * 60 * 1000
 const EVENT_RETENTION_DAYS = 90
 const CLOSED_JOB_RETENTION_DAYS = 30
 const NOTIFICATION_RETENTION_DAYS = 90
@@ -13,12 +14,14 @@ interface RetentionDeps {
   pipeline: Pick<PipelineService, 'purgeOutputs'>
   indexing: Pick<IndexingService, 'purgeUnreferenced'>
   notifications: Pick<NotificationsService, 'purgeCreatedBefore'>
+  sessions: Pick<SessionService, 'purgeExpired'>
 }
 
 interface RetentionReport {
   finishedJobs: number
   snapshotsPurged: number
   notificationsPurged: number
+  sessionsPurged: number
 }
 
 export interface RetentionService {
@@ -28,18 +31,19 @@ export interface RetentionService {
 export function createRetentionService(deps: RetentionDeps): RetentionService {
   return {
     async run(now) {
-      const oneDayAgo = new Date(now.getTime() - DAY_MS)
+      const oneDayAgo = daysAgo(now, 1)
       const finished = await deps.jobs.purgeHistory({
-        eventsBefore: new Date(now.getTime() - EVENT_RETENTION_DAYS * DAY_MS),
+        eventsBefore: daysAgo(now, EVENT_RETENTION_DAYS),
         succeededBefore: oneDayAgo,
-        closedBefore: new Date(now.getTime() - CLOSED_JOB_RETENTION_DAYS * DAY_MS),
+        closedBefore: daysAgo(now, CLOSED_JOB_RETENTION_DAYS),
       })
       await deps.pipeline.purgeOutputs(finished)
       const snapshotsPurged = await deps.indexing.purgeUnreferenced(oneDayAgo)
       const notificationsPurged = await deps.notifications.purgeCreatedBefore(
-        new Date(now.getTime() - NOTIFICATION_RETENTION_DAYS * DAY_MS),
+        daysAgo(now, NOTIFICATION_RETENTION_DAYS),
       )
-      return { finishedJobs: finished.length, snapshotsPurged, notificationsPurged }
+      const sessionsPurged = await deps.sessions.purgeExpired(now)
+      return { finishedJobs: finished.length, snapshotsPurged, notificationsPurged, sessionsPurged }
     },
   }
 }

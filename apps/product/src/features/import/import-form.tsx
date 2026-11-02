@@ -1,18 +1,21 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ImportRepositoryInput, RepositorySource } from '@replo/contracts'
+import { ImportRepositoryInput } from '@replo/contracts'
 import { Alert, Button } from '@replo/ui'
-import { useForm, useWatch } from 'react-hook-form'
+import { CircleAlert } from 'lucide-react'
+import { useForm } from 'react-hook-form'
 import { AudienceField } from './audience-field'
 import { BudgetField } from './budget-field'
 import { EstimateCard } from './estimate-card'
 import { describeImportError } from './import-errors'
 import { IMPORT_FORM_DEFAULTS, type ImportFormValues } from './import-form-values'
+import { ImportSection } from './import-section'
 import { KeyField } from './key-field'
-import { PresetField } from './preset-field'
 import { PreflightPanel } from './preflight-panel'
+import { PresetField } from './preset-field'
 import { SourceField } from './source-field'
+import { useImportPlan } from './use-import-plan'
 import { useStartImport } from './use-start-import'
 
 export function ImportForm() {
@@ -20,32 +23,48 @@ export function ImportForm() {
     resolver: zodResolver(ImportRepositoryInput),
     defaultValues: IMPORT_FORM_DEFAULTS,
   })
-  const values = useWatch({ control: form.control })
-  const plan = ImportRepositoryInput.safeParse(values)
-  const source = RepositorySource.safeParse(values.source)
+  const { canSubmit, source, estimateInput, settling } = useImportPlan(form.control)
   const startImport = useStartImport()
 
   return (
     <form
       noValidate
-      className="space-y-8"
+      className="space-y-6"
       onSubmit={form.handleSubmit((input) => startImport.mutate(input))}
     >
-      <SourceField control={form.control} />
-      <PreflightPanel source={source.success ? source.data : undefined} />
-      <KeyField control={form.control} />
-      <PresetField control={form.control} />
-      <AudienceField control={form.control} />
-      <BudgetField control={form.control} />
-      <EstimateCard input={plan.success ? plan.data : undefined} />
+      <ImportSection
+        title="Repository"
+        description="Choose what to teach and check that it can be read."
+      >
+        <SourceField control={form.control} />
+        <PreflightPanel source={source} />
+      </ImportSection>
+      <ImportSection
+        title="Model"
+        description="The key that pays for the run and the models it uses."
+      >
+        <KeyField control={form.control} />
+        <PresetField control={form.control} />
+      </ImportSection>
+      <ImportSection
+        title="Tutorial"
+        description="Who it is written for and how much it may spend."
+      >
+        <AudienceField control={form.control} />
+        <BudgetField control={form.control} />
+      </ImportSection>
+      <EstimateCard input={estimateInput} settling={settling} />
       {startImport.isError ? (
-        <Alert tone="destructive" role="alert">
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
           {describeImportError(startImport.error)}
         </Alert>
       ) : null}
-      <Button type="submit" size="lg" disabled={!plan.success || startImport.isPending}>
-        {startImport.isPending ? 'Starting…' : 'Generate tutorial'}
-      </Button>
+      <div>
+        <Button type="submit" disabled={!canSubmit || startImport.isPending}>
+          {startImport.isPending ? 'Starting…' : 'Generate tutorial'}
+        </Button>
+      </div>
     </form>
   )
 }

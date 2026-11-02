@@ -186,4 +186,42 @@ describe.skipIf(DATABASE_URL === '')('job events stream against Postgres', () =>
     expect(res.headers.get('access-control-allow-credentials')).toBe('true')
     await res.body?.cancel()
   })
+
+  it('closes the stream once the session is revoked mid-stream', async () => {
+    const revoked = new Set<string>()
+    const guardedApp: App = Fastify({
+      loggerInstance: createLogger({ level: 'silent', name: 'test' }),
+    })
+    registerJobEventsRoute(guardedApp, {
+      db,
+      auth: {
+        currentSession: async (token) =>
+          token && revoked.has(token) ? null : stubAuth.currentSession(token),
+      },
+      productOrigin: ORIGIN,
+      pollMs: 20,
+      heartbeatMs: 60_000,
+      sessionRecheckMs: 50,
+    })
+    const guardedUrl = await listenOnLoopback(guardedApp)
+    try {
+      const owner = await seedUser()
+      const jobId = await seedJob(owner, 'running')
+      await addEvent(jobId, 'queued')
+
+      const res = await fetch(`${guardedUrl}/jobs/${jobId}/events`, {
+        headers: sessionCookieFor(owner),
+      })
+      const frames = parseSse(res.body!)[Symbol.asyncIterator]()
+      expect((await frames.next()).value).toMatchObject({ event: 'queued' })
+
+      revoked.add(owner)
+      await addEvent(jobId, 'stage_started')
+      let next = await frames.next()
+      while (!next.done) next = await frames.next()
+      expect(next.done).toBe(true)
+    } finally {
+      await guardedApp.close()
+    }
+  })
 })

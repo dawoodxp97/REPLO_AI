@@ -62,10 +62,14 @@ export function registerAuthRoutes(app: App, deps: AuthRouteDeps) {
 
   const callbackUrl = (provider: OAuthProvider) =>
     new URL(`/auth/${provider}/callback`, deps.apiPublicUrl).toString()
-  const loginUrl = (error?: string) =>
-    `${deps.productOrigin}/login${error ? `?error=${error}` : ''}`
-  const settingsUrl = (error?: string) =>
-    `${deps.productOrigin}/settings/profile${error ? `?error=${error}` : ''}`
+  const productUrl = (path: string, params: Record<string, string> = {}) => {
+    const url = new URL(path, deps.productOrigin)
+    for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value)
+    return url.toString()
+  }
+  const errorParams = (error?: string): Record<string, string> => (error ? { error } : {})
+  const loginUrl = (error?: string) => productUrl('/login', errorParams(error))
+  const settingsUrl = (error?: string) => productUrl('/settings/profile', errorParams(error))
 
   app.get('/auth/:provider/start', async (request, reply) => {
     const params = ProviderParams.safeParse(request.params)
@@ -143,11 +147,11 @@ export function registerAuthRoutes(app: App, deps: AuthRouteDeps) {
         ...grant,
       })
       if (linked.kind === 'refused') return fail(linked.refusal)
-      return finish(`${deps.productOrigin}/settings/profile?linked=${provider}`)
+      return finish(productUrl('/settings/profile', { linked: provider }))
     }
 
     const outcome = await deps.auth.signInWithProvider({ provider, ...grant })
     if (outcome.kind === 'refused') return fail(outcome.refusal)
-    return finish(`${deps.productOrigin}/`, [deps.sessionCookie.issue(outcome.value.token)])
+    return finish(productUrl('/'), [deps.sessionCookie.issue(outcome.value.token)])
   })
 }

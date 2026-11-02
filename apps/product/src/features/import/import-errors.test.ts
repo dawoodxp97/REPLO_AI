@@ -39,7 +39,7 @@ describe('describeImportError', () => {
 
   it('maps a known refusal code to its copy', () => {
     const error = new ORPCError('KEY_INVALID', { status: 400 })
-    expect(describeImportError(error)).toContain('rejected by the provider')
+    expect(describeImportError(error)).toContain('The provider rejected this key')
   })
 
   it('falls back to generic copy for an unknown code', () => {

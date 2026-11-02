@@ -1,5 +1,5 @@
 import type { JobEventData, JobEventType, Stage } from '@replo/contracts'
-import { and, asc, desc, eq, gt, inArray, lt, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm'
 import type { DbOrTx } from '../../platform/db/client'
 import {
   generationJobs,
@@ -135,6 +135,7 @@ export const jobsRepo = (db: DbOrTx) => ({
     jobId: string,
     status: 'succeeded' | 'failed' | 'canceled',
     error?: JobFailure,
+    from: readonly JobRow['status'][] = IN_FLIGHT_STATUSES,
   ): Promise<{ userId: string } | undefined> {
     const [row] = await db
       .update(generationJobs)
@@ -144,7 +145,7 @@ export const jobsRepo = (db: DbOrTx) => ({
         ...(status === 'succeeded' ? { progress: 100 } : {}),
         ...(error ? { errorCode: error.code, errorDetail: error.detail ?? null } : {}),
       })
-      .where(and(eq(generationJobs.id, jobId), inArray(generationJobs.status, IN_FLIGHT_STATUSES)))
+      .where(and(eq(generationJobs.id, jobId), inArray(generationJobs.status, [...from])))
       .returning({ userId: generationJobs.userId })
     return row
   },
@@ -153,7 +154,9 @@ export const jobsRepo = (db: DbOrTx) => ({
     const [row] = await db
       .update(generationJobs)
       .set({ status: 'waiting_retry', errorCode: error.code, errorDetail: error.detail ?? null })
-      .where(and(eq(generationJobs.id, jobId), ne(generationJobs.status, 'canceling')))
+      .where(
+        and(eq(generationJobs.id, jobId), inArray(generationJobs.status, ['running', 'stalled'])),
+      )
       .returning({ id: generationJobs.id })
     return row
   },
@@ -243,6 +246,18 @@ export const jobsRepo = (db: DbOrTx) => ({
       .set({ status: 'canceled', finishedAt: sql`now()` })
       .where(and(eq(generationJobs.id, jobId), inArray(generationJobs.status, IDLE_STATUSES)))
       .returning()
+    return row
+  },
+
+  async lockForUpdate(
+    jobId: string,
+  ): Promise<{ status: JobRow['status']; attempts: number } | undefined> {
+    const [row] = await db
+      .select({ status: generationJobs.status, attempts: generationJobs.attempts })
+      .from(generationJobs)
+      .where(eq(generationJobs.id, jobId))
+      .limit(1)
+      .for('update')
     return row
   },
 

@@ -71,6 +71,20 @@
       "when": 1792984518531,
       "tag": "0009_custom_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793542505960,
+      "tag": "0010_theme_system_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793581539022,
+      "tag": "0011_tutorial_reports_unique",
+      "breakpoints": true
     }
   ]
 }

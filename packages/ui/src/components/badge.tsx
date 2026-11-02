@@ -3,18 +3,19 @@ import type { ComponentProps } from 'react'
 import { cn } from '../lib/cn'
 
 export const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap',
+  "inline-flex w-fit shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-3",
   {
     variants: {
       variant: {
-        neutral: 'border-border bg-muted text-muted-foreground',
-        primary: 'border-transparent bg-primary text-primary-foreground',
-        observed: 'border-observed/30 bg-observed/10 text-foreground',
-        interpretation: 'border-interpretation/40 bg-interpretation/15 text-foreground',
-        destructive: 'border-destructive/30 bg-destructive/10 text-destructive',
+        default: 'border-transparent bg-primary text-primary-foreground',
+        secondary: 'border-transparent bg-secondary text-secondary-foreground',
+        outline: 'border-border text-muted-foreground',
+        observed: 'border-observed/25 bg-observed/10 text-observed-text',
+        interpretation: 'border-interpretation/35 bg-interpretation/12 text-interpretation-text',
+        destructive: 'border-destructive/25 bg-destructive/10 text-destructive',
       },
     },
-    defaultVariants: { variant: 'neutral' },
+    defaultVariants: { variant: 'secondary' },
   },
 )
 

@@ -20,7 +20,7 @@ export interface PipelineDeps {
   keys: KeysService
   catalog: Catalog
   resolve?: (run: RunContext, modelId: string) => LanguageModel
-  jobs: Pick<JobService, 'linkTutorial'>
+  jobs: Pick<JobService, 'linkTutorial' | 'fenceRunning'>
   tutorials: TutorialPublisher
 }
 

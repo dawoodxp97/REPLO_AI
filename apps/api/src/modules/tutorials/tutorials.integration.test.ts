@@ -1,18 +1,26 @@
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { TutorialContent, ValidationReport } from '@replo/contracts'
 import { ANALYZER_VERSION } from '@replo/repo-analysis'
 import { user } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
-import { generationJobs, repositories, repoSnapshots } from '../../platform/db/schema'
+import {
+  generationJobs,
+  repositories,
+  repoSnapshots,
+  tutorialReports,
+  tutorials,
+  tutorialVersions,
+  lessonIndex,
+} from '../../platform/db/schema'
 import type { IndexingService } from '../indexing/indexing.service'
 import { fixedProgress } from '../../test/domain'
 import { createTutorialLibrary, type TutorialLibrary } from './library.service'
 import { createTutorialManager, type TutorialManager } from './manager.service'
-import { createTutorialPublisher, type TutorialPublisher } from './publisher.service'
+import { createTutorialPublisher, slugify, type TutorialPublisher } from './publisher.service'
 import { createTutorialReader } from './reader.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -264,6 +272,20 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     )
   }
 
+  const publishFor = (userId: string, seed: Seed, jobId: string, title: string) =>
+    db.transaction((tx) =>
+      publisher.publishVersion(tx, {
+        userId,
+        repositoryId: seed.repositoryId,
+        snapshotId: seed.snapshotId,
+        jobId,
+        audience: 'intermediate',
+        content: contentOf(title, seed.name),
+        report,
+        generator,
+      }),
+    )
+
   const lookup = (seed: Seed) => ({ owner: 'acme', repo: seed.name, slug: seed.name })
 
   it('publishes a new version of an existing tutorial and keeps the slug', async () => {
@@ -407,6 +429,184 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     expect(after.stale).toBe(true)
   })
 
+  it('serialises concurrent publishes for the same tutorial into distinct version numbers', async () => {
+    const owner = await seedUser()
+    const seed = await seedRepo('MIT')
+    await publish(owner, seed, 'Baseline')
+    const jobs = await Promise.all([1, 2, 3].map(() => seedJob(owner, seed.snapshotId)))
+
+    const results = await Promise.all(
+      jobs.map((jobId, index) => publishFor(owner, seed, jobId, `Racer ${index}`)),
+    )
+
+    expect(new Set(results.map((item) => item.tutorialId)).size).toBe(1)
+    expect(results.map((item) => item.versionNo).sort()).toEqual([2, 3, 4])
+  })
+
+  it('creates one tutorial when two first publishes race for the same user and repository', async () => {
+    const owner = await seedUser()
+    const seed = await seedRepo('MIT')
+    const jobs = await Promise.all([1, 2].map(() => seedJob(owner, seed.snapshotId)))
+
+    const results = await Promise.all(
+      jobs.map((jobId, index) => publishFor(owner, seed, jobId, `First ${index}`)),
+    )
+
+    expect(results[0]?.tutorialId).toBe(results[1]?.tutorialId)
+    expect(results.map((item) => item.versionNo).sort()).toEqual([1, 2])
+    const rows = await db.select().from(tutorials).where(eq(tutorials.userId, owner))
+    expect(rows).toHaveLength(1)
+  })
+
+  it('does not duplicate child rows when the same job publishes twice concurrently', async () => {
+    const owner = await seedUser()
+    const seed = await seedRepo('MIT')
+    const jobId = await seedJob(owner, seed.snapshotId)
+
+    const results = await Promise.all([
+      publishFor(owner, seed, jobId, 'Twice'),
+      publishFor(owner, seed, jobId, 'Twice'),
+    ])
+
+    expect(results[0]).toEqual(results[1])
+    const versions = await db
+      .select()
+      .from(tutorialVersions)
+      .where(eq(tutorialVersions.generationJobId, jobId))
+    expect(versions).toHaveLength(1)
+    const lessons = await db
+      .select()
+      .from(lessonIndex)
+      .where(eq(lessonIndex.versionId, versions[0]?.id ?? ''))
+    expect(lessons).toHaveLength(1)
+  })
+
+  it('gives different users distinct slugs when their first publishes race on one repository', async () => {
+    const first = await seedUser()
+    const second = await seedUser()
+    const seed = await seedRepo('MIT')
+    const [jobA, jobB] = await Promise.all([
+      seedJob(first, seed.snapshotId),
+      seedJob(second, seed.snapshotId),
+    ])
+
+    const [a, b] = await Promise.all([
+      publishFor(first, seed, jobA, 'Alpha'),
+      publishFor(second, seed, jobB, 'Beta'),
+    ])
+
+    const rows = await db
+      .select({ id: tutorials.id, slug: tutorials.slug })
+      .from(tutorials)
+      .where(eq(tutorials.repositoryId, seed.repositoryId))
+    expect(rows).toHaveLength(2)
+    expect(new Set(rows.map((row) => row.slug)).size).toBe(2)
+    expect(rows.map((row) => row.slug)).toContain(seed.name)
+    expect(a.tutorialId).not.toBe(b.tutorialId)
+  })
+
+  it('counts drafts, visibilities and the total in one query', async () => {
+    const owner = await seedUser()
+    const seedA = await seedRepo('MIT')
+    const seedB = await seedRepo('MIT')
+    const seedC = await seedRepo('MIT')
+    const draftJob = await seedJob(owner, seedA.snapshotId)
+    await db.transaction((tx) =>
+      publisher.publishVersion(tx, {
+        userId: owner,
+        repositoryId: seedA.repositoryId,
+        snapshotId: seedA.snapshotId,
+        jobId: draftJob,
+        audience: 'intermediate',
+        content: contentOf('Draft one', seedA.name),
+        report: { ...report, draft: true },
+        generator,
+      }),
+    )
+    const linked = await publish(owner, seedB, 'Linked one')
+    const open = await publish(owner, seedC, 'Open one')
+    await manager.setVisibility(owner, { tutorialId: linked.tutorialId, visibility: 'link' })
+    await manager.setVisibility(owner, { tutorialId: open.tutorialId, visibility: 'public' })
+
+    expect(await library.counts(owner)).toEqual({
+      total: 3,
+      draft: 1,
+      private: 1,
+      link: 1,
+      public: 1,
+    })
+    expect(await library.counts(await seedUser())).toEqual({
+      total: 0,
+      draft: 0,
+      private: 0,
+      link: 0,
+      public: 0,
+    })
+  })
+
+  it('keeps one report per reporter and tutorial', async () => {
+    const owner = await seedUser()
+    const reporter = await seedUser()
+    const other = await seedUser()
+    const seed = await seedRepo('MIT')
+    const version = await publish(owner, seed, 'Spam target')
+    await manager.setVisibility(owner, { tutorialId: version.tutorialId, visibility: 'public' })
+
+    await manager.report(reporter, version.tutorialId, 'copyright')
+    await manager.report(reporter, version.tutorialId, 'copyright again')
+    await manager.report(other, version.tutorialId, 'spam')
+
+    const rows = await db
+      .select()
+      .from(tutorialReports)
+      .where(eq(tutorialReports.tutorialId, version.tutorialId))
+    expect(rows.map((row) => row.reporterId).sort()).toEqual([reporter, other].sort())
+    expect(rows.find((row) => row.reporterId === reporter)?.reason).toBe('copyright')
+  })
+
+  it('keeps one report when the same reporter submits concurrently', async () => {
+    const owner = await seedUser()
+    const reporter = await seedUser()
+    const seed = await seedRepo('MIT')
+    const version = await publish(owner, seed, 'Racing reports')
+    await manager.setVisibility(owner, { tutorialId: version.tutorialId, visibility: 'public' })
+
+    await Promise.all(
+      Array.from({ length: 5 }, (_, n) => manager.report(reporter, version.tutorialId, `r${n}`)),
+    )
+
+    const rows = await db
+      .select()
+      .from(tutorialReports)
+      .where(eq(tutorialReports.tutorialId, version.tutorialId))
+    expect(rows).toHaveLength(1)
+  })
+
+  it('lets a viewer holding the share token report a link-shared tutorial', async () => {
+    const owner = await seedUser()
+    const reporter = await seedUser()
+    const seed = await seedRepo('MIT')
+    const version = await publish(owner, seed, 'Shared target')
+    const { token } = await manager.createShareLink(owner, version.tutorialId)
+
+    await expect(manager.report(reporter, version.tutorialId, 'abuse')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
+    await expect(
+      manager.report(reporter, version.tutorialId, 'abuse', 'wrong-token'),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(
+      manager.report(reporter, version.tutorialId, 'abuse', token),
+    ).resolves.toBeUndefined()
+  })
+
+  it('slugifies without leaving a trailing dash after truncation', () => {
+    const name = `${'a'.repeat(59)}.tail-of-the-name`
+    expect(slugify(name)).toBe('a'.repeat(59))
+    expect(slugify('---')).toBe('tutorial')
+    expect(slugify('My_Repo.js')).toBe('my-repo-js')
+  })
+
   it('reports a public tutorial and rejects reports for private ones', async () => {
     const owner = await seedUser()
     const reporter = await seedUser()
@@ -470,8 +670,26 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     expect(found.lessons).toEqual([])
 
     const lessons = await library.searchOwn(owner, 'map', 10)
-    expect(lessons.lessons.map((item) => item.lessonKey)).toEqual(['map'])
+    expect(lessons.lessons).toEqual([
+      expect.objectContaining({
+        lessonKey: 'map',
+        tutorialTitle: 'Searchable cart tour',
+        ...lookup(seed),
+      }),
+    ])
     expect(lessons.tutorials).toEqual([])
+  })
+
+  it('resolves a tutorial link only for a viewer who can read it', async () => {
+    const owner = await seedUser()
+    const stranger = await seedUser()
+    const seed = await seedRepo('MIT')
+    const version = await publish(owner, seed, 'Linked walk')
+    const reader = createTutorialReader(db)
+
+    expect(await reader.refOf({ userId: owner }, version.tutorialId)).toEqual(lookup(seed))
+    expect(await reader.refOf({ userId: stranger }, version.tutorialId)).toBeUndefined()
+    expect(await reader.refOf({ userId: owner }, randomUUID())).toBeUndefined()
   })
 
   it('lists recent publications in the caller’s time zone', async () => {

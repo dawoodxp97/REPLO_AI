@@ -26,6 +26,7 @@ catalog:
   '@tanstack/react-query': ^5.90.0
   drizzle-orm: ^0.45.4
   ai: ^6.0.0
+  lucide-react: ^1.64.0
 
 # Supply-chain defaults (see RULES.md → Dependencies).
 minimumReleaseAge: 4320 # minutes (3 days), stricter than the pnpm 11 default of 1 day

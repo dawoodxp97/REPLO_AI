@@ -57,13 +57,13 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
     return id
   }
 
-  const seedRepo = async (name: string) => {
+  const seedRepo = async (name: string, repositoryOwner = 'acme') => {
     nextGithubRepoId += 1
     const [row] = await db
       .insert(repositories)
       .values({
         githubRepoId: nextGithubRepoId,
-        owner: 'acme',
+        owner: repositoryOwner,
         name,
         isPrivate: false,
         defaultBranch: 'main',
@@ -174,6 +174,24 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
     const otherHits = await repositoriesService.searchOwn(other, token, 25)
     expect(ownerHits.map((hit) => hit.repositoryId)).toEqual([mine])
     expect(otherHits.map((hit) => hit.repositoryId)).toEqual([theirs])
+  })
+
+  it('searchOwn matches owner/name and the owner alone, ordered by owner then name', async () => {
+    const owner = await seedUser()
+    const org = `org${randomUUID().slice(0, 8)}`
+    const zeta = await seedRepo('shopfront', `${org}-zeta`)
+    const alpha = await seedRepo('shopfront', `${org}-alpha`)
+    const unrelated = await seedRepo('shopfront', 'elsewhere')
+    await link(owner, zeta)
+    await link(owner, alpha)
+    await link(owner, unrelated)
+
+    const qualified = await repositoriesService.searchOwn(owner, `${org}-alpha/shopfront`, 25)
+    const byOwner = await repositoriesService.searchOwn(owner, org, 25)
+    const wildcard = await repositoriesService.searchOwn(owner, `${org}%`, 25)
+    expect(qualified.map((hit) => hit.repositoryId)).toEqual([alpha])
+    expect(byOwner.map((hit) => hit.repositoryId)).toEqual([alpha, zeta])
+    expect(wildcard).toEqual([])
   })
 
   it('describeLinked returns only the caller’s live links', async () => {

@@ -1,7 +1,7 @@
 import Fastify from 'fastify'
 import { describe, expect, it } from 'vitest'
 import type { App } from './http'
-import { registerGuards } from './http-guards'
+import { normalizePath, registerGuards } from './http-guards'
 import { FixedWindowLimiter } from './rate-limit'
 import { requestIdFrom } from './request-id'
 
@@ -15,6 +15,7 @@ function buildApp(rules: Parameters<typeof registerGuards>[1]['rules'] = []) {
   app.post('/rpc/things', async () => ({ ok: true }))
   app.post('/webhooks/github', async () => ({ ok: true }))
   app.get('/rpc/things', async () => ({ ok: true }))
+  app.post('/rpc/*', async () => ({ ok: true }))
   app.post('/rpc/fail', async (_request, reply) => reply.code(400).send({ code: 'BAD_REQUEST' }))
   return app
 }
@@ -115,5 +116,29 @@ describe('registerGuards', () => {
     expect(second.statusCode).toBe(429)
     expect(Number(second.headers['retry-after'])).toBeGreaterThan(0)
     expect(second.json()).toMatchObject({ error: 'RATE_LIMITED' })
+  })
+
+  it('counts trailing-slash and duplicate-slash variants against the same rule', async () => {
+    const app = buildApp([
+      {
+        matches: (path) => path === '/rpc/things',
+        limiter: new FixedWindowLimiter(1, 60_000),
+        key: async () => 'user:limited',
+      },
+    ])
+    expect((await app.inject({ method: 'POST', url: '/rpc/things' })).statusCode).toBe(200)
+    for (const url of ['/rpc/things/', '/rpc/things?x=1', '/rpc/things//']) {
+      const response = await app.inject({ method: 'POST', url })
+      expect(response.statusCode).toBe(429)
+    }
+  })
+})
+
+describe('normalizePath', () => {
+  it('drops the query, trailing slashes and duplicate slashes', () => {
+    expect(normalizePath('/rpc/auth/signIn/?a=1')).toBe('/rpc/auth/signIn')
+    expect(normalizePath('/rpc//auth///signIn//')).toBe('/rpc/auth/signIn')
+    expect(normalizePath('/')).toBe('/')
+    expect(normalizePath('')).toBe('/')
   })
 })

@@ -1,46 +1,30 @@
+'use client'
+
 import type { KeyDto } from '@replo/contracts'
-import {
-  Alert,
-  Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from '@replo/ui'
-import { useState } from 'react'
-import { PROVIDER_LABELS } from './providers'
+import { Button, Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from '@replo/ui'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { describeKeyError } from './key-errors'
+import { keyMask, keyTitle } from './format-key-label'
+import { KeyValidationStatus } from './key-validation-status'
+import { PROVIDER_LABELS } from './providers'
 import { useDeleteKey, useValidateKey } from './use-keys'
 
 export function KeyRow({ keyDto }: { keyDto: KeyDto }) {
   const validate = useValidateKey()
   const remove = useDeleteKey()
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const provider = PROVIDER_LABELS[keyDto.provider]
 
   return (
-    <li className="flex flex-wrap items-start justify-between gap-4 py-4">
-      <div className="min-w-0 space-y-1">
-        <p className="text-sm font-medium">
-          {provider} · {keyDto.label}
-        </p>
-        <p className="font-mono text-xs text-muted-foreground">…{keyDto.last4}</p>
-        {validate.data ? (
-          <p role="status" className="text-xs text-muted-foreground">
-            {validate.data.valid
-              ? 'The provider accepted this key.'
-              : 'The provider rejected this key.'}
-          </p>
-        ) : null}
-        {validate.isError ? (
-          <p role="alert" className="text-xs text-destructive">
-            {describeKeyError(validate.error)}
-          </p>
-        ) : null}
-      </div>
-      <div className="flex flex-wrap gap-2">
+    <Item>
+      <ItemContent>
+        <ItemTitle>{keyTitle(keyDto)}</ItemTitle>
+        <ItemDescription className="font-mono text-xs">{keyMask(keyDto)}</ItemDescription>
+        <KeyValidationStatus
+          result={validate.data}
+          error={validate.error}
+          isError={validate.isError}
+        />
+      </ItemContent>
+      <ItemActions>
         <Button
           variant="outline"
           size="sm"
@@ -49,34 +33,15 @@ export function KeyRow({ keyDto }: { keyDto: KeyDto }) {
         >
           {validate.isPending ? 'Checking…' : 'Check key'}
         </Button>
-        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <DialogTrigger render={<Button variant="destructive" size="sm" />}>Delete</DialogTrigger>
-          <DialogContent>
-            <DialogTitle>Delete the {provider} key?</DialogTitle>
-            <DialogDescription>
-              The key is removed from Replo at once and cannot be recovered. Tutorials still
-              generating with it fail with KEY_REMOVED.
-            </DialogDescription>
-            {remove.isError ? (
-              <Alert tone="destructive" role="alert">
-                {describeKeyError(remove.error)}
-              </Alert>
-            ) : null}
-            <div className="flex flex-wrap justify-end gap-2">
-              <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-              <Button
-                variant="destructive"
-                disabled={remove.isPending}
-                onClick={() =>
-                  remove.mutate({ keyId: keyDto.id }, { onSuccess: () => setConfirmOpen(false) })
-                }
-              >
-                {remove.isPending ? 'Deleting…' : 'Delete key'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </li>
+        <ConfirmDialog
+          triggerLabel="Delete"
+          title={`Delete the ${PROVIDER_LABELS[keyDto.provider]} key?`}
+          description="The key is removed from Replo at once and cannot be recovered. Any tutorial still generating with it will stop and need to be restarted with another key."
+          confirmLabel="Delete key"
+          run={() => remove.mutateAsync({ keyId: keyDto.id })}
+          describeError={describeKeyError}
+        />
+      </ItemActions>
+    </Item>
   )
 }

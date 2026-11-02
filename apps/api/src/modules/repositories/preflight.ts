@@ -8,7 +8,11 @@ import { inventory, limitBreach, type Inventory, type RepoLimits } from '@replo/
 import type { z } from 'zod'
 import { notFound } from '../../platform/errors'
 import { ok, refused, type Outcome } from '../../platform/outcome'
-import type { GithubRest } from '../../platform/github/client'
+import {
+  GithubApiError,
+  GithubTokenRejectedError,
+  type GithubRest,
+} from '../../platform/github/client'
 import { CommitRef, GitBlob, GitTree, GithubRepository } from '../../platform/github/schemas'
 import { frameworkFromManifest } from './framework-manifest'
 import type { InstallationDirectory } from './repositories.ports'
@@ -61,6 +65,22 @@ export function createPreflight(deps: PreflightDeps): Preflight {
   const fetchFromRepo = <S extends z.ZodType>(access: Access, path: string, schema: S) =>
     rest.request(`${repoPath(access)}${path}`, schema, { token: access.token })
 
+  const userMayRead = async (
+    userId: string,
+    repo: z.output<typeof GithubRepository>,
+  ): Promise<boolean> => {
+    try {
+      return await installations.userCanAccess(userId, {
+        owner: repo.owner.login,
+        name: repo.name,
+      })
+    } catch (error) {
+      if (error instanceof GithubTokenRejectedError) return false
+      if (error instanceof GithubApiError && error.status === 403) return false
+      throw error
+    }
+  }
+
   const resolveAccess = async (
     userId: string,
     source: RepositorySource,
@@ -76,7 +96,9 @@ export function createPreflight(deps: PreflightDeps): Preflight {
       const repo = await rest.request(`/repositories/${source.githubRepoId}`, GithubRepository, {
         token,
       })
-      if (repo) return { token, installationId: installation.githubInstallationId, repo }
+      if (!repo) continue
+      const permitted = await userMayRead(userId, repo)
+      if (permitted) return { token, installationId: installation.githubInstallationId, repo }
     }
     return undefined
   }

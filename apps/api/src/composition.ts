@@ -20,6 +20,7 @@ import { githubAppFrom } from './modules/github/github.app'
 import { createAuthService, type AuthService } from './modules/identity/auth.service'
 import { createIdentityService, type IdentityService } from './modules/identity/identity.service'
 import type { OAuthClients } from './modules/identity/oauth'
+import { createSessionService } from './modules/identity/session.service'
 import { createIndexingService, type IndexingService } from './modules/indexing/indexing.service'
 import { createKeysService, type KeysService } from './modules/keys/keys.service'
 import { createLearningService, type LearningService } from './modules/learning/learning.service'
@@ -59,6 +60,7 @@ import {
 import { createTutorialReader } from './modules/tutorials/reader.service'
 
 export interface DomainServices {
+  identity: IdentityService
   github: GithubService
   indexing: IndexingService
   repositoryLibrary: RepositoryLibrary
@@ -82,15 +84,30 @@ export interface DomainServices {
   retention: RetentionService
 }
 
+export const vaultFrom = (config: Config) =>
+  KeyVault.fromEnv(config.KEY_ENCRYPTION_KEY, config.KEY_ENCRYPTION_KEY_VERSION)
+
 export function createDomainServices(deps: {
   config: Config
   db: Db
   queue: JobQueue
+  vault?: KeyVault
 }): DomainServices {
   const { config, db, queue } = deps
+  const vault = deps.vault ?? vaultFrom(config)
   const rest = createGithubRest()
   const limits = { maxFiles: config.MAX_REPO_FILES, maxBytes: config.MAX_REPO_BYTES }
-  const github = createGithubService({ db, rest, app: githubAppFrom(config) })
+  const identity = createIdentityService({
+    db,
+    vault,
+    tutorials: { settleOwnerDeletion: (...args) => tutorialManager.settleOwnerDeletion(...args) },
+  })
+  const github = createGithubService({
+    db,
+    rest,
+    app: githubAppFrom(config),
+    userTokens: identity,
+  })
   const notifications = createNotificationsService(db)
   const jobHistory = createJobHistory(db)
   const jobRuntime = createJobRuntime({ db, queue, notifications })
@@ -103,16 +120,16 @@ export function createDomainServices(deps: {
     extraction: DEFAULT_EXTRACTION_LIMITS,
     snapshotRoot: config.SNAPSHOT_DIR ?? join(tmpdir(), 'replo-snapshots'),
   })
-  const jobs = createJobService({ db, queue, indexing, notifications })
+  const tutorialReader = createTutorialReader(db)
+  const jobs = createJobService({ db, queue, indexing, notifications, tutorials: tutorialReader })
   const keys = createKeysService({
     db,
-    vault: KeyVault.fromEnv(config.KEY_ENCRYPTION_KEY, config.KEY_ENCRYPTION_KEY_VERSION),
+    vault,
     checker: createKeyChecker(),
     jobs,
   })
   const catalog = loadCatalog(MODEL_CATALOG)
   const models = createModelsService({ db, catalog })
-  const tutorialReader = createTutorialReader(db)
   const learning = createLearningService({ db, tutorials: tutorialReader })
   const tutorialLibrary = createTutorialLibrary({
     db,
@@ -153,6 +170,7 @@ export function createDomainServices(deps: {
   })
 
   return {
+    identity,
     github,
     indexing,
     repositoryLibrary,
@@ -178,7 +196,13 @@ export function createDomainServices(deps: {
     }),
     search: createSearchService({ tutorials: tutorialLibrary, repositories: repositoryLibrary }),
     operator: createOperatorService({ db, jobs: jobHistory }),
-    retention: createRetentionService({ jobs: jobHistory, pipeline, indexing, notifications }),
+    retention: createRetentionService({
+      jobs: jobHistory,
+      pipeline,
+      indexing,
+      notifications,
+      sessions: createSessionService(db),
+    }),
   }
 }
 
@@ -187,22 +211,18 @@ export function createServices(deps: {
   db: Db
   domain: DomainServices
   oauth: OAuthClients
+  vault?: KeyVault
 }): Services {
   const { config, db, domain, oauth } = deps
-  const vault = KeyVault.fromEnv(config.KEY_ENCRYPTION_KEY, config.KEY_ENCRYPTION_KEY_VERSION)
+  const vault = deps.vault ?? vaultFrom(config)
   const auth: AuthService = createAuthService({
     db,
     vault,
     enabled: { google: oauth.google !== undefined, github: oauth.github !== undefined },
   })
-  const identity: IdentityService = createIdentityService({
-    db,
-    vault,
-    tutorials: domain.tutorialManager,
-  })
   return {
     auth,
-    identity,
+    identity: domain.identity,
     github: domain.github,
     repositoryLibrary: domain.repositoryLibrary,
     repositoryImports: domain.repositoryImports,

@@ -29,13 +29,16 @@ import { createTutorialReader } from '../tutorials/reader.service'
 import { identityRepo } from '../identity/identity.repo'
 import { createRepositoryChanges } from '../repositories/changes.service'
 import { createRepositoryLibrary, type RepositoryLibrary } from '../repositories/library.service'
-import type { GithubRest } from '../../platform/github/client'
+import { GithubApiError, type GithubRest } from '../../platform/github/client'
 import type { JobQueue } from '../../platform/queue/job-queue'
 import type { z } from 'zod'
-import { createGithubService } from './github.service'
+import { createGithubService, GithubTokenRejectedError, type GithubService } from './github.service'
 import { githubInstallationsRepo } from './github.repo'
 import { createGithubWebhookService } from './github.webhook.service'
+import { registerGithubSetup } from './github.setup.route'
 import { registerGithubWebhook } from './github.webhook.route'
+import type { AuthService } from '../identity/auth.service'
+import type { IdentityService } from '../identity/identity.service'
 
 const fakeGithub = (routes: Record<string, unknown>): GithubRest => ({
   request: (async (path: string, schema: z.ZodType) => {
@@ -43,6 +46,37 @@ const fakeGithub = (routes: Record<string, unknown>): GithubRest => ({
     return body === undefined ? undefined : schema.parse(body)
   }) as GithubRest['request'],
   download: async () => undefined,
+})
+
+interface RestCall {
+  path: string
+  token: string | undefined
+}
+
+const scriptedGithub = (routes: Record<string, unknown>) => {
+  const calls: RestCall[] = []
+  const rest: GithubRest = {
+    request: (async (path: string, schema: z.ZodType, options?: { token?: string }) => {
+      calls.push({ path, token: options?.token })
+      const body = routes[path]
+      if (body instanceof Error) throw body
+      return body === undefined ? undefined : schema.parse(body)
+    }) as GithubRest['request'],
+    download: async () => undefined,
+  }
+  return { rest, calls }
+}
+
+const userTokens = (tokens: Record<string, string>) => ({
+  githubAccessToken: async (userId: string) => tokens[userId],
+})
+
+const repoEntry = (id: number, name: string, isPrivate = true) => ({
+  id,
+  name,
+  private: isPrivate,
+  default_branch: 'main',
+  owner: { login: 'acme' },
 })
 
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
@@ -167,6 +201,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
       queue: silentQueue,
       indexing: { snapshotRef: async () => undefined },
       notifications: createNotificationsService(db),
+      tutorials: { refOf: async () => undefined },
     })
     history = createJobHistory(db)
     library = createTutorialLibrary({
@@ -497,6 +532,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
           '/user/installations?per_page=100&page=1': { installations: [githubInstallation(6_001)] },
         }),
         app: appCredentials,
+        userTokens: userTokens({}),
       })
       expect(
         await github.linkInstallation({
@@ -516,6 +552,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
         db,
         rest: fakeGithub({ '/user/installations?per_page=100&page=1': { installations: [] } }),
         app: appCredentials,
+        userTokens: userTokens({}),
       })
       expect(
         await github.linkInstallation({
@@ -535,6 +572,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
           '/user/installations?per_page=100&page=1': { installations: [githubInstallation(6_003)] },
         }),
         app: appCredentials,
+        userTokens: userTokens({}),
       })
       await github.linkInstallation({
         userId: first,
@@ -550,42 +588,214 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
       ).toBe('owned_by_another_user')
     })
 
-    it('lists repositories only from the caller’s own installations', async () => {
-      const owner = await seedUser()
-      const other = await seedUser()
-      const repoPage = {
-        repositories: [
-          {
-            id: 7_001,
-            name: 'shop',
-            private: true,
-            default_branch: 'main',
-            owner: { login: 'acme' },
-          },
-        ],
-      }
-      const github = createGithubService({
-        db,
-        rest: fakeGithub({
-          '/app/installations/6004/access_tokens': { token: 'ghs_owner' },
-          '/installation/repositories?per_page=100&page=1': repoPage,
-        }),
-        app: appCredentials,
-      })
-      await installation(owner, 6_004)
-      await installation(other, 6_005)
+    describe('repository listing is scoped to the signed-in user', () => {
+      const listing = (installationId: number, page = 1) =>
+        `/user/installations/${installationId}/repositories?per_page=100&page=${page}`
 
-      const repos = await github.listRepos(owner)
-      expect(repos).toEqual([
-        {
-          githubRepoId: 7_001,
-          owner: 'acme',
-          name: 'shop',
-          isPrivate: true,
-          defaultBranch: 'main',
-          installationId: 6_004,
+      it('lists only what GitHub shows the user inside each of their own installations', async () => {
+        const owner = await seedUser()
+        const other = await seedUser()
+        const { rest, calls } = scriptedGithub({
+          [listing(6_004)]: { repositories: [repoEntry(7_001, 'shop')] },
+          [listing(6_005)]: { repositories: [repoEntry(7_002, 'foreign')] },
+        })
+        const github = createGithubService({
+          db,
+          rest,
+          app: appCredentials,
+          userTokens: userTokens({ [owner]: 'ghu_owner', [other]: 'ghu_other' }),
+        })
+        await installation(owner, 6_004)
+        await installation(other, 6_005)
+
+        expect(await github.listRepos(owner)).toEqual([
+          {
+            githubRepoId: 7_001,
+            owner: 'acme',
+            name: 'shop',
+            isPrivate: true,
+            defaultBranch: 'main',
+            installationId: 6_004,
+          },
+        ])
+        expect(calls).toEqual([{ path: listing(6_004), token: 'ghu_owner' }])
+      })
+
+      it('hides org repositories the member cannot see even though the installation covers them', async () => {
+        const member = await seedUser()
+        const { rest, calls } = scriptedGithub({
+          '/installation/repositories?per_page=100&page=1': {
+            repositories: [repoEntry(7_010, 'public-site', false), repoEntry(7_011, 'secret-ops')],
+          },
+          [listing(6_010)]: { repositories: [repoEntry(7_010, 'public-site', false)] },
+        })
+        const github = createGithubService({
+          db,
+          rest,
+          app: appCredentials,
+          userTokens: userTokens({ [member]: 'ghu_member' }),
+        })
+        await installation(member, 6_010)
+
+        const repos = await github.listRepos(member)
+        expect(repos.map((repo) => repo.name)).toEqual(['public-site'])
+        expect(calls.every((call) => call.token === 'ghu_member')).toBe(true)
+        expect(calls.some((call) => call.path.includes('access_tokens'))).toBe(false)
+        expect(calls.some((call) => call.path.startsWith('/installation/'))).toBe(false)
+      })
+
+      it('lists nothing when the user has no stored GitHub token', async () => {
+        const user = await seedUser()
+        const { rest, calls } = scriptedGithub({})
+        const github = createGithubService({
+          db,
+          rest,
+          app: appCredentials,
+          userTokens: userTokens({}),
+        })
+        await installation(user, 6_011)
+        expect(await github.listRepos(user)).toEqual([])
+        expect(calls).toEqual([])
+      })
+
+      it('still returns healthy installations when another one fails upstream', async () => {
+        const owner = await seedUser()
+        const { rest } = scriptedGithub({
+          [listing(6_020)]: new GithubApiError(403, listing(6_020)),
+          [listing(6_021)]: { repositories: [repoEntry(7_020, 'healthy')] },
+          [listing(6_022)]: new GithubApiError(502, listing(6_022)),
+        })
+        const github = createGithubService({
+          db,
+          rest,
+          app: appCredentials,
+          userTokens: userTokens({ [owner]: 'ghu_owner' }),
+        })
+        await installation(owner, 6_020)
+        await installation(owner, 6_021)
+        await installation(owner, 6_022)
+
+        const repos = await github.listRepos(owner)
+        expect(repos.map((repo) => [repo.name, repo.installationId])).toEqual([['healthy', 6_021]])
+      })
+
+      it('surfaces an expired user token instead of listing nothing', async () => {
+        const owner = await seedUser()
+        const { rest } = scriptedGithub({
+          [listing(6_040)]: new GithubApiError(401, listing(6_040)),
+        })
+        const github = createGithubService({
+          db,
+          rest,
+          app: appCredentials,
+          userTokens: userTokens({ [owner]: 'ghu_revoked' }),
+        })
+        await installation(owner, 6_040)
+        await expect(github.listRepos(owner)).rejects.toBeInstanceOf(GithubTokenRejectedError)
+      })
+
+      it('does not swallow failures that are not GitHub API errors', async () => {
+        const owner = await seedUser()
+        const { rest } = scriptedGithub({ [listing(6_030)]: new TypeError('boom') })
+        const github = createGithubService({
+          db,
+          rest,
+          app: appCredentials,
+          userTokens: userTokens({ [owner]: 'ghu_owner' }),
+        })
+        await installation(owner, 6_030)
+        await expect(github.listRepos(owner)).rejects.toThrow('boom')
+      })
+    })
+  })
+
+  describe('GitHub setup callback', () => {
+    const SETUP_ORIGIN = 'https://replo.test'
+
+    const setupApp = async (outcome: () => Promise<'linked'>, token: string | undefined) => {
+      const app = Fastify({ loggerInstance: createLogger({ level: 'silent' }) })
+      registerGithubSetup(app, {
+        auth: {
+          currentSession: async () => ({ user: { id: 'user-1' } }),
+        } as unknown as AuthService,
+        identity: { githubAccessToken: async () => token } as unknown as IdentityService,
+        github: { linkInstallation: outcome } as unknown as GithubService,
+        productOrigin: SETUP_ORIGIN,
+      })
+      await app.ready()
+      return app
+    }
+
+    const visit = async (outcome: () => Promise<'linked'>, storedToken = true) => {
+      const app = await setupApp(outcome, storedToken ? 'ghu_x' : undefined)
+      const response = await app.inject({ method: 'GET', url: '/github/setup?installation_id=123' })
+      await app.close()
+      return response
+    }
+
+    it.each([
+      ['a revoked user token', new GithubApiError(401, '/user/installations'), 'github_not_linked'],
+      ['a rate limit', new GithubApiError(403, '/user/installations'), 'github_not_linked'],
+      ['an upstream outage', new GithubApiError(502, '/user/installations'), 'error'],
+      ['a network failure', new TypeError('fetch failed'), 'error'],
+    ])('redirects back to the product on %s', async (_label, failure, status) => {
+      const response = await visit(async () => {
+        throw failure
+      })
+      expect(response.statusCode).toBe(302)
+      expect(response.headers.location).toBe(`${SETUP_ORIGIN}/import?github=${status}`)
+    })
+
+    it('does not hide unexpected programming errors', async () => {
+      const response = await visit(async () => {
+        throw new RangeError('bug')
+      })
+      expect(response.statusCode).toBe(500)
+    })
+
+    it('redirects with the link outcome on success', async () => {
+      const response = await visit(async () => 'linked')
+      expect(response.headers.location).toBe(`${SETUP_ORIGIN}/import?github=linked`)
+    })
+
+    it('redirects with github_not_linked when no token is stored', async () => {
+      const response = await visit(async () => 'linked', false)
+      expect(response.headers.location).toBe(`${SETUP_ORIGIN}/import?github=github_not_linked`)
+    })
+  })
+
+  describe('webhook payload size', () => {
+    it('accepts a signed push larger than the global 1 MiB body limit', async () => {
+      const repoId = await seedRepo(900_040)
+      const app = Fastify({
+        bodyLimit: 1_048_576,
+        loggerInstance: createLogger({ level: 'silent' }),
+      })
+      registerGithubWebhook(app, {
+        secret: WEBHOOK_SECRET,
+        webhooks,
+        log: createLogger({ level: 'silent' }),
+      })
+      await app.ready()
+      const paths = Array.from({ length: 40_000 }, (_, index) => `src/generated/file-${index}.ts`)
+      const body = JSON.stringify(pushOf(900_040, 'main', [CART_PATH, ...paths]))
+      expect(Buffer.byteLength(body)).toBeGreaterThan(1_048_576)
+      const response = await app.inject({
+        method: 'POST',
+        url: '/webhooks/github',
+        headers: {
+          'content-type': 'application/json',
+          'x-github-event': 'push',
+          'x-github-delivery': randomUUID(),
+          'x-hub-signature-256': `sha256=${createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex')}`,
         },
-      ])
+        payload: body,
+      })
+      expect(response.statusCode).toBe(202)
+      expect(
+        await db.select().from(repoPushEvents).where(eq(repoPushEvents.repositoryId, repoId)),
+      ).toHaveLength(1)
+      await app.close()
     })
   })
 })

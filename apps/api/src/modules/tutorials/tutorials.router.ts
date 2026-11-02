@@ -1,3 +1,4 @@
+import { OK_RESULT } from '@replo/contracts'
 import { authed, os } from '../../orpc'
 import type { RequestContext } from '../../context'
 
@@ -32,10 +33,15 @@ export const tutorialsRouter = {
   ),
   delete: authed.tutorials.delete.handler(async ({ input, context }) => {
     await context.services.tutorialManager.deleteTutorial(context.user.id, input.tutorialId)
-    return { ok: true as const }
+    return OK_RESULT
   }),
   report: authed.tutorials.report.handler(async ({ input, context }) => {
-    await context.services.tutorialManager.report(context.user.id, input.tutorialId, input.reason)
-    return { ok: true as const }
+    await context.services.tutorialManager.report(
+      context.user.id,
+      input.tutorialId,
+      input.reason,
+      input.shareToken,
+    )
+    return OK_RESULT
   }),
 }

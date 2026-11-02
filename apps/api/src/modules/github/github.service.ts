@@ -1,7 +1,14 @@
 import type { GithubRepoDto } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
-import { collectPages, pageQuery, type GithubRest } from '../../platform/github/client'
 import {
+  collectPages,
+  GithubApiError,
+  GithubTokenRejectedError,
+  pageQuery,
+  type GithubRest,
+} from '../../platform/github/client'
+import {
+  GithubRepository,
   InstallationRepositoriesPage,
   InstallationToken,
   UserInstallationsPage,
@@ -9,12 +16,24 @@ import {
 import { createAppJwt } from '../../platform/github/app-jwt'
 import { installUrlFor, requireGithubApp, type GithubAppCredentials } from './github.app'
 import { suspendedAt } from './github.events'
+import { toRepositorySummary } from './github.mapper'
 import { githubInstallationsRepo } from './github.repo'
 
 interface ActiveInstallation {
   githubInstallationId: number
   accountLogin: string
 }
+
+export interface UserTokenSource {
+  githubAccessToken(userId: string): Promise<string | undefined>
+}
+
+export interface RepositoryRef {
+  owner: string
+  name: string
+}
+
+export { GithubTokenRejectedError }
 
 export type LinkOutcome = 'linked' | 'not_accessible' | 'owned_by_another_user'
 
@@ -23,6 +42,7 @@ export interface GithubService {
   listRepos(userId: string): Promise<GithubRepoDto[]>
   activeInstallations(userId: string): Promise<ActiveInstallation[]>
   installationToken(installationId: number): Promise<string | undefined>
+  userCanAccess(userId: string, repository: RepositoryRef): Promise<boolean>
   linkInstallation(input: {
     userId: string
     installationId: number
@@ -34,6 +54,7 @@ export function createGithubService(deps: {
   db: Db
   rest: GithubRest
   app: GithubAppCredentials | undefined
+  userTokens: UserTokenSource
 }): GithubService {
   const { db, rest } = deps
 
@@ -42,14 +63,38 @@ export function createGithubService(deps: {
     return createAppJwt(app.appId, app.privateKey, Math.floor(Date.now() / 1000))
   }
 
-  const installationRepositories = (token: string) =>
+  const userInstallationRepositories = (userToken: string, installationId: number) =>
     collectPages((page) =>
       rest
-        .request(`/installation/repositories?${pageQuery(page)}`, InstallationRepositoriesPage, {
-          token,
-        })
+        .request(
+          `/user/installations/${installationId}/repositories?${pageQuery(page)}`,
+          InstallationRepositoriesPage,
+          { token: userToken },
+        )
         .then((body) => body?.repositories),
     )
+
+  const reposOfInstallation = async (
+    userToken: string,
+    installation: ActiveInstallation,
+  ): Promise<GithubRepoDto[]> => {
+    try {
+      const repositories = await userInstallationRepositories(
+        userToken,
+        installation.githubInstallationId,
+      )
+      return repositories.map((repository) => ({
+        ...toRepositorySummary(repository),
+        installationId: installation.githubInstallationId,
+      }))
+    } catch (error) {
+      if (error instanceof GithubApiError) {
+        if (error.status === 401) throw new GithubTokenRejectedError()
+        return []
+      }
+      throw error
+    }
+  }
 
   const userInstallations = (token: string) =>
     collectPages((page) =>
@@ -67,22 +112,30 @@ export function createGithubService(deps: {
 
     async listRepos(userId) {
       if (!deps.app) return []
-      const repos: GithubRepoDto[] = []
-      for (const installation of await service.activeInstallations(userId)) {
-        const token = await service.installationToken(installation.githubInstallationId)
-        if (!token) continue
-        for (const repo of await installationRepositories(token)) {
-          repos.push({
-            githubRepoId: repo.id,
-            owner: repo.owner.login,
-            name: repo.name,
-            isPrivate: repo.private,
-            defaultBranch: repo.default_branch,
-            installationId: installation.githubInstallationId,
-          })
-        }
+      const userToken = await deps.userTokens.githubAccessToken(userId)
+      if (!userToken) return []
+      const installations = await service.activeInstallations(userId)
+      const perInstallation = await Promise.all(
+        installations.map((installation) => reposOfInstallation(userToken, installation)),
+      )
+      return perInstallation.flat()
+    },
+
+    async userCanAccess(userId, { owner, name }) {
+      const userToken = await deps.userTokens.githubAccessToken(userId)
+      if (!userToken) return false
+      try {
+        const repository = await rest.request(
+          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`,
+          GithubRepository,
+          { token: userToken },
+        )
+        return repository !== undefined
+      } catch (error) {
+        if (error instanceof GithubApiError && error.status === 401)
+          throw new GithubTokenRejectedError()
+        throw error
       }
-      return repos
     },
 
     activeInstallations(userId) {

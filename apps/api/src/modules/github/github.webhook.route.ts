@@ -1,20 +1,43 @@
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { Logger } from 'pino'
 import type { App } from '../../platform/http'
 import type { GithubWebhookService } from './github.webhook.service'
 import { verifyGithubSignature } from './webhook'
 
+const WEBHOOK_BODY_LIMIT_BYTES = 25 * 1024 * 1024
+const SIGNATURE_SHAPE = /^sha256=[0-9a-f]{64}$/i
+
 export function registerGithubWebhook(
   app: App,
   deps: { secret: string | undefined; webhooks: GithubWebhookService; log: Logger },
 ) {
+  const rejectUnidentified = async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!deps.secret) return reply.code(503).send({ error: 'WEBHOOK_NOT_CONFIGURED' })
+    const signature = request.headers['x-hub-signature-256']
+    if (typeof signature !== 'string' || !SIGNATURE_SHAPE.test(signature))
+      return reply.code(401).send({ error: 'INVALID_SIGNATURE' })
+    if (
+      typeof request.headers['x-github-delivery'] !== 'string' ||
+      typeof request.headers['x-github-event'] !== 'string'
+    )
+      return reply.code(400).send({ error: 'MISSING_HEADERS' })
+    return undefined
+  }
+
   app.register(async (scope) => {
-    scope.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_req, body, done) =>
-      done(null, body),
+    scope.addContentTypeParser(
+      'application/json',
+      { parseAs: 'buffer', bodyLimit: WEBHOOK_BODY_LIMIT_BYTES },
+      (_req, body, done) => done(null, body),
     )
 
     scope.post(
       '/webhooks/github',
-      { config: { rateLimit: { max: 300, timeWindow: '1 minute' } } },
+      {
+        bodyLimit: WEBHOOK_BODY_LIMIT_BYTES,
+        onRequest: rejectUnidentified,
+        config: { rateLimit: { max: 300, timeWindow: '1 minute' } },
+      },
       async (request, reply) => {
         if (!deps.secret) return reply.code(503).send({ error: 'WEBHOOK_NOT_CONFIGURED' })
 

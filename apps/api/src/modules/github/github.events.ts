@@ -1,7 +1,10 @@
 import { CommitSha } from '@replo/contracts'
 import { z } from 'zod'
 import { GithubRepository, UserInstallation } from '../../platform/github/schemas'
-import type { InstallationChange, RepositoryMetadata } from './github.ports'
+import { toRepositoryMetadata } from './github.mapper'
+import type { InstallationChange } from './github.ports'
+
+export { toRepositoryMetadata }
 
 const HANDLED_EVENTS = ['installation', 'installation_repositories', 'repository', 'push'] as const
 export type HandledEvent = (typeof HANDLED_EVENTS)[number]
@@ -53,19 +56,6 @@ export const pushChange = (push: z.output<typeof EVENT_SCHEMAS.push>): PushChang
 
 export const suspendedAt = (installation: { suspended_at?: string | null }): Date | null =>
   installation.suspended_at ? new Date(installation.suspended_at) : null
-
-export function toRepositoryMetadata(
-  repository: z.output<typeof GithubRepository>,
-): RepositoryMetadata {
-  return {
-    githubRepoId: repository.id,
-    owner: repository.owner.login,
-    name: repository.name,
-    isPrivate: repository.private,
-    defaultBranch: repository.default_branch,
-    license: repository.license?.spdx_id ?? null,
-  }
-}
 
 type RepositoryEventChange = Extract<
   InstallationChange,

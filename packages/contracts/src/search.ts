@@ -1,20 +1,14 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
+import { TutorialRef } from './common'
 
 export const SearchResults = z.object({
   repositories: z.array(z.object({ repositoryId: z.uuid(), owner: z.string(), name: z.string() })),
-  tutorials: z.array(
-    z.object({
-      tutorialId: z.uuid(),
-      title: z.string(),
-      owner: z.string(),
-      repo: z.string(),
-      slug: z.string(),
-    }),
-  ),
+  tutorials: z.array(TutorialRef.extend({ tutorialId: z.uuid(), title: z.string() })),
   lessons: z.array(
-    z.object({
+    TutorialRef.extend({
       tutorialId: z.uuid(),
+      tutorialTitle: z.string(),
       versionId: z.uuid(),
       chapterKey: z.string(),
       lessonKey: z.string(),

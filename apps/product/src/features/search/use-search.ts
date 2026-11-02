@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
 import { orpc } from '@/lib/orpc'
 
-const MIN_QUERY_LENGTH = 2
+export const MIN_QUERY_LENGTH = 2
 const DEBOUNCE_MS = 250
 
 export function useLibrarySearch(query: string) {

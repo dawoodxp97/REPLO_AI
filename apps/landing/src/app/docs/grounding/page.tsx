@@ -1,3 +1,5 @@
+import { Alert, AlertDescription } from '@replo/ui'
+import { TriangleAlert } from 'lucide-react'
 import type { Metadata } from 'next'
 import {
   Article,
@@ -97,12 +99,12 @@ export default function GroundingPage() {
           pipeline uses one. If the score is below the threshold, or a lesson has no content left,
           the tutorial is published as a Draft and shows this banner:
         </p>
-        <p
-          role="note"
-          className="rounded-md border-l-4 border-interpretation bg-interpretation/10 px-4 py-3 text-sm"
-        >
-          Draft — lower confidence. Some claims could not be fully verified.
-        </p>
+        <Alert variant="interpretation" role="note">
+          <TriangleAlert aria-hidden="true" />
+          <AlertDescription className="text-foreground">
+            Draft — lower confidence. Some claims could not be fully verified.
+          </AlertDescription>
+        </Alert>
         <p>The threshold is provisional and is adjusted as evaluation results come in.</p>
       </Section>
 

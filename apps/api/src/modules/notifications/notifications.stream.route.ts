@@ -1,5 +1,7 @@
+import { parseCookies } from '../../platform/cookies'
 import type { App } from '../../platform/http'
 import type { AuthService } from '../identity/auth.service'
+import { SESSION_COOKIE } from '../identity/session'
 import { sessionFromRequest } from '../identity/session-request'
 import { KEEP_ALIVE_FRAME, openEventStream, sseFrame } from '../../platform/sse'
 import type { NotificationsService } from './notifications.service'
@@ -14,14 +16,23 @@ export interface NotificationsStreamDeps {
   productOrigin: string
   pollMs?: number
   heartbeatMs?: number
+  sessionRecheckMs?: number
   maxStreamsPerUser?: number
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const waitUnless = (ms: number, closed: Promise<void>) =>
+  new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, ms)
+    void closed.then(() => {
+      clearTimeout(timer)
+      resolve()
+    })
+  })
 
 export function registerNotificationsStream(app: App, deps: NotificationsStreamDeps) {
   const pollMs = deps.pollMs ?? UNREAD_POLL_MS
   const heartbeatMs = deps.heartbeatMs ?? UNREAD_HEARTBEAT_MS
+  const sessionRecheckMs = deps.sessionRecheckMs ?? heartbeatMs
   const maxStreams = deps.maxStreamsPerUser ?? MAX_STREAMS_PER_USER
   const streamsByUser = new Map<string, number>()
 
@@ -41,12 +52,24 @@ export function registerNotificationsStream(app: App, deps: NotificationsStreamD
       else streamsByUser.delete(userId)
     }
 
+    const token = parseCookies(request.headers.cookie).get(SESSION_COOKIE)
+    const closed = reply.raw.destroyed
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => reply.raw.once('close', resolve))
     const stream = openEventStream(request, reply, deps.productOrigin)
     let lastCount: number | undefined
     let lastWrite = Date.now()
+    let lastSessionCheck = Date.now()
     try {
-      while (stream.isOpen()) {
-        const count = await deps.notifications.unreadCount(userId)
+      while (stream.isOpen() && !reply.raw.destroyed) {
+        if (Date.now() - lastSessionCheck >= sessionRecheckMs) {
+          if (!(await deps.auth.currentSession(token))) {
+            stream.send(sseFrame({ event: 'unauthorized', data: {} }))
+            break
+          }
+          lastSessionCheck = Date.now()
+        }
+        const { count } = await deps.notifications.unreadCount(userId)
         if (count !== lastCount) {
           stream.send(sseFrame({ event: 'unread', data: { count } }))
           lastCount = count
@@ -56,7 +79,7 @@ export function registerNotificationsStream(app: App, deps: NotificationsStreamD
           stream.send(KEEP_ALIVE_FRAME)
           lastWrite = Date.now()
         }
-        await sleep(pollMs)
+        await waitUnless(pollMs, closed)
       }
     } finally {
       release()

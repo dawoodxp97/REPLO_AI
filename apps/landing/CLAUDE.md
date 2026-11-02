@@ -10,7 +10,7 @@ No route handlers, no `headers()`/`cookies()`, no ISR, no image optimisation (`i
 
 ```
 src/app/layout.tsx         fonts (Geist, Geist Mono, Newsreader), metadata, skip link, Header + Footer
-src/app/page.tsx           Hero · HowItWorks · Grounding · KeyProviders · Faq
+src/app/page.tsx           Hero · HowItWorks · Grounding · KeyProviders · Faq · ClosingCta
 src/app/keys/              key guide (FR-RUN-11): providers, dated :free limits, key handling
 src/app/docs/              index · how-it-works/ · grounding/ · keys-and-privacy/ (TSX, no MDX: MEM D-008)
 src/app/privacy/           policy pages (FR-SHR-3), each marked as a draft:
@@ -19,6 +19,8 @@ src/app/not-found.tsx      404 page
 src/app/robots.ts          robots.txt
 src/app/sitemap.ts         sitemap, built from SITE_PATHS in src/lib/routes.ts
 src/components/            site.tsx (Header/Footer, APP_URL), sections.tsx (home sections),
+                           product-frame.tsx (hero lesson + source viewer), brand.tsx (mark),
+                           page-section.tsx (Container, PageSection, MonoLabel),
                            article.tsx (page shell, Section, DraftNotice, NextLinks)
 src/lib/routes.ts          route lists for nav, footer, docs index and sitemap
 public/_headers            CSP and caching for Cloudflare Pages

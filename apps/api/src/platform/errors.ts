@@ -11,3 +11,7 @@ export function conflict(message: string): never {
 export function badRequest(message: string): never {
   throw new ORPCError('BAD_REQUEST', { message })
 }
+
+export function requireFound<Value>(value: Value | null | undefined, what?: string): Value {
+  return value ?? notFound(what)
+}

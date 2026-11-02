@@ -1,10 +1,12 @@
 import {
   AddKeyInput,
+  Visibility,
   ImportRepositoryInput,
   Preferences,
   RepositorySource,
   type ChapterDto,
   type KeyDto,
+  type SearchResults,
 } from '@replo/contracts'
 import { APP_ORIGIN } from '../support/origins'
 import { rpcError, type RpcHandlers } from '../support/rpc-types'
@@ -28,6 +30,34 @@ export const DEFAULT_PREFERENCES = Preferences.parse({
   quizzesEnabled: true,
   browserNotifications: false,
 })
+
+export const SEARCH_RESULTS: SearchResults = {
+  repositories: [
+    { repositoryId: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f', owner: 'acme', name: 'widgets' },
+  ],
+  tutorials: [
+    {
+      tutorialId: TUTORIAL_ID,
+      title: TUTORIAL_OVERVIEW.tutorial.title,
+      owner: 'acme',
+      repo: 'widgets',
+      slug: 'cart-flow',
+    },
+  ],
+  lessons: [
+    {
+      tutorialId: TUTORIAL_ID,
+      tutorialTitle: TUTORIAL_OVERVIEW.tutorial.title,
+      owner: 'acme',
+      repo: 'widgets',
+      slug: 'cart-flow',
+      versionId: VERSION_ID,
+      chapterKey: 'ch1',
+      lessonKey: 'l1',
+      title: 'The button dispatches a thunk',
+    },
+  ],
+}
 
 const SHARE_TOKEN = 'share-token-123'
 
@@ -77,6 +107,7 @@ const NOTIFICATIONS = [
 ]
 
 export function defaultHandlers(): RpcHandlers {
+  let tutorial = TUTORIAL_SUMMARY
   return {
     'me.get': () => ({ body: USER }),
     'me.deleteAccount': () => ({ body: { ok: true } }),
@@ -147,7 +178,7 @@ export function defaultHandlers(): RpcHandlers {
     'jobs.cancel': () => ({ body: { ...JOB, status: 'canceled' } }),
     'jobs.retry': () => ({ body: { ...JOB, status: 'queued' } }),
 
-    'tutorials.list': () => ({ body: { items: [TUTORIAL_SUMMARY], nextCursor: null } }),
+    'tutorials.list': () => ({ body: { items: [tutorial], nextCursor: null } }),
     'tutorials.get': () => ({ body: TUTORIAL_OVERVIEW }),
     'tutorials.getChapter': ({ input }) => {
       const chapterKey = isRecord(input) ? input.chapterKey : undefined
@@ -162,9 +193,11 @@ export function defaultHandlers(): RpcHandlers {
       body: { commitSha: TUTORIAL_OVERVIEW.commitSha, files: SOURCE_TREE },
     }),
     'tutorials.setVisibility': ({ input }) => {
-      const visibility =
-        isRecord(input) && typeof input.visibility === 'string' ? input.visibility : 'private'
-      return { body: { ...TUTORIAL_SUMMARY, visibility } }
+      tutorial = {
+        ...tutorial,
+        visibility: Visibility.parse(isRecord(input) ? input.visibility : undefined),
+      }
+      return { body: tutorial }
     },
     'tutorials.createShareLink': () => ({
       body: {
@@ -232,31 +265,7 @@ export function defaultHandlers(): RpcHandlers {
       },
     }),
 
-    'search.own': () => ({
-      body: {
-        repositories: [
-          { repositoryId: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f', owner: 'acme', name: 'widgets' },
-        ],
-        tutorials: [
-          {
-            tutorialId: TUTORIAL_ID,
-            title: TUTORIAL_OVERVIEW.tutorial.title,
-            owner: 'acme',
-            repo: 'widgets',
-            slug: 'cart-flow',
-          },
-        ],
-        lessons: [
-          {
-            tutorialId: TUTORIAL_ID,
-            versionId: VERSION_ID,
-            chapterKey: 'ch1',
-            lessonKey: 'l1',
-            title: 'The button dispatches a thunk',
-          },
-        ],
-      },
-    }),
+    'search.own': () => ({ body: SEARCH_RESULTS }),
 
     'settings.get': () => ({ body: DEFAULT_PREFERENCES }),
     'settings.update': ({ input }) => ({

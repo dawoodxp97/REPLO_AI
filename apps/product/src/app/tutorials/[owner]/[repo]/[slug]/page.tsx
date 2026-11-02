@@ -1,27 +1,25 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import {
+  loadOverviewFor,
+  latestVersionHref,
+  resumeTarget,
+  type OverviewQuery,
+} from '@/features/tutorials/overview-loader'
+import { parseVersion } from '@/lib/tutorial-paths'
 import { TutorialOverview } from '@/features/tutorials/tutorial-overview'
-import { isApiErrorCode } from '@/lib/api-error'
+import { TutorialShell } from '@/features/tutorials/tutorial-shell'
 import { env } from '@/lib/env'
-import { serverApi } from '@/lib/server-client'
-import { lessonPath, tutorialPath, type TutorialRef } from '@/lib/tutorial-paths'
-import type { TutorialOverviewDto } from '@replo/contracts'
+import { tutorialPath, type TutorialRef } from '@/lib/tutorial-paths'
 
-type Params = { owner: string; repo: string; slug: string }
-type Query = { version?: string; share?: string; resume?: string }
+interface RouteProps {
+  params: Promise<TutorialRef>
+  searchParams: Promise<OverviewQuery>
+}
 
-type Api = Awaited<ReturnType<typeof serverApi>>
-
-export async function generateMetadata({
-  params,
-  searchParams,
-}: {
-  params: Promise<Params>
-  searchParams: Promise<Query>
-}): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: RouteProps): Promise<Metadata> {
   const ref = await params
-  const query = await searchParams
-  const overview = await loadOverview(await serverApi(), ref, query)
+  const overview = await loadOverviewFor(ref, await searchParams)
   if (!overview) return { title: 'Tutorial not found', robots: { index: false } }
 
   const isPublic = overview.tutorial.visibility === 'public'
@@ -40,75 +38,29 @@ export async function generateMetadata({
   }
 }
 
-export default async function TutorialOverviewRoute({
-  params,
-  searchParams,
-}: {
-  params: Promise<Params>
-  searchParams: Promise<Query>
-}) {
+export default async function TutorialOverviewRoute({ params, searchParams }: RouteProps) {
   const ref = await params
   const query = await searchParams
-  const api = await serverApi()
-  const overview = await loadOverview(api, ref, query)
+  const overview = await loadOverviewFor(ref, query)
   if (!overview) notFound()
 
   if (query.resume !== undefined) {
-    const target = await resumeTarget(api, ref, overview)
+    const target = await resumeTarget(ref, overview, {
+      version: parseVersion(query.version),
+      shareToken: query.share,
+    })
     if (target) redirect(target)
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <TutorialShell>
       <TutorialOverview
         overview={overview}
         shareUrl={`${env.appUrl}${tutorialPath(ref)}`}
-        latestVersionHref={latestVersionHref(ref, overview)}
+        latestVersionHref={latestVersionHref(ref, overview, query.share)}
         shareToken={query.share}
+        versionNo={parseVersion(query.version)}
       />
-    </main>
+    </TutorialShell>
   )
-}
-
-async function loadOverview(
-  api: Api,
-  ref: TutorialRef,
-  query: Query,
-): Promise<TutorialOverviewDto | null> {
-  try {
-    return await api.tutorials.get({
-      ...ref,
-      versionNo: parseVersion(query.version),
-      shareToken: query.share,
-    })
-  } catch (error) {
-    if (isApiErrorCode(error, 'NOT_FOUND')) return null
-    throw error
-  }
-}
-
-async function resumeTarget(
-  api: Api,
-  ref: TutorialRef,
-  overview: TutorialOverviewDto,
-): Promise<string | null> {
-  const progress = await api.learning
-    .getProgress({ tutorialId: overview.tutorial.id, versionId: overview.versionId })
-    .catch(() => null)
-  const nextLessonKey = progress?.nextLessonKey
-  if (!nextLessonKey) return null
-  const chapter = overview.outline.find((item) =>
-    item.lessons.some((lesson) => lesson.key === nextLessonKey),
-  )
-  return chapter ? lessonPath(ref, chapter.key, nextLessonKey) : null
-}
-
-function latestVersionHref(ref: TutorialRef, overview: TutorialOverviewDto): string | null {
-  const latest = Math.max(0, ...overview.versions.map((version) => version.versionNo))
-  return latest > 0 ? `${tutorialPath(ref)}?version=${latest}` : null
-}
-
-function parseVersion(value: string | undefined): number | undefined {
-  const version = Number(value)
-  return Number.isInteger(version) && version > 0 ? version : undefined
 }

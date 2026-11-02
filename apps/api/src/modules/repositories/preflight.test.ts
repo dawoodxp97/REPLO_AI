@@ -1,7 +1,12 @@
 import type { RepositorySource } from '@replo/contracts'
 import { describe, expect, it } from 'vitest'
 import type { z } from 'zod'
-import type { GithubRequestOptions, GithubRest } from '../../platform/github/client'
+import {
+  GithubApiError,
+  GithubTokenRejectedError,
+  type GithubRequestOptions,
+  type GithubRest,
+} from '../../platform/github/client'
 import type { InstallationDirectory } from './repositories.ports'
 import { createPreflight } from './preflight'
 
@@ -48,6 +53,7 @@ function fakeRest(routes: Record<string, Route>, seen: GithubRequestOptions[] = 
 const noInstallations: InstallationDirectory = {
   activeInstallations: async () => [],
   installationToken: async () => undefined,
+  userCanAccess: async () => false,
 }
 
 const limits = { maxFiles: 5000, maxBytes: 50_000_000 }
@@ -203,7 +209,9 @@ describe('preflight', () => {
   it('refuses a repo with no readable text', async () => {
     const routes = {
       ...healthyRoutes,
-      [`/repos/acme/shop/git/trees/${SHA}?recursive=1`]: tree([{ path: 'public/logo.png', size: 90_000 }]),
+      [`/repos/acme/shop/git/trees/${SHA}?recursive=1`]: tree([
+        { path: 'public/logo.png', size: 90_000 },
+      ]),
     }
     const preflight = createPreflight({
       rest: fakeRest(routes),
@@ -221,6 +229,7 @@ describe('preflight', () => {
     const installations: InstallationDirectory = {
       activeInstallations: async () => [{ githubInstallationId: 7 }, { githubInstallationId: 8 }],
       installationToken: async (id) => (id === 7 ? 'ghs_seven' : 'ghs_eight'),
+      userCanAccess: async () => true,
     }
     const routes = {
       '/repositories/42': (token: string | undefined) =>
@@ -238,10 +247,75 @@ describe('preflight', () => {
     const installations: InstallationDirectory = {
       activeInstallations: async () => [{ githubInstallationId: 7 }],
       installationToken: async () => 'ghs_seven',
+      userCanAccess: async () => true,
     }
     const preflight = createPreflight({ rest: fakeRest({}), installations, limits })
     const source: RepositorySource = { kind: 'installation', githubRepoId: 42 }
     expect(await preflight.run('user-1', source)).toEqual({
+      kind: 'refused',
+      refusal: { code: 'REPO_NOT_ACCESSIBLE' },
+    })
+  })
+
+  it('refuses an installation repo the user cannot access themselves', async () => {
+    const checked: { userId: string; owner: string; name: string }[] = []
+    const installations: InstallationDirectory = {
+      activeInstallations: async () => [{ githubInstallationId: 7 }],
+      installationToken: async () => 'ghs_seven',
+      userCanAccess: async (userId, repository) => {
+        checked.push({ userId, ...repository })
+        return false
+      },
+    }
+    const routes = {
+      '/repositories/42': repo({ private: true }),
+      [`/repos/acme/shop/commits/main`]: { sha: SHA },
+      [`/repos/acme/shop/git/trees/${SHA}?recursive=1`]: tree([{ path: 'src/a.ts', size: 10 }]),
+    }
+    const preflight = createPreflight({ rest: fakeRest(routes), installations, limits })
+    expect(await preflight.run('user-1', { kind: 'installation', githubRepoId: 42 })).toEqual({
+      kind: 'refused',
+      refusal: { code: 'REPO_NOT_ACCESSIBLE' },
+    })
+    expect(checked).toEqual([{ userId: 'user-1', owner: 'acme', name: 'shop' }])
+  })
+
+  it('falls through to a later installation where the user does have access', async () => {
+    const seen: GithubRequestOptions[] = []
+    const installations: InstallationDirectory = {
+      activeInstallations: async () => [{ githubInstallationId: 7 }, { githubInstallationId: 8 }],
+      installationToken: async (id) => (id === 7 ? 'ghs_seven' : 'ghs_eight'),
+      userCanAccess: async () => seen.length > 1,
+    }
+    const routes = {
+      '/repositories/42': repo({ private: true }),
+      [`/repos/acme/shop/commits/main`]: { sha: SHA },
+      [`/repos/acme/shop/git/trees/${SHA}?recursive=1`]: tree([{ path: 'src/a.ts', size: 10 }]),
+    }
+    const preflight = createPreflight({ rest: fakeRest(routes, seen), installations, limits })
+    const outcome = await preflight.run('user-1', { kind: 'installation', githubRepoId: 42 })
+    expect(outcome.kind).toBe('ok')
+    expect(seen.some((o) => o.token === 'ghs_eight')).toBe(true)
+  })
+
+  it.each([
+    ['a rejected user token', () => new GithubTokenRejectedError()],
+    ['a 403 from GitHub', () => new GithubApiError(403, '/repos/acme/shop')],
+  ])('refuses an installation repo when userCanAccess reports %s', async (_label, failure) => {
+    const installations: InstallationDirectory = {
+      activeInstallations: async () => [{ githubInstallationId: 7 }],
+      installationToken: async () => 'ghs_seven',
+      userCanAccess: async () => {
+        throw failure()
+      },
+    }
+    const routes = {
+      '/repositories/42': repo({ private: true }),
+      [`/repos/acme/shop/commits/main`]: { sha: SHA },
+      [`/repos/acme/shop/git/trees/${SHA}?recursive=1`]: tree([{ path: 'src/a.ts', size: 10 }]),
+    }
+    const preflight = createPreflight({ rest: fakeRest(routes), installations, limits })
+    expect(await preflight.run('user-1', { kind: 'installation', githubRepoId: 42 })).toEqual({
       kind: 'refused',
       refusal: { code: 'REPO_NOT_ACCESSIBLE' },
     })

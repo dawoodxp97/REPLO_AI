@@ -76,6 +76,9 @@ export const ChapterDraft = z.object({
 })
 export type ChapterDraft = z.infer<typeof ChapterDraft>
 
+export const chapterDraftFor = (lessonCount: number) =>
+  ChapterDraft.extend({ lessons: z.array(LessonDraft).min(lessonCount).max(4) })
+
 const OutlineLessonDraft = LessonHeader.extend({
   focusPaths: z.array(text(512)).max(8),
 })

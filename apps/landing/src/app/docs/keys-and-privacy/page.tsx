@@ -1,5 +1,14 @@
 import type { Metadata } from 'next'
-import { Article, bulletListClass, NextLinks, Section, tableCellClass } from '@/components/article'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@replo/ui'
+import { Article, bulletListClass, NextLinks, Section } from '@/components/article'
 import { DOCS_INDEX, KEY_GUIDE, POLICY_PAGES } from '@/lib/routes'
 
 export const metadata: Metadata = {
@@ -89,30 +98,35 @@ export default function KeysAndPrivacyPage() {
       </Section>
 
       <Section title="How long things are kept">
-        <div className="overflow-hidden rounded-md border border-border">
-          <table className="w-full border-collapse text-left text-sm">
-            <caption className="sr-only">How long each kind of data is kept</caption>
-            <thead className="bg-muted">
-              <tr>
-                <th scope="col" className="px-3 py-2 font-semibold">
+        <div className="overflow-hidden rounded-lg border bg-card">
+          <Table>
+            <TableCaption className="sr-only">How long each kind of data is kept</TableCaption>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead scope="col" className="px-4">
                   What
-                </th>
-                <th scope="col" className="px-3 py-2 font-semibold">
+                </TableHead>
+                <TableHead scope="col" className="px-4">
                   How long
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {RETENTION.map((row) => (
-                <tr key={row.item}>
-                  <th scope="row" className={`${tableCellClass} font-medium`}>
+                <TableRow key={row.item}>
+                  <TableHead
+                    scope="row"
+                    className="h-auto px-4 py-3 align-top whitespace-normal text-foreground"
+                  >
                     {row.item}
-                  </th>
-                  <td className={tableCellClass}>{row.kept}</td>
-                </tr>
+                  </TableHead>
+                  <TableCell className="px-4 py-3 align-top text-muted-foreground">
+                    {row.kept}
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </Section>
 

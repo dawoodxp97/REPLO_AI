@@ -1,4 +1,5 @@
-import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, notExists, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import type { DbOrTx } from '../../platform/db/client'
 import { learningProgress, quizAttempts } from '../../platform/db/schema'
 
@@ -24,7 +25,14 @@ export const learningRepo = (db: DbOrTx) => ({
       )
   },
 
-  historyPage(userId: string, tutorialId: string, offset: number, limit: number) {
+  async historyPage(
+    userId: string,
+    tutorialId: string,
+    lessonKeys: readonly string[],
+    offset: number,
+    limit: number,
+  ) {
+    if (lessonKeys.length === 0) return []
     const latest = db.$with('latest').as(
       db
         .selectDistinctOn([learningProgress.lessonKey], {
@@ -34,7 +42,11 @@ export const learningRepo = (db: DbOrTx) => ({
         })
         .from(learningProgress)
         .where(
-          and(eq(learningProgress.userId, userId), eq(learningProgress.tutorialId, tutorialId)),
+          and(
+            eq(learningProgress.userId, userId),
+            eq(learningProgress.tutorialId, tutorialId),
+            inArray(learningProgress.lessonKey, [...lessonKeys]),
+          ),
         )
         .orderBy(asc(learningProgress.lessonKey), desc(learningProgress.updatedAt)),
     )
@@ -48,10 +60,29 @@ export const learningRepo = (db: DbOrTx) => ({
   },
 
   recentInProgress(userId: string, limit: number) {
+    const done = alias(learningProgress, 'done_progress')
     return db
       .select()
       .from(learningProgress)
-      .where(and(eq(learningProgress.userId, userId), eq(learningProgress.status, 'in_progress')))
+      .where(
+        and(
+          eq(learningProgress.userId, userId),
+          eq(learningProgress.status, 'in_progress'),
+          notExists(
+            db
+              .select({ one: sql`1` })
+              .from(done)
+              .where(
+                and(
+                  eq(done.userId, learningProgress.userId),
+                  eq(done.tutorialId, learningProgress.tutorialId),
+                  eq(done.lessonKey, learningProgress.lessonKey),
+                  eq(done.status, 'completed'),
+                ),
+              ),
+          ),
+        ),
+      )
       .orderBy(desc(learningProgress.updatedAt))
       .limit(limit)
   },
@@ -68,6 +99,8 @@ export const learningRepo = (db: DbOrTx) => ({
           completedAt: row.completedAt,
           updatedAt: row.updatedAt,
         },
+        setWhere:
+          row.status === 'completed' ? undefined : sql`${learningProgress.status} <> 'completed'`,
       })
   },
 

@@ -1,17 +1,32 @@
 'use client'
 
-import type { LearnerQuestion, SourceRef } from '@replo/contracts'
-import { Alert, Button } from '@replo/ui'
+import type { LearnerQuestion } from '@replo/contracts'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  RadioGroup,
+  Spinner,
+} from '@replo/ui'
 import { useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
-import { EvidenceChips } from '@/features/player/claim-preview'
+import { CircleAlert, CircleCheck, CircleX } from 'lucide-react'
+import { useId, useState } from 'react'
+import { EvidenceChips } from '@/features/player/evidence-chips'
+import type { SourceRefMap } from '@/features/player/source-ref-map'
 import { orpc } from '@/lib/orpc'
+import { QuizOption, type OptionOutcome } from './quiz-option'
 
 export interface QuestionCardProps {
   versionId: string
   lessonKey: string
   question: LearnerQuestion
-  references: Readonly<Record<string, SourceRef | undefined>>
+  references: SourceRefMap
   onOpenReference: (refId: string) => void
 }
 
@@ -22,64 +37,86 @@ export function QuestionCard({
   references,
   onOpenReference,
 }: QuestionCardProps) {
+  const promptId = useId()
   const [choice, setChoice] = useState('')
   const submit = useMutation(orpc.learning.submitQuiz.mutationOptions())
   const result = submit.data
   const locked = result !== undefined || submit.isPending
   const correctText = question.options.find((option) => option.key === result?.correctKey)?.text
 
+  function outcomeOf(optionKey: string): OptionOutcome | null {
+    if (!result) return null
+    if (optionKey === result.correctKey) return 'correct'
+    return optionKey === choice ? 'incorrect' : null
+  }
+
   return (
-    <fieldset disabled={locked} className="space-y-4 rounded-lg border border-border bg-card p-4">
-      <legend className="px-1 text-sm font-medium">{question.prompt}</legend>
-      <div className="space-y-2">
-        {question.options.map((option) => (
-          <label
-            key={option.key}
-            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-border px-3 py-2 text-sm has-[:checked]:border-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring"
-          >
-            <input
-              type="radio"
-              name={`quiz-${question.key}`}
+    <Card className="gap-4">
+      <CardHeader>
+        <CardTitle id={promptId} className="text-base">
+          {question.prompt}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <RadioGroup aria-labelledby={promptId} className="gap-2">
+          {question.options.map((option) => (
+            <QuizOption
+              key={option.key}
+              name={`quiz-${lessonKey}-${question.key}`}
               value={option.key}
+              text={option.text}
               checked={choice === option.key}
-              onChange={() => setChoice(option.key)}
-              className="size-4 accent-primary"
+              disabled={locked}
+              outcome={outcomeOf(option.key)}
+              onSelect={() => setChoice(option.key)}
             />
-            {option.text}
-          </label>
-        ))}
-      </div>
-      <Button
-        type="button"
-        size="sm"
-        disabled={choice === '' || locked}
-        onClick={() =>
-          submit.mutate({ versionId, lessonKey, questionKey: question.key, choiceKey: choice })
-        }
-      >
-        {submit.isPending ? 'Checking…' : 'Check answer'}
-      </Button>
+          ))}
+        </RadioGroup>
+      </CardContent>
+      <CardFooter className="flex-col items-stretch gap-4 border-t-0 pt-0">
+        <div>
+          <Button
+            type="button"
+            size="sm"
+            disabled={choice === '' || locked}
+            onClick={() =>
+              submit.mutate({ versionId, lessonKey, questionKey: question.key, choiceKey: choice })
+            }
+          >
+            {submit.isPending ? <Spinner /> : null}
+            {submit.isPending ? 'Checking…' : 'Check answer'}
+          </Button>
+        </div>
 
-      <div aria-live="polite" className="space-y-2 text-sm">
-        {result ? (
-          <>
-            <p className="font-medium">{result.correct ? 'Correct.' : 'Not quite.'}</p>
-            {result.correct ? null : correctText ? <p>The answer is “{correctText}”.</p> : null}
-            <p className="text-muted-foreground">{result.explanation}</p>
-            <EvidenceChips
-              refIds={question.evidence.map((item) => item.refId)}
-              references={references}
-              onOpenReference={onOpenReference}
-            />
-          </>
+        <div aria-live="polite" className="space-y-3">
+          {result ? (
+            <>
+              <Alert variant={result.correct ? 'observed' : 'destructive'}>
+                {result.correct ? <CircleCheck /> : <CircleX />}
+                <AlertTitle>{result.correct ? 'Correct.' : 'Not quite.'}</AlertTitle>
+                <AlertDescription>
+                  {result.correct ? null : correctText ? (
+                    <p className="text-foreground">The answer is “{correctText}”.</p>
+                  ) : null}
+                  <p>{result.explanation}</p>
+                </AlertDescription>
+              </Alert>
+              <EvidenceChips
+                refIds={question.evidence.map((item) => item.refId)}
+                references={references}
+                onOpenReference={onOpenReference}
+              />
+            </>
+          ) : null}
+        </div>
+
+        {submit.isError ? (
+          <Alert variant="destructive" role="alert">
+            <CircleAlert />
+            <AlertDescription>The answer could not be checked. Try again.</AlertDescription>
+          </Alert>
         ) : null}
-      </div>
-
-      {submit.isError ? (
-        <Alert tone="destructive" role="alert">
-          The answer could not be checked. Try again.
-        </Alert>
-      ) : null}
-    </fieldset>
+      </CardFooter>
+    </Card>
   )
 }

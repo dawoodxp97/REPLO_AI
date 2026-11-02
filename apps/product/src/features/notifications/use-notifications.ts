@@ -1,12 +1,34 @@
 import { UnreadCount } from '@replo/contracts'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { env } from '@/lib/env'
 import { orpc } from '@/lib/orpc'
+import { FIRST_PAGE, nextCursorOf } from '@/lib/paging'
 
 const UNREAD_POLL_MS = 30_000
 const PAGE_SIZE = 20
-const NO_CURSOR: string | undefined = undefined
+
+function parseUnreadCount(raw: string): UnreadCount | null {
+  try {
+    const parsed = UnreadCount.safeParse(JSON.parse(raw))
+    return parsed.success ? parsed.data : null
+  } catch {
+    return null
+  }
+}
+
+export function applyUnreadEvent(queryClient: QueryClient, raw: string): void {
+  const unread = parseUnreadCount(raw)
+  if (!unread) return
+  queryClient.setQueryData(orpc.notifications.unreadCount.queryKey(), unread)
+  void queryClient.invalidateQueries({ queryKey: orpc.notifications.list.key() })
+}
 
 export function useUnreadCount() {
   const queryClient = useQueryClient()
@@ -17,8 +39,7 @@ export function useUnreadCount() {
     source.onopen = () => setPushed(true)
     source.onerror = () => setPushed(false)
     source.addEventListener('unread', (message: MessageEvent<string>) => {
-      const unread = UnreadCount.parse(JSON.parse(message.data))
-      queryClient.setQueryData(orpc.notifications.unreadCount.queryKey(), unread)
+      applyUnreadEvent(queryClient, message.data)
     })
     return () => {
       source.close()
@@ -37,36 +58,29 @@ export function useNotificationList(enabled: boolean) {
   return useInfiniteQuery(
     orpc.notifications.list.infiniteOptions({
       input: (cursor) => ({ limit: PAGE_SIZE, cursor }),
-      initialPageParam: NO_CURSOR,
-      getNextPageParam: (page) => page.nextCursor ?? undefined,
+      initialPageParam: FIRST_PAGE,
+      getNextPageParam: nextCursorOf,
       enabled,
     }),
   )
 }
 
-export function useMarkRead() {
+function useInvalidateNotifications() {
   const queryClient = useQueryClient()
-  return useMutation(
-    orpc.notifications.markRead.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.notifications.key() }),
-    }),
-  )
+  return () => queryClient.invalidateQueries({ queryKey: orpc.notifications.key() })
+}
+
+export function useMarkRead() {
+  const onSuccess = useInvalidateNotifications()
+  return useMutation(orpc.notifications.markRead.mutationOptions({ onSuccess }))
 }
 
 export function useMarkAllRead() {
-  const queryClient = useQueryClient()
-  return useMutation(
-    orpc.notifications.markAllRead.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.notifications.key() }),
-    }),
-  )
+  const onSuccess = useInvalidateNotifications()
+  return useMutation(orpc.notifications.markAllRead.mutationOptions({ onSuccess }))
 }
 
 export function useDeleteNotification() {
-  const queryClient = useQueryClient()
-  return useMutation(
-    orpc.notifications.delete.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.notifications.key() }),
-    }),
-  )
+  const onSuccess = useInvalidateNotifications()
+  return useMutation(orpc.notifications.delete.mutationOptions({ onSuccess }))
 }

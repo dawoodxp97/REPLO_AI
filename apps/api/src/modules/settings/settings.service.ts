@@ -12,7 +12,7 @@ export interface SettingsService {
 }
 
 const DEFAULTS: Preferences = {
-  theme: 'light',
+  theme: 'system',
   defaultAudience: 'intermediate',
   autoAdvance: true,
   quizzesEnabled: true,

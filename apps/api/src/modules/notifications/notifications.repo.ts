@@ -1,33 +1,26 @@
-import { and, count, desc, eq, isNull, lt, sql } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/pg-core'
+import { and, count, desc, eq, getTableColumns, isNull, lt, sql } from 'drizzle-orm'
 import type { DbOrTx } from '../../platform/db/client'
 import { notifications } from '../../platform/db/schema'
+import type { CursorPosition } from './notifications.cursor'
 
 export type NotificationRow = typeof notifications.$inferSelect
+export type NotificationPageRow = NotificationRow & { cursorAt: string }
 
-const cursorRow = alias(notifications, 'cursor_row')
+const cursorAt = sql<string>`to_char(${notifications.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`
 
 export const notificationsRepo = (db: DbOrTx) => ({
-  async findOwned(userId: string, id: string) {
-    const [row] = await db
-      .select({ id: notifications.id })
-      .from(notifications)
-      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)))
-      .limit(1)
-    return row
-  },
-
-  page(userId: string, limit: number, cursorId: string | undefined): Promise<NotificationRow[]> {
+  page(
+    userId: string,
+    limit: number,
+    after: CursorPosition | undefined,
+  ): Promise<NotificationPageRow[]> {
     const older =
-      cursorId === undefined
+      after === undefined
         ? undefined
-        : sql`(${notifications.createdAt}, ${notifications.id}) < ${db
-            .select({ createdAt: cursorRow.createdAt, id: cursorRow.id })
-            .from(cursorRow)
-            .where(and(eq(cursorRow.id, cursorId), eq(cursorRow.userId, userId)))}`
+        : sql`(${notifications.createdAt}, ${notifications.id}) < (${after.at}::timestamptz, ${after.id}::uuid)`
 
     return db
-      .select()
+      .select({ ...getTableColumns(notifications), cursorAt })
       .from(notifications)
       .where(and(eq(notifications.userId, userId), older))
       .orderBy(desc(notifications.createdAt), desc(notifications.id))

@@ -101,5 +101,6 @@ export const JOB: GenerationJobDto = {
   budgetUsd: 2,
   spentUsd: 0,
   tutorialId: null,
+  tutorial: null,
   error: null,
 }

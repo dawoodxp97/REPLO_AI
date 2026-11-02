@@ -11,7 +11,7 @@ import { createSettingsService, type SettingsService } from './settings.service'
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 
 const DEFAULTS = {
-  theme: 'light',
+  theme: 'system',
   defaultAudience: 'intermediate',
   autoAdvance: true,
   quizzesEnabled: true,
@@ -76,6 +76,14 @@ describe.skipIf(DATABASE_URL === '')('settings against Postgres', () => {
     expect(
       await db.select().from(userPreferences).where(eq(userPreferences.userId, owner)),
     ).toHaveLength(1)
+  })
+
+  it('defaults the theme to system in the database and accepts switching back to it', async () => {
+    const owner = await seedUser()
+    await db.insert(userPreferences).values({ userId: owner })
+    expect((await settings.get(owner)).theme).toBe('system')
+    expect((await settings.update(owner, { theme: 'light' })).theme).toBe('light')
+    expect((await settings.update(owner, { theme: 'system' })).theme).toBe('system')
   })
 
   it("never lets one user's update change another user's preferences", async () => {

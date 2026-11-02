@@ -1,5 +1,8 @@
+'use client'
+
 import { FormField, Input } from '@replo/ui'
 import { useController, type Control } from 'react-hook-form'
+import { fieldInvalid } from '@/lib/field-a11y'
 import type { ImportFormValues } from './import-form-values'
 
 const BUDGET_ERROR = 'Enter an amount from $0.01 to $50.'
@@ -23,7 +26,8 @@ export function BudgetField({ control }: { control: Control<ImportFormValues> })
         max={50}
         step={0.01}
         placeholder="Default"
-        aria-invalid={error !== undefined || undefined}
+        className="tabular sm:max-w-48"
+        {...fieldInvalid(error)}
         value={field.value ?? ''}
         onChange={(event) =>
           field.onChange(event.target.value === '' ? undefined : event.target.valueAsNumber)

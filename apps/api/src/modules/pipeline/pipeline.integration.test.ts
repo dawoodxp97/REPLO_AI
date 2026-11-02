@@ -7,7 +7,7 @@ import { Budget } from '@replo/ai'
 import { scriptedModel, type Scripted } from '@replo/ai/testing'
 import type { ModelPlan } from '@replo/contracts'
 import { ANALYZER_VERSION, DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { user } from '../../platform/db/auth-schema'
@@ -20,12 +20,14 @@ import {
   snapshotFiles,
   symbols,
   fileEdges,
+  generationJobs,
   tutorials,
   tutorialSourceRefs,
   tutorialVersions,
 } from '../../platform/db/schema'
 import type { GithubRest } from '../../platform/github/client'
 import { createLogger } from '../../platform/logger'
+import { CanceledError, JobError, StoppedError } from '../../jobs/errors'
 import { handleGenerateTutorial } from '../../jobs/generate-tutorial.worker'
 import { bundledCatalog, fakeKeyChecker, testVault } from '../../test/domain'
 import { FIXTURE_FILES, fixtureData } from '../../test/grounding'
@@ -35,6 +37,8 @@ import { createIndexingService, type IndexingService } from '../indexing/indexin
 import { createKeysService, type KeysService } from '../keys/keys.service'
 import { createNotificationsService } from '../notifications/notifications.service'
 import { createTutorialPublisher, type TutorialPublisher } from '../tutorials/publisher.service'
+import { createTutorialReader } from '../tutorials/reader.service'
+import type { OutlineDraft } from './drafts'
 import { createPipelineService, type PipelineService } from './pipeline.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -218,6 +222,11 @@ function lessonOf(prompt: string): string {
   return (JSON.parse(match?.[1] ?? '{}') as { key?: string }).key ?? ''
 }
 
+function judgedTitleOf(prompt: string): string {
+  const match = /<repo_data label="chapter">\n([\s\S]*?)\n<\/repo_data>/.exec(prompt)
+  return (JSON.parse(match?.[1] ?? '{}') as { title?: string }).title ?? ''
+}
+
 function respondWith(options: { pipeline: 'lite' | 'full'; judge: boolean }): Scripted {
   return (prompt) => {
     if (prompt.includes('Do two things')) return LITE_PLAN
@@ -267,15 +276,28 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     indexing = createIndexingService({
       db,
       rest: offlineRest,
-      tokens: { installationToken: async () => undefined },
-      sources: { ingestSource: async () => undefined },
+      tokens: { installationToken: async () => undefined, userCanAccess: async () => true },
+      sources: {
+        ingestSource: async () => ({
+          owner: 'acme',
+          name: 'shop',
+          isPrivate: false,
+          installationId: null,
+        }),
+      },
       limits: { maxFiles: 5000, maxBytes: 50_000_000 },
       extraction: DEFAULT_EXTRACTION_LIMITS,
       snapshotRoot,
     })
     const queue = { send: async () => null }
     const notifications = createNotificationsService(db)
-    jobs = createJobService({ db, queue, indexing, notifications })
+    jobs = createJobService({
+      db,
+      queue,
+      indexing,
+      notifications,
+      tutorials: createTutorialReader(db),
+    })
     runtime = createJobRuntime({ db, queue, notifications })
     keys = createKeysService({ db, vault, checker: fakeKeyChecker('valid'), jobs })
     publisher = createTutorialPublisher(db)
@@ -412,6 +434,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
   const runWith = async (
     job: { id: string; userId: string; snapshotId: string },
     script: Scripted,
+    around?: (handlers: PipelineService['stageHandlers']) => PipelineService['stageHandlers'],
   ) => {
     pipelines = createPipelineService({
       db,
@@ -427,7 +450,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
       {
         jobs: runtime.jobStore,
         log,
-        stageHandlers: pipelines.stageHandlers,
+        stageHandlers: around ? around(pipelines.stageHandlers) : pipelines.stageHandlers,
         budgetFor: (row) => new Budget(row.budgetMicros, runtime.usageSink, row.spentMicros),
         heartbeatMs: 60_000,
       },
@@ -448,6 +471,11 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
 
     const [tutorial] = await db.select().from(tutorials).where(eq(tutorials.userId, owner))
     expect(tutorial).toMatchObject({ slug: 'shop', title: 'Shop cart walkthrough' })
+    expect((await jobs.toDto(after)).tutorial).toEqual({
+      owner: 'acme',
+      repo: 'shop',
+      slug: 'shop',
+    })
 
     const [version] = await db
       .select()
@@ -560,6 +588,216 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
 
     expect(recovered.status).toBe('succeeded')
     expect(resumed).toEqual(['requests', 'wrap-up'])
+  })
+
+  it('resumes validation without repeating repairs or judged chapters', async () => {
+    const owner = await seedUser()
+    const keyId = await seedKey(owner)
+    const { snapshotId } = await seedSnapshot()
+    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'full' })
+
+    const healthy = respondWith({ pipeline: 'full', judge: true })
+    const firstRun: string[] = []
+    const failing: Scripted = (prompt) => {
+      if (prompt.includes('grounding problems')) firstRun.push(`repair:${lessonOf(prompt)}`)
+      if (prompt.includes('Score the chapter')) {
+        const title = judgedTitleOf(prompt)
+        if (title === 'Requests') throw new Error('provider exploded')
+        firstRun.push(`judge:${title}`)
+      }
+      return healthy(prompt)
+    }
+    const failed = await runWith(job, failing)
+    expect(failed.status).toBe('failed')
+    expect(firstRun).toEqual(['repair:map', 'judge:Orientation'])
+
+    await jobs.retry(owner, job.id)
+    const secondRun: string[] = []
+    const resumed: Scripted = (prompt) => {
+      if (prompt.includes('grounding problems')) secondRun.push(`repair:${lessonOf(prompt)}`)
+      if (prompt.includes('Score the chapter')) secondRun.push(`judge:${judgedTitleOf(prompt)}`)
+      return healthy(prompt)
+    }
+    const recovered = await runWith(job, resumed)
+
+    expect(recovered.status).toBe('succeeded')
+    expect(secondRun).toEqual(['judge:Requests', 'judge:Wrap-up'])
+    const [version] = await db
+      .select()
+      .from(tutorialVersions)
+      .where(eq(tutorialVersions.generationJobId, job.id))
+    expect(version?.validationReport).toMatchObject({ repairs: 1, judgeScore: 0.9 })
+  })
+
+  it('asks the author again when a chapter comes back with too few lessons', async () => {
+    const owner = await seedUser()
+    const keyId = await seedKey(owner)
+    const { snapshotId } = await seedSnapshot()
+    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
+
+    const extra = { ...(LESSONS.review as object), key: 'extra', title: 'Extra' }
+    const widerPlan = {
+      ...LITE_PLAN,
+      outline: {
+        ...LITE_PLAN.outline,
+        chapters: LITE_PLAN.outline.chapters.map((chapter, position) =>
+          position === 0
+            ? {
+                ...chapter,
+                lessons: [
+                  ...chapter.lessons,
+                  { key: 'extra', title: 'Extra', minutes: 3, focusPaths: ['src/cart.ts'] },
+                ],
+              }
+            : chapter,
+        ),
+      },
+    }
+    const healthy = respondWith({ pipeline: 'lite', judge: false })
+    const orientationCalls: boolean[] = []
+    const script: Scripted = (prompt) => {
+      if (prompt.includes('Do two things')) return widerPlan
+      if (prompt.includes('Write the lessons') && chapterKeyOf(prompt) === 'orientation') {
+        const rejected = prompt.includes('previous reply was rejected')
+        orientationCalls.push(rejected)
+        const lessons = rejected ? [LESSONS.map, extra] : [LESSONS.map]
+        return { lessons, openQuestions: [] }
+      }
+      return healthy(prompt)
+    }
+
+    const after = await runWith(job, script)
+
+    expect(after.status).toBe('succeeded')
+    expect(orientationCalls).toEqual([false, true])
+    const [version] = await db
+      .select()
+      .from(tutorialVersions)
+      .where(eq(tutorialVersions.generationJobId, job.id))
+    expect(version?.content?.chapters[0]?.lessons.map((lesson) => lesson.key)).toEqual([
+      'map',
+      'extra',
+    ])
+  })
+
+  it('does not publish when the job is canceled just before the publish transaction', async () => {
+    const owner = await seedUser()
+    const keyId = await seedKey(owner)
+    const { snapshotId } = await seedSnapshot()
+    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
+
+    const after = await runWith(
+      job,
+      respondWith({ pipeline: 'lite', judge: false }),
+      (handlers) => ({
+        ...handlers,
+        publish: async (ctx) => {
+          await jobs.cancel(owner, job.id)
+          await handlers.publish(ctx)
+        },
+      }),
+    )
+
+    expect(after.status).toBe('canceled')
+    expect(after.tutorialId).toBeNull()
+    const versions = await db
+      .select()
+      .from(tutorialVersions)
+      .where(eq(tutorialVersions.generationJobId, job.id))
+    expect(versions).toEqual([])
+  })
+
+  it('refuses a late publish from an orphaned run after the job left running', async () => {
+    const owner = await seedUser()
+    const keyId = await seedKey(owner)
+    const { snapshotId } = await seedSnapshot()
+    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
+
+    let orphan: Promise<void> = Promise.resolve()
+    const after = await runWith(
+      job,
+      respondWith({ pipeline: 'lite', judge: false }),
+      (handlers) => ({
+        ...handlers,
+        publish: async (ctx) => {
+          orphan = (async () => {
+            await new Promise((resolve) => setTimeout(resolve, 100))
+            await handlers.publish(ctx)
+          })()
+          orphan.catch(() => undefined)
+          throw new JobError('PROVIDER_UNAVAILABLE', false)
+        },
+      }),
+    )
+
+    expect(after.status).toBe('failed')
+    await expect(orphan).rejects.toBeInstanceOf(StoppedError)
+    const versions = await db
+      .select()
+      .from(tutorialVersions)
+      .where(eq(tutorialVersions.generationJobId, job.id))
+    expect(versions).toEqual([])
+    const [row] = await db.select().from(generationJobs).where(eq(generationJobs.id, job.id))
+    expect(row?.tutorialId).toBeNull()
+  })
+
+  it('writes a chapter whose stored outline names no file from the ranked files', async () => {
+    const owner = await seedUser()
+    const keyId = await seedKey(owner)
+    const { snapshotId } = await seedSnapshot()
+    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
+
+    const after = await runWith(
+      job,
+      respondWith({ pipeline: 'lite', judge: false }),
+      (handlers) => ({
+        ...handlers,
+        lessons: async (ctx) => {
+          const [stored] = await db
+            .select()
+            .from(jobStageOutputs)
+            .where(and(eq(jobStageOutputs.jobId, job.id), eq(jobStageOutputs.stage, 'outline')))
+          const outline = stored?.payload as OutlineDraft
+          const legacy = {
+            ...outline,
+            chapters: outline.chapters.map((chapter, position) =>
+              position === 0
+                ? {
+                    ...chapter,
+                    lessons: chapter.lessons.map((lesson) => ({ ...lesson, focusPaths: [] })),
+                  }
+                : chapter,
+            ),
+          }
+          await db
+            .update(jobStageOutputs)
+            .set({ payload: legacy })
+            .where(and(eq(jobStageOutputs.jobId, job.id), eq(jobStageOutputs.stage, 'outline')))
+          await handlers.lessons(ctx)
+        },
+      }),
+    )
+
+    expect(after.status).toBe('succeeded')
+    expect(after.errorCode).toBeNull()
+  })
+
+  it('fences on the attempt that claimed the job', async () => {
+    const owner = await seedUser()
+    const keyId = await seedKey(owner)
+    const { snapshotId } = await seedSnapshot()
+    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
+    const claimed = await runtime.jobStore.claim(job.id)
+    if (!claimed) throw new Error('claim failed')
+
+    await db.transaction((tx) => jobs.fenceRunning(tx, job.id, claimed.attempts))
+    await expect(
+      db.transaction((tx) => jobs.fenceRunning(tx, job.id, claimed.attempts - 1)),
+    ).rejects.toBeInstanceOf(StoppedError)
+    await jobs.cancel(owner, job.id)
+    await expect(
+      db.transaction((tx) => jobs.fenceRunning(tx, job.id, claimed.attempts)),
+    ).rejects.toBeInstanceOf(CanceledError)
   })
 
   it('stops at the budget ceiling before any model call', async () => {

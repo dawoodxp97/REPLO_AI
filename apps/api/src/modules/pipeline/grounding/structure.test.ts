@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fixtureIndex } from '../../../test/grounding'
-import { groupOf, structuralDiagram } from './structure'
+import { groupOf, groupSizes, structuralDiagram } from './structure'
 
 describe('groupOf', () => {
   it('groups nested source roots by their second segment', () => {
@@ -11,6 +11,21 @@ describe('groupOf', () => {
   it('groups top-level directories and ignores root files', () => {
     expect(groupOf('docs/guide/intro.md')).toBe('docs')
     expect(groupOf('index.ts')).toBeUndefined()
+  })
+})
+
+describe('groupSizes', () => {
+  it('counts files per group and skips root files', () => {
+    const sizes = groupSizes([
+      { path: 'src/api/a.ts' },
+      { path: 'src/api/b.ts' },
+      { path: 'docs/intro.md' },
+      { path: 'index.ts' },
+    ])
+    expect([...sizes.entries()]).toEqual([
+      ['src/api', 2],
+      ['docs', 1],
+    ])
   })
 })
 

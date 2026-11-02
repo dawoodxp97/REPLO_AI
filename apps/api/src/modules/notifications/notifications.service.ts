@@ -1,6 +1,13 @@
-import type { NotificationDto, NotificationKind, NotificationPage } from '@replo/contracts'
+import type {
+  NotificationDto,
+  NotificationKind,
+  NotificationPage,
+  UnreadCount,
+} from '@replo/contracts'
 import type { Db, Tx } from '../../platform/db/client'
-import { notFound } from '../../platform/errors'
+import { badRequest, requireFound } from '../../platform/errors'
+import { isoOrNull } from '../../platform/time'
+import { decodeCursor, encodeCursor } from './notifications.cursor'
 import { notificationsRepo, type NotificationRow } from './notifications.repo'
 
 export type JobEndStatus = 'succeeded' | 'failed' | 'canceled'
@@ -14,9 +21,9 @@ export interface NotificationsService {
     userId: string,
     input: { limit: number; cursor?: string | undefined },
   ): Promise<NotificationPage>
-  unreadCount(userId: string): Promise<number>
+  unreadCount(userId: string): Promise<UnreadCount>
   markRead(userId: string, notificationId: string): Promise<NotificationDto>
-  markAllRead(userId: string): Promise<number>
+  markAllRead(userId: string): Promise<{ updated: number }>
   delete(userId: string, notificationId: string): Promise<void>
   purgeCreatedBefore(before: Date): Promise<number>
 }
@@ -34,7 +41,7 @@ const toDto = (row: NotificationRow): NotificationDto => ({
   body: row.body,
   link: row.link,
   jobId: row.jobId,
-  readAt: row.readAt?.toISOString() ?? null,
+  readAt: isoOrNull(row.readAt),
   createdAt: row.createdAt.toISOString(),
 })
 
@@ -54,32 +61,34 @@ export function createNotificationsService(db: Db): NotificationsService {
     },
 
     async list(userId, { limit, cursor }) {
-      if (cursor !== undefined && !(await repo.findOwned(userId, cursor))) notFound('Notification')
-      const rows = await repo.page(userId, limit, cursor)
+      const after = cursor === undefined ? undefined : decodeCursor(cursor)
+      if (cursor !== undefined && after === undefined) badRequest('Invalid cursor')
+      const rows = await repo.page(userId, limit, after)
       const items = rows.slice(0, limit)
+      const last = items.at(-1)
       return {
         items: items.map(toDto),
-        nextCursor: rows.length > limit ? (items.at(-1)?.id ?? null) : null,
+        nextCursor:
+          rows.length > limit && last ? encodeCursor({ at: last.cursorAt, id: last.id }) : null,
       }
     },
 
-    unreadCount(userId) {
-      return repo.unreadCount(userId)
+    async unreadCount(userId) {
+      return { count: await repo.unreadCount(userId) }
     },
 
     async markRead(userId, notificationId) {
       const [row] = await repo.markRead(userId, notificationId)
-      if (!row) notFound('Notification')
-      return toDto(row)
+      return toDto(requireFound(row, 'Notification'))
     },
 
     async markAllRead(userId) {
-      return (await repo.markAllRead(userId)).length
+      return { updated: (await repo.markAllRead(userId)).length }
     },
 
     async delete(userId, notificationId) {
       const [removed] = await repo.remove(userId, notificationId)
-      if (!removed) notFound('Notification')
+      requireFound(removed, 'Notification')
     },
 
     async purgeCreatedBefore(before) {

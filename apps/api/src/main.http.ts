@@ -2,10 +2,8 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { RPCHandler } from '@orpc/server/fastify'
-import Fastify, { type FastifyRequest } from 'fastify'
-import PgBoss from 'pg-boss'
-import { createDomainServices, createServices } from './composition'
-import type { RequestContext } from './context'
+import Fastify from 'fastify'
+import { createDomainServices, createServices, vaultFrom } from './composition'
 import { registerJobEventsRoute } from './modules/generation/job-events.route'
 import { createGithubWebhookService } from './modules/github/github.webhook.service'
 import { registerGithubWebhook } from './modules/github/github.webhook.route'
@@ -14,46 +12,31 @@ import { registerAuthRoutes } from './modules/identity/auth.route'
 import { createOAuthClients } from './modules/identity/oauth'
 import { sessionFromRequest } from './modules/identity/session-request'
 import { createSessionCookie } from './modules/identity/session'
-import { declareQueues } from './jobs/queues'
 import { registerNotificationsStream } from './modules/notifications/notifications.stream.route'
-import { loadConfig } from './platform/config'
-import { createDb } from './platform/db/client'
+import { bootstrap } from './platform/bootstrap'
 import { registerGuards } from './platform/http-guards'
-import { createLogger } from './platform/logger'
-import { FixedWindowLimiter } from './platform/rate-limit'
-import { requestIdFrom } from './platform/request-id'
 import { pgBossQueue } from './platform/queue/job-queue'
+import { buildRateRules } from './platform/rate-limit-rules'
+import { requestIdFrom } from './platform/request-id'
+import { installShutdown } from './platform/shutdown'
+import { toFastifyTrustProxy } from './platform/trust-proxy'
+import { buildRequestContext } from './request-context'
 import { router } from './router'
 
-const MINUTE_MS = 60_000
-const HOUR_MS = 60 * MINUTE_MS
 const BODY_LIMIT_BYTES = 1_048_576
 const GLOBAL_REQUESTS_PER_MINUTE = 300
-const IMPORT_REQUESTS_PER_HOUR = 20
-const KEY_ADD_REQUESTS_PER_HOUR = 30
-const KEY_VALIDATE_REQUESTS_PER_HOUR = 60
-const SIGN_IN_REQUESTS_PER_MINUTE = 20
+const BOSS_STOP_TIMEOUT_MS = 5_000
+const SHUTDOWN_TIMEOUT_MS = 15_000
 
-const config = loadConfig()
-const log = createLogger({
-  level: config.LOG_LEVEL,
-  pretty: config.NODE_ENV === 'development',
-  name: 'api',
-})
-const { db, pool } = createDb(config.DATABASE_URL)
-
-const boss = new PgBoss({
-  connectionString: config.DATABASE_URL,
+const { config, log, db, pool, boss, releaseSteps } = await bootstrap('api', {
   supervise: false,
   schedule: false,
 })
-boss.on('error', (err) => log.error({ err }, 'pg-boss error'))
-await boss.start()
-await declareQueues(boss)
 
+const vault = vaultFrom(config)
 const oauth = createOAuthClients(config)
-const domain = createDomainServices({ config, db, queue: pgBossQueue(boss) })
-const services = createServices({ config, db, domain, oauth })
+const domain = createDomainServices({ config, db, queue: pgBossQueue(boss), vault })
+const services = createServices({ config, db, domain, oauth, vault })
 const githubWebhooks = createGithubWebhookService({ db, sink: domain.repositoryChanges })
 const secureCookies = config.NODE_ENV === 'production'
 const sessionCookie = createSessionCookie({
@@ -63,7 +46,8 @@ const sessionCookie = createSessionCookie({
 
 const app = Fastify({
   loggerInstance: log,
-  trustProxy: true,
+  trustProxy: toFastifyTrustProxy(config.TRUST_PROXY),
+  forceCloseConnections: true,
   bodyLimit: BODY_LIMIT_BYTES,
   genReqId: (request) => requestIdFrom(request.headers['x-request-id']),
 })
@@ -72,37 +56,13 @@ await app.register(helmet)
 await app.register(cors, { origin: config.PRODUCT_ORIGIN, credentials: true })
 await app.register(rateLimit, { max: GLOBAL_REQUESTS_PER_MINUTE, timeWindow: '1 minute' })
 
-const limitByUserOrIp = async (request: FastifyRequest) => {
-  const session = await sessionFromRequest(services.auth, request)
-  return session ? `user:${session.user.id}` : `ip:${request.ip}`
-}
-const limitByIp = async (request: FastifyRequest) => `ip:${request.ip}`
-
 registerGuards(app, {
   productOrigin: config.PRODUCT_ORIGIN,
   exemptFromOrigin: ['/webhooks/github'],
-  rules: [
-    {
-      matches: (path) => path === '/rpc/repositories/import',
-      limiter: new FixedWindowLimiter(IMPORT_REQUESTS_PER_HOUR, HOUR_MS),
-      key: limitByUserOrIp,
-    },
-    {
-      matches: (path) => path === '/rpc/keys/add',
-      limiter: new FixedWindowLimiter(KEY_ADD_REQUESTS_PER_HOUR, HOUR_MS),
-      key: limitByUserOrIp,
-    },
-    {
-      matches: (path) => path === '/rpc/keys/validate',
-      limiter: new FixedWindowLimiter(KEY_VALIDATE_REQUESTS_PER_HOUR, HOUR_MS),
-      key: limitByUserOrIp,
-    },
-    {
-      matches: (path) => path === '/rpc/auth/signIn' || path === '/rpc/auth/signUp',
-      limiter: new FixedWindowLimiter(SIGN_IN_REQUESTS_PER_MINUTE, MINUTE_MS),
-      key: limitByIp,
-    },
-  ],
+  rules: buildRateRules({
+    userIdOf: async (request) =>
+      (await sessionFromRequest(services.auth, request))?.user.id ?? null,
+  }),
 })
 
 app.get('/healthz', async () => ({ ok: true }))
@@ -142,34 +102,17 @@ await app.register(async (scope) => {
   const handler = new RPCHandler(router)
 
   scope.all('/rpc/*', async (request, reply) => {
-    const session = await sessionFromRequest(services.auth, request)
-    const idempotencyKey = request.headers['idempotency-key']
-    const context: RequestContext = {
-      user: session?.user ?? null,
-      sessionId: session?.sessionId ?? null,
-      setSessionToken: (token) =>
-        reply.header(
-          'set-cookie',
-          token === null ? sessionCookie.clear() : sessionCookie.issue(token),
-        ),
-      services,
-      idempotencyKey: typeof idempotencyKey === 'string' ? idempotencyKey : undefined,
-      requestId: request.id,
-    }
+    const context = await buildRequestContext(request, reply, { services, sessionCookie })
 
     const { matched } = await handler.handle(request, reply, { prefix: '/rpc', context })
     if (!matched) return reply.code(404).send({ error: 'NOT_FOUND' })
   })
 })
 
-const shutdown = async (signal: string) => {
-  log.info({ signal }, 'shutting down')
-  await app.close()
-  await boss.stop({ graceful: true, timeout: 5_000 })
-  await pool.end()
-  process.exit(0)
-}
-process.on('SIGTERM', () => void shutdown('SIGTERM'))
-process.on('SIGINT', () => void shutdown('SIGINT'))
+installShutdown({
+  steps: [{ name: 'http server', run: () => app.close() }, ...releaseSteps(BOSS_STOP_TIMEOUT_MS)],
+  log,
+  timeoutMs: SHUTDOWN_TIMEOUT_MS,
+})
 
 await app.listen({ port: config.PORT, host: '0.0.0.0' })

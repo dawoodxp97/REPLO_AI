@@ -203,6 +203,46 @@ describe('githubClient', () => {
   })
 })
 
+describe('provider transport failures', () => {
+  const complete = (client: ReturnType<typeof googleClient>) =>
+    client.complete({ redirectUri, code: 'c', codeVerifier: 'v' })
+
+  it('turns a rejected fetch into OAuthFailure', async () => {
+    const impl = (async () => {
+      throw new TypeError('fetch failed')
+    }) as unknown as typeof fetch
+    await expect(complete(googleClient(credentials, impl))).rejects.toBeInstanceOf(OAuthFailure)
+  })
+
+  it('turns a 200 response with a non-JSON body into OAuthFailure', async () => {
+    const impl = (async () =>
+      new Response('<html>bad gateway</html>', { status: 200 })) as unknown as typeof fetch
+    await expect(complete(githubClient(credentials, impl))).rejects.toBeInstanceOf(OAuthFailure)
+  })
+
+  it('aborts a stalled provider request and reports OAuthFailure', async () => {
+    let signal: AbortSignal | null | undefined
+    const impl = ((_url: string, init?: RequestInit) => {
+      signal = init?.signal
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+      })
+    }) as unknown as typeof fetch
+    await expect(complete(googleClient(credentials, impl, 20))).rejects.toBeInstanceOf(OAuthFailure)
+    expect(signal?.aborted).toBe(true)
+  })
+
+  it('turns a profile request failure after a good token exchange into OAuthFailure', async () => {
+    let calls = 0
+    const impl = (async () => {
+      calls += 1
+      if (calls === 1) return Response.json({ access_token: 't' })
+      throw new TypeError('connection reset')
+    }) as unknown as typeof fetch
+    await expect(complete(googleClient(credentials, impl))).rejects.toBeInstanceOf(OAuthFailure)
+  })
+})
+
 describe('createOAuthClients', () => {
   it('builds a client only for a provider whose credentials are both set', () => {
     const clients = createOAuthClients({

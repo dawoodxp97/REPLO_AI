@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { IdCursor, OkResult, pageInput } from './common'
+import { OkResult, pageInput, pageOutput } from './common'
 
 export const NotificationKind = z.enum(['job_succeeded', 'job_failed', 'job_canceled'])
 export type NotificationKind = z.infer<typeof NotificationKind>
@@ -17,10 +17,12 @@ export const NotificationDto = z.object({
 })
 export type NotificationDto = z.infer<typeof NotificationDto>
 
-export const NotificationPage = z.object({
-  items: z.array(NotificationDto),
-  nextCursor: IdCursor.nullable(),
-})
+export const NotificationCursor = z
+  .string()
+  .max(200)
+  .regex(/^[A-Za-z0-9_-]+$/)
+
+export const NotificationPage = pageOutput(NotificationDto, NotificationCursor)
 export type NotificationPage = z.infer<typeof NotificationPage>
 
 export const UnreadCount = z.object({ count: z.number().int().nonnegative() })
@@ -31,7 +33,7 @@ const NotificationRef = z.object({ id: z.uuid() })
 export const notificationsContract = {
   list: oc
     .route({ method: 'GET', path: '/notifications' })
-    .input(pageInput(IdCursor))
+    .input(pageInput(NotificationCursor))
     .output(NotificationPage),
   unreadCount: oc.route({ method: 'GET', path: '/notifications/unread-count' }).output(UnreadCount),
   markRead: oc

@@ -14,6 +14,13 @@ export class GithubApiError extends Error {
   }
 }
 
+export class GithubTokenRejectedError extends Error {
+  constructor() {
+    super('GitHub rejected the stored user token')
+    this.name = 'GithubTokenRejectedError'
+  }
+}
+
 function unwrapResponse(response: Response, path: string): Response | undefined {
   if (response.status === 404) return undefined
   if (!response.ok) throw new GithubApiError(response.status, path)

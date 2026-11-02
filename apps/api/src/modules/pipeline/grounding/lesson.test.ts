@@ -71,14 +71,14 @@ describe('groundLesson', () => {
     ])
   })
 
-  it('checks identifiers after sanitising, so a tag cannot hide one', async () => {
+  it('checks identifiers inside generic type arguments', async () => {
     const result = await ground(
       draft({
         blocks: [
           {
             type: 'prose',
             kind: 'observed',
-            md: 'Calls `cart<cart></cart>items` in the cart.',
+            md: 'Calls `loadCart<Invented>` in the cart.',
             evidence: [{ path: 'src/cart.ts', symbol: 'loadCart' }],
           },
         ],
@@ -86,7 +86,7 @@ describe('groundLesson', () => {
     )
     expect(result.lesson.blocks).toEqual([])
     expect(result.failures).toEqual([
-      { code: 'FABRICATED_IDENTIFIER', location: 'block:0', detail: 'cartitems' },
+      { code: 'FABRICATED_IDENTIFIER', location: 'block:0', detail: 'Invented' },
     ])
   })
 

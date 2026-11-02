@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
-import { JOB_ID } from './fixtures/recorded'
-import { TUTORIAL_TITLE } from './fixtures/tutorial'
+import type { TutorialRef } from '@replo/contracts'
+import { JOB, JOB_ID } from './fixtures/recorded'
+import { TUTORIAL_ID, TUTORIAL_TITLE } from './fixtures/tutorial'
 import { mockRpc, type RpcCall } from './support/rpc-mock'
 
 const OVERVIEW = '/tutorials/acme/widgets/cart-flow'
@@ -91,28 +92,38 @@ test('the progress page resumes reading and lists history', async ({ page }) => 
   await expect(page.getByRole('button', { name: 'Mark as not complete' })).toBeVisible()
 })
 
+const finishedJob = (tutorial: TutorialRef | null) => ({
+  ...JOB,
+  status: 'succeeded',
+  stage: 'publish',
+  progress: 100,
+  spentUsd: 0.4,
+  tutorialId: tutorial ? TUTORIAL_ID : null,
+  tutorial,
+})
+
 test('the job page links to the finished tutorial', async ({ page }) => {
   await mockRpc(page, {
     'jobs.get': () => ({
-      body: {
-        jobId: JOB_ID,
-        repositoryId: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
-        commitSha: '3f9c1a2b7d4e8f0a1b2c3d4e5f60718293a4b5c6',
-        status: 'succeeded',
-        stage: 'publish',
-        progress: 100,
-        budgetUsd: 2,
-        spentUsd: 0.4,
-        tutorialId: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
-        error: null,
-      },
+      body: finishedJob({ owner: 'acme', repo: 'widgets', slug: 'cart-flow' }),
     }),
+    'tutorials.list': () => ({ body: { items: [], nextCursor: null } }),
   })
 
   await page.goto(`/jobs/${JOB_ID}`)
   await expect(page.getByRole('link', { name: 'Open the tutorial' })).toHaveAttribute(
     'href',
     OVERVIEW,
+  )
+})
+
+test('the job page falls back to the library when the tutorial is gone', async ({ page }) => {
+  await mockRpc(page, { 'jobs.get': () => ({ body: finishedJob(null) }) })
+
+  await page.goto(`/jobs/${JOB_ID}`)
+  await expect(page.getByRole('link', { name: 'Open your library' })).toHaveAttribute(
+    'href',
+    '/library',
   )
 })
 

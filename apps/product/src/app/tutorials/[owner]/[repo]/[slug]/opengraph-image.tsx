@@ -1,30 +1,23 @@
-import { ImageResponse } from 'next/og'
 import { notFound } from 'next/navigation'
-import { isApiErrorCode } from '@/lib/api-error'
+import { ImageResponse } from 'next/og'
+import { nullOnNotFound } from '@/lib/api-error'
 import { serverApi } from '@/lib/server-client'
+import type { TutorialRef } from '@/lib/tutorial-paths'
 
 export const alt = 'Replo tutorial'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
 const PALETTE = {
-  paper: '#faf8f3',
-  ink: '#1f2433',
-  muted: '#5b6175',
-  accent: '#2f4fa3',
+  paper: '#fcfcfd',
+  ink: '#1f2328',
+  muted: '#6b7280',
 } as const
 
-export default async function TutorialImage({
-  params,
-}: {
-  params: Promise<{ owner: string; repo: string; slug: string }>
-}) {
+export default async function TutorialImage({ params }: { params: Promise<TutorialRef> }) {
   const ref = await params
   const api = await serverApi()
-  const overview = await api.tutorials.get(ref).catch((error: unknown) => {
-    if (isApiErrorCode(error, 'NOT_FOUND')) return null
-    throw error
-  })
+  const overview = await nullOnNotFound(api.tutorials.get(ref))
   if (!overview || overview.tutorial.visibility !== 'public') notFound()
 
   return new ImageResponse(
@@ -38,6 +31,7 @@ export default async function TutorialImage({
         padding: 72,
         background: PALETTE.paper,
         color: PALETTE.ink,
+        borderBottom: `8px solid ${PALETTE.ink}`,
       }}
     >
       <div style={{ display: 'flex', fontSize: 28, color: PALETTE.muted }}>
@@ -46,8 +40,8 @@ export default async function TutorialImage({
       <div style={{ display: 'flex', fontSize: 68, fontWeight: 600, lineHeight: 1.1 }}>
         {overview.tutorial.title}
       </div>
-      <div style={{ display: 'flex', fontSize: 30, color: PALETTE.accent }}>
-        Replo · grounded, chaptered tutorial
+      <div style={{ display: 'flex', fontSize: 28, color: PALETTE.muted }}>
+        Replo · a chaptered tutorial grounded in the source
       </div>
     </div>,
     size,

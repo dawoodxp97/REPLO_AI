@@ -17,3 +17,16 @@ export function shouldRetryQuery(failureCount: number, error: unknown): boolean 
   const clientError = error instanceof ORPCError && error.status < 500
   return failureCount < 1 && !clientError
 }
+
+export async function nullOnApiError<T>(promise: Promise<T>, code: string): Promise<T | null> {
+  try {
+    return await promise
+  } catch (error) {
+    if (isApiErrorCode(error, code)) return null
+    throw error
+  }
+}
+
+export function nullOnNotFound<T>(promise: Promise<T>): Promise<T | null> {
+  return nullOnApiError(promise, 'NOT_FOUND')
+}

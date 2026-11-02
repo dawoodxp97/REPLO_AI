@@ -7,7 +7,7 @@ test('the sign-in page loads no diagram renderer in its first JavaScript', async
   })
 
   await page.goto('/login')
-  await expect(page.getByRole('button', { name: 'Continue with GitHub' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Continue with GitHub' })).toBeVisible()
   await page.waitForLoadState('networkidle')
 
   const bodies = await Promise.all(

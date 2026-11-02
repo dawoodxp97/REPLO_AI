@@ -1,4 +1,5 @@
-import type { DeleteAccountInput, SignInMethodsDto } from '@replo/contracts'
+import type { DeleteAccountInput, MeDto, SignInMethodsDto } from '@replo/contracts'
+import type { SessionUser } from '../../context'
 import type { KeyVault } from '../../platform/crypto/key-vault'
 import type { Db } from '../../platform/db/client'
 import type { TutorialManager } from '../tutorials/manager.service'
@@ -9,6 +10,7 @@ export interface IdentityService {
   deleteAccount(userId: string, input: DeleteAccountInput): Promise<void>
   githubAccessToken(userId: string): Promise<string | undefined>
   signInMethods(userId: string): Promise<SignInMethodsDto>
+  meFor(user: SessionUser): Promise<MeDto>
 }
 
 interface IdentityDeps {
@@ -19,6 +21,16 @@ interface IdentityDeps {
 
 export function createIdentityService(deps: IdentityDeps): IdentityService {
   const { db, vault } = deps
+  const signInMethods = async (userId: string): Promise<SignInMethodsDto> => {
+    const providers = new Set(
+      (await identityRepo(db).identitiesOf(userId)).map((identity) => identity.provider),
+    )
+    return {
+      password: providers.has('password'),
+      google: providers.has('google'),
+      github: providers.has('github'),
+    }
+  }
   return {
     deleteAccount(userId, input) {
       return db.transaction(async (tx) => {
@@ -32,15 +44,10 @@ export function createIdentityService(deps: IdentityDeps): IdentityService {
       return identity ? openGithubToken(vault, userId, identity) : undefined
     },
 
-    async signInMethods(userId) {
-      const providers = new Set(
-        (await identityRepo(db).identitiesOf(userId)).map((identity) => identity.provider),
-      )
-      return {
-        password: providers.has('password'),
-        google: providers.has('google'),
-        github: providers.has('github'),
-      }
+    signInMethods,
+
+    async meFor(user) {
+      return { user, signInMethods: await signInMethods(user.id) }
     },
   }
 }

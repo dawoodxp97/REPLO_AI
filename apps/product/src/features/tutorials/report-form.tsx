@@ -1,8 +1,17 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Alert, Button, FormField, Textarea } from '@replo/ui'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  FormField,
+  Spinner,
+  Textarea,
+} from '@replo/ui'
 import { useMutation } from '@tanstack/react-query'
+import { CircleAlert, CircleCheck } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { orpc } from '@/lib/orpc'
@@ -10,7 +19,13 @@ import { orpc } from '@/lib/orpc'
 const ReportValues = z.object({ reason: z.string().trim().min(1).max(1000) })
 type ReportValues = z.infer<typeof ReportValues>
 
-export function ReportForm({ tutorialId }: { tutorialId: string }) {
+export function ReportForm({
+  tutorialId,
+  shareToken,
+}: {
+  tutorialId: string
+  shareToken?: string | undefined
+}) {
   const report = useMutation(orpc.tutorials.report.mutationOptions())
   const form = useForm<ReportValues>({
     resolver: zodResolver(ReportValues),
@@ -19,8 +34,12 @@ export function ReportForm({ tutorialId }: { tutorialId: string }) {
 
   if (report.isSuccess) {
     return (
-      <Alert role="status">
-        Thanks. Reports are reviewed by hand, and we may remove the tutorial.
+      <Alert variant="observed" role="status">
+        <CircleCheck />
+        <AlertTitle>Report sent</AlertTitle>
+        <AlertDescription>
+          <p>Reports are reviewed by hand, and the tutorial may be removed.</p>
+        </AlertDescription>
       </Alert>
     )
   }
@@ -29,12 +48,14 @@ export function ReportForm({ tutorialId }: { tutorialId: string }) {
     <form
       noValidate
       className="space-y-3"
-      onSubmit={form.handleSubmit((values) => report.mutate({ tutorialId, reason: values.reason }))}
+      onSubmit={form.handleSubmit((values) =>
+        report.mutate({ tutorialId, reason: values.reason, shareToken }),
+      )}
     >
       <FormField
         id="report-reason"
         label="Report this tutorial"
-        hint="Tell us what is wrong: an unsafe link, private code, or a claim the source does not support."
+        hint="Describe what is wrong: an unsafe link, private code, or a claim the source does not support."
         error={
           form.formState.errors.reason
             ? 'Describe the problem in up to 1,000 characters.'
@@ -48,11 +69,16 @@ export function ReportForm({ tutorialId }: { tutorialId: string }) {
         />
       </FormField>
       {report.isError ? (
-        <Alert tone="destructive" role="alert">
-          The report could not be sent. Try again.
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertTitle>The report was not sent</AlertTitle>
+          <AlertDescription>
+            <p>Check your connection, then send it again.</p>
+          </AlertDescription>
         </Alert>
       ) : null}
       <Button type="submit" variant="outline" size="sm" disabled={report.isPending}>
+        {report.isPending ? <Spinner /> : null}
         {report.isPending ? 'Sending…' : 'Send report'}
       </Button>
     </form>

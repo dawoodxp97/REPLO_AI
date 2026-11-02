@@ -2,6 +2,12 @@ export const KEY_GUIDE = { href: '/keys/', title: 'Your key' } as const
 
 export const DOCS_INDEX = { href: '/docs/', title: 'Docs' } as const
 
+export const HOME_ANCHORS = {
+  how: { href: '/#how', title: 'How it works' },
+  checks: { href: '/#checks', title: 'Checks' },
+  faq: { href: '/#faq', title: 'FAQ' },
+} as const
+
 export const DOCS_PAGES = [
   {
     href: '/docs/how-it-works/',

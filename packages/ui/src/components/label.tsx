@@ -2,5 +2,13 @@ import type { ComponentProps } from 'react'
 import { cn } from '../lib/cn'
 
 export function Label({ className, ...props }: ComponentProps<'label'>) {
-  return <label className={cn('text-sm font-medium leading-none', className)} {...props} />
+  return (
+    <label
+      className={cn(
+        'flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
+        className,
+      )}
+      {...props}
+    />
+  )
 }

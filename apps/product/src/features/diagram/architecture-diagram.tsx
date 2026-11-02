@@ -1,45 +1,51 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
+import { DIAGRAM_STATUS_MESSAGE, type DiagramStatus } from './diagram-state'
 import { describeFlowchart } from './mermaid-steps'
 import { renderMermaid } from './render-mermaid'
 
-type RenderState = 'waiting' | 'rendering' | 'ready' | 'failed'
-
-const STATE_MESSAGE: Record<RenderState, string> = {
-  waiting: 'The diagram is drawn when it scrolls into view.',
-  rendering: 'Drawing the diagram…',
-  ready: '',
-  failed: 'The diagram could not be drawn. The steps below describe it.',
+interface DiagramRender {
+  source: string
+  status: DiagramStatus
 }
 
 export function ArchitectureDiagram({ mermaid, caption }: { mermaid: string; caption: string }) {
   const container = useRef<HTMLDivElement>(null)
-  const [state, setState] = useState<RenderState>('waiting')
+  const [render, setRender] = useState<DiagramRender>({ source: mermaid, status: 'waiting' })
+  const status = render.source === mermaid ? render.status : 'waiting'
   const diagramId = `diagram-${useId().replace(/:/g, '')}`
   const steps = describeFlowchart(mermaid)
+  const message = DIAGRAM_STATUS_MESSAGE[status]
 
   useEffect(() => {
     const node = container.current
     if (!node) return
-    let active = true
+    let cancelled = false
+    let dispose: (() => void) | null = null
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting)) return
       observer.disconnect()
-      setState('rendering')
-      renderMermaid(node, mermaid, diagramId).then(
-        () => {
-          if (active) setState('ready')
+      setRender({ source: mermaid, status: 'rendering' })
+      renderMermaid(node, mermaid, diagramId, () => cancelled).then(
+        (disposeDiagram) => {
+          if (cancelled) {
+            disposeDiagram()
+            return
+          }
+          dispose = disposeDiagram
+          setRender({ source: mermaid, status: 'ready' })
         },
         () => {
-          if (active) setState('failed')
+          if (!cancelled) setRender({ source: mermaid, status: 'failed' })
         },
       )
     })
     observer.observe(node)
     return () => {
-      active = false
+      cancelled = true
       observer.disconnect()
+      dispose?.()
     }
   }, [mermaid, diagramId])
 
@@ -49,16 +55,16 @@ export function ArchitectureDiagram({ mermaid, caption }: { mermaid: string; cap
         ref={container}
         role="img"
         aria-label={caption}
-        className="overflow-x-auto rounded-lg border border-border bg-card p-4 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+        className="overflow-x-auto rounded-lg border bg-card p-4 shadow-xs [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
       />
-      {STATE_MESSAGE[state] ? (
+      {message ? (
         <p className="text-xs text-muted-foreground" aria-live="polite">
-          {STATE_MESSAGE[state]}
+          {message}
         </p>
       ) : null}
       <figcaption className="text-sm text-muted-foreground">{caption}</figcaption>
       {steps.length > 0 ? (
-        <ol className="list-decimal space-y-1 pl-5 text-sm">
+        <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground marker:text-muted-foreground/70">
           {steps.map((step, index) => (
             <li key={index}>
               {step.from} → {step.to}

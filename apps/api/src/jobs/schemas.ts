@@ -37,4 +37,6 @@ export const STAGE_TIMEOUT_MS: Record<Stage, number> = {
   publish: 60_000,
 }
 
+export const STAGE_ABORT_GRACE_MS = 5_000
+
 export const MAX_ATTEMPTS = 4

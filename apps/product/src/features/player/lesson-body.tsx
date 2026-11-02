@@ -1,20 +1,22 @@
-import type { LearnerLesson, SourceRef } from '@replo/contracts'
+import type { LearnerLesson } from '@replo/contracts'
+import { Button, Separator } from '@replo/ui'
+import { Check } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Button, cn } from '@replo/ui'
-import Link from 'next/link'
-import { lessonPath, type TutorialRef } from '@/lib/tutorial-paths'
-import { withShare } from '@/features/tutorials/tutorial-outline'
 import type { LessonPosition } from './lesson-navigation'
 import { LessonBlocks } from './lesson-blocks'
+import { LessonNeighbourLink } from './lesson-neighbour-link'
+import { ShortcutHints } from './shortcut-hints'
+import type { SourceRefMap } from './source-ref-map'
+import type { TutorialLinks } from '@/lib/tutorial-paths'
 
 export interface LessonBodyProps {
-  tutorial: TutorialRef
+  links: TutorialLinks
   versionId: string
   shareToken?: string
   chapterTitle: string
   lesson: LearnerLesson
   quiz: ReactNode
-  references: Readonly<Record<string, SourceRef | undefined>>
+  references: SourceRefMap
   previous: LessonPosition | null
   next: LessonPosition | null
   completed: boolean
@@ -24,7 +26,7 @@ export interface LessonBodyProps {
 }
 
 export function LessonBody({
-  tutorial,
+  links,
   versionId,
   shareToken,
   chapterTitle,
@@ -43,9 +45,9 @@ export function LessonBody({
       aria-labelledby="lesson-title"
       className="mx-auto w-full max-w-[68ch] space-y-8 px-4 py-8 sm:px-8"
     >
-      <header className="space-y-2">
-        <p className="text-xs tracking-wide text-muted-foreground uppercase">{chapterTitle}</p>
-        <h1 id="lesson-title" className="font-serif text-3xl font-semibold tracking-tight">
+      <header className="space-y-1.5">
+        <p className="text-sm text-muted-foreground">{chapterTitle}</p>
+        <h1 id="lesson-title" className="text-3xl font-semibold tracking-tight text-balance">
           {lesson.title}
         </h1>
       </header>
@@ -60,44 +62,22 @@ export function LessonBody({
 
       {quiz}
 
-      <footer className="space-y-4 border-t border-border pt-6">
+      <footer className="space-y-5">
+        <Separator />
         <div className="flex flex-wrap items-center justify-between gap-3">
-          {previous ? (
-            <Link
-              href={withShare(
-                lessonPath(tutorial, previous.chapterKey, previous.lessonKey),
-                shareToken,
-              )}
-              className="text-sm text-primary underline underline-offset-4"
-            >
-              ← {previous.lessonTitle}
-            </Link>
-          ) : (
-            <span />
-          )}
+          <LessonNeighbourLink direction="previous" position={previous} links={links} />
           <Button
-            variant={completed ? 'outline' : 'primary'}
+            variant={completed ? 'outline' : 'default'}
             aria-pressed={completed}
             disabled={togglePending}
             onClick={onToggleComplete}
           >
+            {completed ? <Check className="text-observed-text" /> : null}
             {completed ? 'Mark as not complete' : 'Mark lesson complete'}
           </Button>
-          {next ? (
-            <Link
-              href={withShare(lessonPath(tutorial, next.chapterKey, next.lessonKey), shareToken)}
-              className={cn('text-sm text-primary underline underline-offset-4')}
-            >
-              {next.lessonTitle} →
-            </Link>
-          ) : (
-            <span />
-          )}
+          <LessonNeighbourLink direction="next" position={next} links={links} />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Keys: n next lesson · p previous lesson · r next source reference · m mark complete · Ctrl
-          or ⌘ + K commands
-        </p>
+        <ShortcutHints />
       </footer>
     </article>
   )

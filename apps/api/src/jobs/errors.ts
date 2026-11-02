@@ -33,19 +33,31 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
+const SAFE_MESSAGES: Record<string, string> = {
+  TIMEOUT: 'The operation timed out',
+  PROVIDER_UNAVAILABLE: 'The model provider was unavailable',
+  NETWORK: 'A network error occurred',
+  BUDGET_EXCEEDED: 'The run budget was exceeded',
+  INTERNAL: 'An internal error occurred',
+}
+
+const classified = (code: string, retryable: boolean): ClassifiedError => ({
+  code,
+  retryable,
+  detail: { message: SAFE_MESSAGES[code] ?? SAFE_MESSAGES.INTERNAL! },
+})
+
 export function classifyError(err: unknown): ClassifiedError {
   if (err instanceof JobError)
     return { code: err.code, retryable: err.retryable, detail: { message: err.message } }
   const fields: Record<string, unknown> = isRecord(err) ? err : {}
-  const message = typeof fields.message === 'string' ? fields.message : 'Unknown error'
   const status = fields.statusCode ?? fields.status
   if (fields.name === 'TimeoutError' || fields.name === 'AbortError')
-    return { code: 'TIMEOUT', retryable: true, detail: { message } }
+    return classified('TIMEOUT', true)
   if (status === 429 || (typeof status === 'number' && status >= 500))
-    return { code: 'PROVIDER_UNAVAILABLE', retryable: true, detail: { message } }
+    return classified('PROVIDER_UNAVAILABLE', true)
   if (fields.code === 'ETIMEDOUT' || fields.code === 'ECONNRESET' || fields.code === 'ENOTFOUND')
-    return { code: 'NETWORK', retryable: true, detail: { message } }
-  if (err instanceof BudgetExceededError)
-    return { code: 'BUDGET_EXCEEDED', retryable: false, detail: { message } }
-  return { code: 'INTERNAL', retryable: false, detail: { message } }
+    return classified('NETWORK', true)
+  if (err instanceof BudgetExceededError) return classified('BUDGET_EXCEEDED', false)
+  return classified('INTERNAL', false)
 }

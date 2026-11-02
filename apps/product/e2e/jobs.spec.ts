@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import type { GenerationJobDto } from '@replo/contracts'
 import { JOB, JOB_ID } from './fixtures/recorded'
 import { mockJobEvents, mockRpc, sseFrame, type RpcCall } from './support/rpc-mock'
 
@@ -24,7 +25,18 @@ test('the progress feed resumes from Last-Event-ID without duplicating stages', 
 
 test('a running job can be canceled from the job page', async ({ page }) => {
   const calls: RpcCall[] = []
-  await mockRpc(page, { 'jobs.get': () => ({ body: { ...JOB, status: 'running' } }) }, calls)
+  let status: GenerationJobDto['status'] = 'running'
+  await mockRpc(
+    page,
+    {
+      'jobs.get': () => ({ body: { ...JOB, status } }),
+      'jobs.cancel': () => {
+        status = 'canceled'
+        return { body: { ...JOB, status } }
+      },
+    },
+    calls,
+  )
 
   await page.goto(`/jobs/${JOB_ID}`)
   await page.getByRole('button', { name: 'Cancel generation' }).click()
@@ -35,9 +47,18 @@ test('a running job can be canceled from the job page', async ({ page }) => {
 
 test('a failed job can be retried from its last checkpoint', async ({ page }) => {
   const calls: RpcCall[] = []
+  let status: GenerationJobDto['status'] = 'failed'
   await mockRpc(
     page,
-    { 'jobs.get': () => ({ body: { ...JOB, status: 'failed', error: { code: 'STAGE_FAILED' } } }) },
+    {
+      'jobs.get': () => ({
+        body: { ...JOB, status, error: status === 'failed' ? { code: 'STAGE_FAILED' } : null },
+      }),
+      'jobs.retry': () => {
+        status = 'queued'
+        return { body: { ...JOB, status } }
+      },
+    },
     calls,
   )
 

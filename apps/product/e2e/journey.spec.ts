@@ -22,6 +22,7 @@ test('the PRD journey: import, watch progress, read a lesson, answer its quiz an
           progress: 100,
           spentUsd: 0.4,
           tutorialId: TUTORIAL_ID,
+          tutorial: { owner: 'acme', repo: 'widgets', slug: 'cart-flow' },
         },
       }),
     },

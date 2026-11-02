@@ -1,60 +1,62 @@
 'use client'
 
-import { Alert, Button } from '@replo/ui'
-import { useState } from 'react'
+import {
+  Alert,
+  AlertDescription,
+  Separator,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@replo/ui'
+import { CircleAlert } from 'lucide-react'
 import { authNotice } from './auth-notices'
-import { PROVIDER_LABELS, providerStartUrl } from './sign-in-links'
 import { SignInForm, SignUpForm } from './password-forms'
-
-type Mode = 'sign-in' | 'sign-up'
-
-const OAUTH_PROVIDERS = ['github', 'google'] as const
+import { ProviderLinkButton } from './provider-link-button'
+import { OAUTH_PROVIDERS, PROVIDER_LABELS } from './sign-in-links'
 
 export function LoginPanel({ error }: { error?: string }) {
-  const [mode, setMode] = useState<Mode>('sign-in')
   const notice = authNotice(error)
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {notice ? (
-        <Alert tone="destructive" role="alert">
-          {notice}
+        <Alert variant="destructive" role="alert">
+          <CircleAlert />
+          <AlertDescription>{notice}</AlertDescription>
         </Alert>
       ) : null}
 
-      <div className="space-y-3">
+      <div className="grid gap-2.5">
         {OAUTH_PROVIDERS.map((provider) => (
-          <Button
-            key={provider}
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={() => window.location.assign(providerStartUrl(provider))}
-          >
+          <ProviderLinkButton key={provider} provider={provider} variant="outline" size="lg">
             Continue with {PROVIDER_LABELS[provider]}
-          </Button>
+          </ProviderLinkButton>
         ))}
-        <p className="text-center text-xs text-muted-foreground">or use your email</p>
       </div>
 
-      <div role="group" aria-label="Email sign-in" className="grid grid-cols-2 gap-2">
-        <Button
-          variant={mode === 'sign-in' ? 'primary' : 'outline'}
-          aria-pressed={mode === 'sign-in'}
-          onClick={() => setMode('sign-in')}
-        >
-          Sign in
-        </Button>
-        <Button
-          variant={mode === 'sign-up' ? 'primary' : 'outline'}
-          aria-pressed={mode === 'sign-up'}
-          onClick={() => setMode('sign-up')}
-        >
-          Create account
-        </Button>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <Separator className="flex-1" />
+        or use email
+        <Separator className="flex-1" />
       </div>
 
-      {mode === 'sign-in' ? <SignInForm /> : <SignUpForm />}
+      <Tabs defaultValue="sign-in">
+        <TabsList className="w-full">
+          <TabsTrigger value="sign-in" className="flex-1">
+            Sign in
+          </TabsTrigger>
+          <TabsTrigger value="sign-up" className="flex-1">
+            Create account
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="sign-in">
+          <SignInForm />
+        </TabsContent>
+        <TabsContent value="sign-up">
+          <SignUpForm />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

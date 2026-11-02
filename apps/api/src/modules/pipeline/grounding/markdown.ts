@@ -3,16 +3,25 @@ const CODE_SPAN = /`([^`\n]{1,120})`/g
 const CODE_IDENTIFIER = new RegExp(`${IDENTIFIER_SOURCE}(?:\\.${IDENTIFIER_SOURCE})*`, 'g')
 const REFERENCE_DEFINITION = /^[ \t]*\[[^\]\n]+\]:[^\n]*$/gm
 const BARE_URL = /[ \t]*https?:\/\/[^\s)\]>]+/gi
+const CODE_SEGMENT = /((?<!\\)```[\s\S]*?```|(?<!\\)`[^`\n]+`)/
+const HTML_TAG = /<\/?[A-Za-z!][^>]*>/g
+
+function stripTagsOutsideCode(markdown: string): string {
+  return markdown
+    .split(CODE_SEGMENT)
+    .map((part, position) => (position % 2 === 1 ? part : part.replace(HTML_TAG, '')))
+    .join('')
+}
 
 export function sanitizeMarkdown(markdown: string): string {
-  return markdown
-    .replace(/!\[[^\]]*\]\((?:[^()]|\([^()]*\))*\)/g, '')
-    .replace(/\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)/g, '$1')
-    .replace(REFERENCE_DEFINITION, '')
-    .replace(BARE_URL, '')
-    .replace(/<\/?[A-Za-z!][^>]*>/g, '')
-    .replace(/javascript:/gi, '')
-    .trim()
+  return stripTagsOutsideCode(
+    markdown
+      .replace(/!\[[^\]]*\]\((?:[^()]|\([^()]*\))*\)/g, '')
+      .replace(/\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)/g, '$1')
+      .replace(REFERENCE_DEFINITION, '')
+      .replace(BARE_URL, '')
+      .replace(/javascript:/gi, ''),
+  ).trim()
 }
 
 export function codeIdentifiers(markdown: string): string[] {

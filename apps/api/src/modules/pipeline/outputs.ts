@@ -3,8 +3,6 @@ import type { z } from 'zod'
 import type { Db } from '../../platform/db/client'
 import { stageOutputsRepo } from './pipeline.repo'
 
-export const WHOLE_JOB = 'all'
-
 export interface StageOutputs {
   read<S extends z.ZodType>(
     jobId: string,

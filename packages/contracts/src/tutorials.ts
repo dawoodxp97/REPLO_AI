@@ -1,6 +1,14 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { Audience, CommitSha, IdCursor, OkResult, Visibility, pageInput } from './common'
+import {
+  Audience,
+  CommitSha,
+  IdCursor,
+  OkResult,
+  Visibility,
+  pageInput,
+  pageOutput,
+} from './common'
 import { Chapter, Lesson, QuestionOption, SourceRef, ValidationReport } from './tutorial/content'
 
 export const TutorialSummaryDto = z.object({
@@ -20,10 +28,7 @@ export type TutorialSummaryDto = z.infer<typeof TutorialSummaryDto>
 export const TutorialListInput = pageInput(IdCursor)
 export type TutorialListInput = z.infer<typeof TutorialListInput>
 
-export const TutorialPage = z.object({
-  items: z.array(TutorialSummaryDto),
-  nextCursor: IdCursor.nullable(),
-})
+export const TutorialPage = pageOutput(TutorialSummaryDto, IdCursor)
 export type TutorialPage = z.infer<typeof TutorialPage>
 
 export const TutorialOverviewDto = z.object({
@@ -166,6 +171,7 @@ export const tutorialsContract = {
       z.object({
         tutorialId: z.uuid(),
         reason: z.string().min(1).max(1000),
+        shareToken: z.string().optional(),
       }),
     )
     .output(OkResult),

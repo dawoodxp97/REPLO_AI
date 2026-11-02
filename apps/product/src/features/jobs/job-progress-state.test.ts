@@ -4,6 +4,7 @@ import {
   applyJobEvent,
   INITIAL_JOB_PROGRESS,
   isTerminalEvent,
+  restartJobProgress,
   withConnection,
 } from './job-progress-state'
 
@@ -60,6 +61,37 @@ describe('applyJobEvent', () => {
     const progress = applyJobEvent(INITIAL_JOB_PROGRESS, event(1, 'progress'))
     expect(progress.stages).toEqual(INITIAL_JOB_PROGRESS.stages)
     expect(progress.lastEventId).toBe(1)
+  })
+})
+
+describe('retrying a job', () => {
+  function failedAtIndex() {
+    let progress = applyJobEvent(INITIAL_JOB_PROGRESS, event(1, 'stage_started', 'ingest'))
+    progress = applyJobEvent(progress, event(2, 'stage_completed', 'ingest'))
+    progress = applyJobEvent(progress, event(3, 'stage_started', 'index'))
+    return applyJobEvent(progress, event(4, 'failed'))
+  }
+
+  it('clears the failure when the retry queues the job again', () => {
+    const retried = applyJobEvent(failedAtIndex(), event(5, 'queued'))
+    expect(retried.terminal).toBeNull()
+    expect(retried.stages.index).toBe('pending')
+    expect(retried.stages.ingest).toBe('done')
+  })
+
+  it('does not disturb a job that is queued for the first time', () => {
+    const progress = applyJobEvent(INITIAL_JOB_PROGRESS, event(1, 'queued'))
+    expect(progress.stages).toEqual(INITIAL_JOB_PROGRESS.stages)
+    expect(progress.terminal).toBeNull()
+  })
+
+  it('restarts locally and keeps the last event id so replayed events are ignored', () => {
+    const restarted = restartJobProgress(failedAtIndex())
+    expect(restarted.terminal).toBeNull()
+    expect(restarted.connection).toBe('connecting')
+    expect(restarted.stages.index).toBe('pending')
+    expect(restarted.lastEventId).toBe(4)
+    expect(applyJobEvent(restarted, event(4, 'failed'))).toBe(restarted)
   })
 })
 

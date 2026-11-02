@@ -1,15 +1,13 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { orpc } from '@/lib/orpc'
+import { applyTheme, useThemePreference } from './use-theme-preference'
 
 export function ThemeSync() {
-  const settings = useQuery(orpc.settings.get.queryOptions())
-  const theme = settings.data?.theme
+  const { theme } = useThemePreference()
 
   useEffect(() => {
-    if (theme) document.documentElement.dataset.theme = theme
+    if (theme) applyTheme(theme)
   }, [theme])
 
   return null

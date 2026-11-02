@@ -53,13 +53,18 @@ export function useHighlightedLines(
 function highlighterFor(language: HighlightedLanguage): Promise<Highlighter> {
   const cached = highlighters.get(language)
   if (cached) return cached
-  const created = import('shiki').then(({ createHighlighter, createJavaScriptRegexEngine }) =>
-    createHighlighter({
-      themes: [THEMES.light, THEMES.dark],
-      langs: [language],
-      engine: createJavaScriptRegexEngine(),
-    }),
-  )
+  const created: Promise<Highlighter> = import('shiki')
+    .then(({ createHighlighter, createJavaScriptRegexEngine }) =>
+      createHighlighter({
+        themes: [THEMES.light, THEMES.dark],
+        langs: [language],
+        engine: createJavaScriptRegexEngine(),
+      }),
+    )
+    .catch((error: unknown) => {
+      if (highlighters.get(language) === created) highlighters.delete(language)
+      throw error
+    })
   highlighters.set(language, created)
   return created
 }

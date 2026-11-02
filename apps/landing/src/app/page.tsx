@@ -1,4 +1,4 @@
-import { Faq, Grounding, Hero, HowItWorks, KeyProviders } from '@/components/sections'
+import { ClosingCta, Faq, Grounding, Hero, HowItWorks, KeyProviders } from '@/components/sections'
 
 export default function HomePage() {
   return (
@@ -8,6 +8,7 @@ export default function HomePage() {
       <Grounding />
       <KeyProviders />
       <Faq />
+      <ClosingCta />
     </main>
   )
 }

@@ -1,3 +1,5 @@
+'use client'
+
 import type { Audience } from '@replo/contracts'
 import { useController, type Control } from 'react-hook-form'
 import { RadioCardGroup, type RadioCardOption } from '@/components/radio-card-group'

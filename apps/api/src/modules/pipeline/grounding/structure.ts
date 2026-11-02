@@ -14,14 +14,17 @@ export function groupOf(path: string): string | undefined {
   return first
 }
 
-export function structuralDiagram(index: SourceIndex): DiagramBlock | undefined {
+export function groupSizes(files: readonly { path: string }[]): Map<string, number> {
   const sizes = new Map<string, number>()
-  for (const file of index.files) {
+  for (const file of files) {
     const group = groupOf(file.path)
     if (group) sizes.set(group, (sizes.get(group) ?? 0) + 1)
   }
+  return sizes
+}
 
-  const groups = [...sizes.entries()]
+export function structuralDiagram(index: SourceIndex): DiagramBlock | undefined {
+  const groups = [...groupSizes(index.files).entries()]
     .sort(([nameA, sizeA], [nameB, sizeB]) => sizeB - sizeA || nameA.localeCompare(nameB))
     .slice(0, MAX_GROUPS)
     .map(([name]) => name)

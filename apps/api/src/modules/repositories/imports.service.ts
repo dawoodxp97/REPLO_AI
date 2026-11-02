@@ -16,7 +16,7 @@ import {
   type RunEstimate as EstimatedRun,
 } from '@replo/ai'
 import type { Db } from '../../platform/db/client'
-import { notFound } from '../../platform/errors'
+import { requireFound } from '../../platform/errors'
 import { ok, refused, type Outcome } from '../../platform/outcome'
 import { toRepositoryMetadata } from '../github/github.events'
 import type { JobService } from '../generation/jobs.service'
@@ -33,10 +33,16 @@ export type PlanRefusal =
   | { code: 'CUSTOM_MODEL_NOT_ALLOWED'; role: CatalogRole; modelId: string }
   | { code: 'BUDGET_BELOW_ESTIMATE'; estimateUsd: number; budgetUsd: number }
 
+interface RunModels {
+  planner: string
+  author: string
+  summarizer: string | null
+}
+
 interface PlannedRun {
   provider: Provider
   pipeline: Pipeline
-  models: PlanRoles
+  models: RunModels
   estimate: EstimatedRun
   estimateUsd: number
   budgetUsd: number
@@ -69,76 +75,113 @@ interface RepositoryImportsDeps {
   defaults: { budgetUsd: number; litePipelineMaxFiles: number }
 }
 
+type PricedRoles = Parameters<typeof estimateRun>[0]['roles']
+
 const LITE_PRESETS = new Set<ImportRepositoryInput['preset']>(['free', 'budget'])
 
 export function createRepositoryImports(deps: RepositoryImportsDeps): RepositoryImports {
   const { db, preflight, jobs, indexing, keys, models, defaults } = deps
 
-  const plan = async (
-    userId: string,
+  const selectModels = (
+    key: { provider: Provider },
     input: ImportRepositoryInput,
-  ): Promise<Outcome<PlannedRun, PlanRefusal>> => {
-    const key = await keys.getOwned(userId, input.keyId)
-    if (!key) notFound('Key')
+  ): Outcome<PlanRoles, PlanRefusal> => {
     if (input.preset === 'free' && key.provider !== 'openrouter')
       return refused({ code: 'FREE_PRESET_REQUIRES_OPENROUTER' })
 
     const planned = models.plan(key.provider, input.preset, input.customModels ?? {})
-    if (planned.kind === 'refused') {
-      const refusal = planned.refusal
-      return refused(
-        refusal.code === 'CUSTOM_MODEL_NOT_ALLOWED'
-          ? refusal
-          : { code: 'PRESET_UNAVAILABLE' as const, reason: refusal.reason },
-      )
-    }
+    if (planned.kind === 'ok') return ok(planned.models)
+    const { refusal } = planned
+    return refused(
+      refusal.code === 'CUSTOM_MODEL_NOT_ALLOWED'
+        ? refusal
+        : { code: 'PRESET_UNAVAILABLE' as const, reason: refusal.reason },
+    )
+  }
 
-    const resolution = await preflight.resolve(userId, input.source)
-    if (resolution.kind === 'refused') return resolution
-
-    const { summary } = resolution.value
+  const checkPipeline = (
+    input: ImportRepositoryInput,
+    summary: ResolvedRepository['summary'],
+  ): Outcome<Pipeline, PlanRefusal> => {
     const pipeline = LITE_PRESETS.has(input.preset) ? 'lite' : 'full'
     if (pipeline === 'lite' && summary.indexableFileCount > defaults.litePipelineMaxFiles)
       return refused({
         code: 'PRESET_UNAVAILABLE',
         reason: `the ${input.preset} preset handles repositories up to ${defaults.litePipelineMaxFiles} source files`,
       })
+    return ok(pipeline)
+  }
 
-    const price = (modelId: string | null) => {
-      if (modelId === null) return null
-      return models.priceOf(key.provider, modelId) ?? 'unpriced'
-    }
-    const planner = price(planned.models.planner)
-    const author = price(planned.models.author)
-    const summarizer = price(planned.models.summarizer)
+  const pricePlan = (
+    provider: Provider,
+    planned: PlanRoles,
+  ): Outcome<{ models: RunModels; roles: PricedRoles }, PlanRefusal> => {
+    const priceOf = (modelId: string) => models.priceOf(provider, modelId)
+    const planner = planned.planner === null ? undefined : priceOf(planned.planner)
+    const author = planned.author === null ? undefined : priceOf(planned.author)
+    const summarizer = planned.summarizer === null ? null : priceOf(planned.summarizer)
     if (
-      planner === 'unpriced' ||
-      author === 'unpriced' ||
-      summarizer === 'unpriced' ||
-      planner === null ||
-      author === null
+      planned.planner === null ||
+      planned.author === null ||
+      planner === undefined ||
+      author === undefined ||
+      summarizer === undefined
     )
       return refused({
         code: 'PRESET_UNAVAILABLE',
         reason: 'the chosen models have unverified prices',
       })
-
-    const estimate = estimateRun({
-      pipeline,
-      totalBytes: summary.totalBytes,
+    return ok({
+      models: {
+        planner: planned.planner,
+        author: planned.author,
+        summarizer: planned.summarizer,
+      },
       roles: { planner, author, summarizer },
     })
-    const budgetUsd = input.budgetUsd ?? defaults.budgetUsd
+  }
+
+  const checkBudget = (estimate: EstimatedRun, budgetUsd: number): Outcome<number, PlanRefusal> => {
     const estimateUsd = estimate.costMicros / MICROS_PER_USD
-    if (estimateUsd > budgetUsd)
-      return refused({ code: 'BUDGET_BELOW_ESTIMATE', estimateUsd, budgetUsd })
+    return estimateUsd > budgetUsd
+      ? refused({ code: 'BUDGET_BELOW_ESTIMATE', estimateUsd, budgetUsd })
+      : ok(estimateUsd)
+  }
+
+  const plan = async (
+    userId: string,
+    input: ImportRepositoryInput,
+  ): Promise<Outcome<PlannedRun, PlanRefusal>> => {
+    const key = requireFound(await keys.getOwned(userId, input.keyId), 'Key')
+
+    const selected = selectModels(key, input)
+    if (selected.kind === 'refused') return selected
+
+    const resolution = await preflight.resolve(userId, input.source)
+    if (resolution.kind === 'refused') return resolution
+
+    const { summary } = resolution.value
+    const pipeline = checkPipeline(input, summary)
+    if (pipeline.kind === 'refused') return pipeline
+
+    const priced = pricePlan(key.provider, selected.value)
+    if (priced.kind === 'refused') return priced
+
+    const estimate = estimateRun({
+      pipeline: pipeline.value,
+      totalBytes: summary.totalBytes,
+      roles: priced.value.roles,
+    })
+    const budgetUsd = input.budgetUsd ?? defaults.budgetUsd
+    const withinBudget = checkBudget(estimate, budgetUsd)
+    if (withinBudget.kind === 'refused') return withinBudget
 
     return ok({
       provider: key.provider,
-      pipeline,
-      models: planned.models,
+      pipeline: pipeline.value,
+      models: priced.value.models,
       estimate,
-      estimateUsd,
+      estimateUsd: withinBudget.value,
       budgetUsd,
       resolution: resolution.value,
     })
@@ -153,11 +196,7 @@ export function createRepositoryImports(deps: RepositoryImportsDeps): Repository
       const run = outcome.value
       return ok({
         pipeline: run.pipeline,
-        models: {
-          planner: run.models.planner ?? '',
-          author: run.models.author ?? '',
-          summarizer: run.models.summarizer,
-        },
+        models: run.models,
         requests: run.estimate.requests,
         inputTokens: run.estimate.inputTokens,
         outputTokens: run.estimate.outputTokens,
@@ -184,12 +223,7 @@ export function createRepositoryImports(deps: RepositoryImportsDeps): Repository
         provider: run.provider,
         preset: input.preset,
         pipeline: run.pipeline,
-        models: {
-          planner: run.models.planner ?? '',
-          author: run.models.author ?? '',
-          summarizer: run.models.summarizer,
-          judge: null,
-        },
+        models: { ...run.models, judge: null },
         budgetMicros,
       }
 

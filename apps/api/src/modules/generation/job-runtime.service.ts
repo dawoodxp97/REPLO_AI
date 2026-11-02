@@ -10,6 +10,7 @@ import {
   type JobFailure,
   type JobRow,
 } from './generation.repo'
+import { closeJob, type ClosedStatus } from './job-closure'
 import { enqueueTutorial } from './job-payload'
 
 export interface JobStore {
@@ -19,11 +20,7 @@ export interface JobStore {
   isStageComplete(jobId: string, stage: Stage): Promise<boolean>
   completeStage(jobId: string, stage: Stage): Promise<void>
   emit(jobId: string, event: JobEventInput): Promise<number | undefined>
-  finish(
-    jobId: string,
-    status: 'succeeded' | 'failed' | 'canceled',
-    error?: JobFailure,
-  ): Promise<void>
+  finish(jobId: string, status: ClosedStatus, error?: JobFailure): Promise<boolean>
   markWaitingRetry(jobId: string, error: JobFailure): Promise<boolean>
 }
 
@@ -50,29 +47,14 @@ export function createJobRuntime(deps: JobRuntimeDeps): JobRuntime {
       isStageComplete: (jobId, stage) => jobsRepo(db).isStageComplete(jobId, stage),
       completeStage: (jobId, stage) => jobsRepo(db).completeStage(jobId, stage),
       emit: (jobId, event) => jobsRepo(db).emit(jobId, event),
-      async finish(jobId, status, error) {
-        await db.transaction(async (tx) => {
-          const finished = await jobsRepo(tx).finish(jobId, status, error)
-          if (finished) {
-            await notifications.recordJobEnd(tx, { userId: finished.userId, jobId, status })
-          }
-        })
-      },
-      async markWaitingRetry(jobId, error) {
-        return db.transaction(async (tx) => {
-          const repo = jobsRepo(tx)
-          if (await repo.markWaitingRetry(jobId, error)) return true
-          const canceled = await repo.finish(jobId, 'canceled')
-          if (!canceled) return false
-          await repo.emit(jobId, { type: 'canceled' })
-          await notifications.recordJobEnd(tx, {
-            userId: canceled.userId,
-            jobId,
-            status: 'canceled',
-          })
+      finish: (jobId, status, error) =>
+        db.transaction((tx) => closeJob(tx, notifications, jobId, status, error)),
+      markWaitingRetry: (jobId, error) =>
+        db.transaction(async (tx) => {
+          if (await jobsRepo(tx).markWaitingRetry(jobId, error)) return true
+          await closeJob(tx, notifications, jobId, 'canceled', undefined, ['canceling'])
           return false
-        })
-      },
+        }),
     },
 
     usageSink: async (record) => {

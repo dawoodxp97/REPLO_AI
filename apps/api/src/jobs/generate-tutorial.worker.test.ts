@@ -1,7 +1,7 @@
 import { Budget } from '@replo/ai'
 import { STAGES, type Stage } from '@replo/contracts'
 import { describe, expect, it, vi } from 'vitest'
-import { JobError } from './errors'
+import { CanceledError, JobError, StoppedError } from './errors'
 import {
   handleGenerateTutorial,
   type StageHandler,
@@ -148,6 +148,72 @@ describe('handleGenerateTutorial', () => {
     t.jobs.heartbeat.mockImplementation(async () => 'stopped' as const)
     Object.assign(t.deps, { heartbeatMs: 1 })
     await expect(handleGenerateTutorial(payload, t.deps)).resolves.toBeUndefined()
+    expect(t.finished).toEqual([])
+    expect(t.retries).toEqual([])
+  })
+
+  it('leaves terminal events to the job store', async () => {
+    const ok = fakeDeps()
+    await handleGenerateTutorial(payload, ok.deps)
+    const failing = fakeDeps({
+      handlers: {
+        index: async () => {
+          throw new JobError('REPO_TOO_LARGE', false)
+        },
+      },
+    })
+    await handleGenerateTutorial(payload, failing.deps)
+    for (const t of [ok, failing])
+      expect(t.events.filter((e) => ['succeeded', 'failed', 'canceled'].includes(e))).toEqual([])
+  })
+
+  it('does not retry when the retry transition is refused', async () => {
+    const t = fakeDeps({
+      handlers: {
+        lessons: async () => {
+          throw new JobError('PROVIDER_UNAVAILABLE', true)
+        },
+      },
+    })
+    t.jobs.markWaitingRetry.mockImplementation(async () => false)
+    await expect(handleGenerateTutorial(payload, t.deps)).resolves.toBeUndefined()
+    expect(t.events).not.toContain('warning')
+  })
+
+  it('finishes as canceled and stops the stage when the cancel signal fires', async () => {
+    const waitForAbort: StageHandler = ({ signal }) =>
+      new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+      })
+    const t = fakeDeps({ handlers: { lessons: waitForAbort } })
+    t.jobs.heartbeat.mockImplementation(async () => 'canceling' as const)
+    Object.assign(t.deps, { heartbeatMs: 1 })
+    await handleGenerateTutorial(payload, t.deps)
+    expect(t.finished).toEqual([{ status: 'canceled' }])
+  })
+
+  it('finishes as canceled when a stage fence reports the job is canceling', async () => {
+    const t = fakeDeps({
+      handlers: {
+        publish: async () => {
+          throw new CanceledError()
+        },
+      },
+    })
+    await handleGenerateTutorial(payload, t.deps)
+    expect(t.finished).toEqual([{ status: 'canceled' }])
+    expect(t.retries).toEqual([])
+  })
+
+  it('leaves the job alone when a stage fence reports it is no longer running', async () => {
+    const t = fakeDeps({
+      handlers: {
+        publish: async () => {
+          throw new StoppedError()
+        },
+      },
+    })
+    await handleGenerateTutorial(payload, t.deps)
     expect(t.finished).toEqual([])
     expect(t.retries).toEqual([])
   })

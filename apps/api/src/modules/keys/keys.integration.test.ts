@@ -48,6 +48,7 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
       queue,
       indexing: { snapshotRef: async () => undefined },
       notifications,
+      tutorials: { refOf: async () => undefined },
     })
     runtime = createJobRuntime({ db, queue, notifications })
     keys = createKeysService({ db, vault, checker: fakeKeyChecker('valid'), jobs: jobService })

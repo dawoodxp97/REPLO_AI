@@ -4,7 +4,13 @@ import type { Logger } from 'pino'
 import type { JobRow } from '../modules/generation/generation.repo'
 import type { JobStore } from '../modules/generation/job-runtime.service'
 import { CanceledError, classifyError, JobError, StoppedError } from './errors'
-import { GenerateTutorialPayload, MAX_ATTEMPTS, PROGRESS, STAGE_TIMEOUT_MS } from './schemas'
+import {
+  GenerateTutorialPayload,
+  MAX_ATTEMPTS,
+  PROGRESS,
+  STAGE_ABORT_GRACE_MS,
+  STAGE_TIMEOUT_MS,
+} from './schemas'
 import { withTimeout } from './with-timeout'
 
 export interface StageContext {
@@ -22,6 +28,7 @@ export interface WorkerDeps {
   budgetFor(job: JobRow): Budget
   stageHandlers: Record<Stage, StageHandler>
   heartbeatMs?: number
+  abortGraceMs?: number
 }
 
 export async function handleGenerateTutorial(raw: unknown, deps: WorkerDeps): Promise<void> {
@@ -55,16 +62,20 @@ export async function handleGenerateTutorial(raw: unknown, deps: WorkerDeps): Pr
       await jobs.emit(job.id, { type: 'stage_started', stage })
 
       const timeout = STAGE_TIMEOUT_MS[stage]
-      await withTimeout(timeout, cancel.signal, (signal) =>
-        deps.stageHandlers[stage]({
-          job,
-          payload,
-          signal,
-          budget,
-          progress: async (data) => {
-            await jobs.emit(job.id, { type: 'progress', stage, data })
-          },
-        }),
+      await withTimeout(
+        timeout,
+        cancel.signal,
+        (signal) =>
+          deps.stageHandlers[stage]({
+            job,
+            payload,
+            signal,
+            budget,
+            progress: async (data) => {
+              await jobs.emit(job.id, { type: 'progress', stage, data })
+            },
+          }),
+        deps.abortGraceMs ?? STAGE_ABORT_GRACE_MS,
       )
 
       await jobs.completeStage(job.id, stage)
@@ -76,16 +87,14 @@ export async function handleGenerateTutorial(raw: unknown, deps: WorkerDeps): Pr
       })
     }
     await jobs.finish(job.id, 'succeeded')
-    await jobs.emit(job.id, { type: 'succeeded' })
   } catch (err) {
-    if (cancel.signal.reason instanceof StoppedError) {
+    if (err instanceof StoppedError || cancel.signal.reason instanceof StoppedError) {
       log.info({ jobId: job.id }, 'job stopped by an external action; not finishing it')
       return
     }
-    if (cancel.signal.reason instanceof CanceledError) {
+    if (err instanceof CanceledError || cancel.signal.reason instanceof CanceledError) {
       log.warn({ jobId: job.id, code: 'CANCELED', retryable: false }, 'job stage failed')
       await jobs.finish(job.id, 'canceled')
-      await jobs.emit(job.id, { type: 'canceled' })
       return
     }
     const e = classifyError(err)
@@ -98,7 +107,6 @@ export async function handleGenerateTutorial(raw: unknown, deps: WorkerDeps): Pr
       throw err instanceof Error ? err : new JobError(e.code, true)
     }
     await jobs.finish(job.id, 'failed', { code: e.code, detail: e.detail })
-    await jobs.emit(job.id, { type: 'failed', data: { code: e.code } })
   } finally {
     clearInterval(heartbeat)
   }

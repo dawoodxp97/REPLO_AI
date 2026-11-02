@@ -7,9 +7,11 @@ import type {
   QuizResultDto,
 } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
-import { badRequest, notFound } from '../../platform/errors'
+import { notFound } from '../../platform/errors'
+import { decodeOffset, offsetPage } from '../../platform/pagination'
 import type { Viewer } from '../tutorials/access'
 import type { ReadableVersion, TutorialReader } from '../tutorials/reader.service'
+import { gradeAnswer } from './learning.quiz'
 import { learningRepo } from './learning.repo'
 
 interface LearningDeps {
@@ -72,6 +74,12 @@ export function createLearningService(deps: LearningDeps): LearningService {
     }
   }
 
+  const resolveVersion = async (userId: string, versionId: string) => {
+    const version = await readableOrUndefined({ userId }, versionId)
+    if (!version) return undefined
+    return { version, lessons: await tutorials.lessonsOf({ userId }, version.versionId) }
+  }
+
   const resolveReadableVersion = async (
     userId: string,
     tutorialId: string,
@@ -128,11 +136,23 @@ export function createLearningService(deps: LearningDeps): LearningService {
 
     async history(userId, input) {
       const version = await resolveReadableVersion(userId, input.tutorialId, input.versionId)
-      const lessons = await tutorials.lessonsOf({ userId }, version.versionId)
-      const offset = Number(input.cursor ?? 0)
-      const rows = await repo.historyPage(userId, input.tutorialId, offset, input.limit + 1)
-      const items = rows.slice(0, input.limit).flatMap((row) => {
-        const lesson = lessons.find((entry) => entry.lessonKey === row.lessonKey)
+      const lessons = new Map(
+        (await tutorials.lessonsOf({ userId }, version.versionId)).map((lesson) => [
+          lesson.lessonKey,
+          lesson,
+        ]),
+      )
+      const offset = decodeOffset(input.cursor)
+      const rows = await repo.historyPage(
+        userId,
+        input.tutorialId,
+        [...lessons.keys()],
+        offset,
+        input.limit + 1,
+      )
+      const page = offsetPage(rows, offset, input.limit)
+      const items = page.items.flatMap((row) => {
+        const lesson = lessons.get(row.lessonKey)
         return lesson
           ? [
               {
@@ -144,13 +164,18 @@ export function createLearningService(deps: LearningDeps): LearningService {
             ]
           : []
       })
-      return { items, nextCursor: rows.length > input.limit ? String(offset + input.limit) : null }
+      return { items, nextCursor: page.nextCursor }
     },
 
     async markLesson(userId, input) {
       const version = await tutorials.readableVersion({ userId }, input.versionId)
       const lessons = await tutorials.lessonsOf({ userId }, version.versionId)
       if (!lessons.some((lesson) => lesson.lessonKey === input.lessonKey)) notFound('Lesson')
+      if (input.status === 'in_progress') {
+        const completed = await repo.completedLessonKeys(userId, [version.tutorialId])
+        if (completed.some((row) => row.lessonKey === input.lessonKey))
+          return progressOf(userId, version)
+      }
       const now = new Date()
       await repo.upsert({
         userId,
@@ -172,23 +197,15 @@ export function createLearningService(deps: LearningDeps): LearningService {
 
     async submitQuiz(userId, input) {
       const version = await tutorials.readableVersion({ userId }, input.versionId)
-      const lesson = version.content.chapters
-        .flatMap((chapter) => chapter.lessons)
-        .find((entry) => entry.key === input.lessonKey)
-      if (!lesson) notFound('Lesson')
-      const question = lesson.quiz?.find((entry) => entry.key === input.questionKey)
-      if (!question) notFound('Question')
-      if (!question.options.some((option) => option.key === input.choiceKey))
-        badRequest('choice is not an option of this question')
-      const correct = input.choiceKey === question.correct
+      const graded = gradeAnswer(version.content, input)
       await repo.insertAttempt({
         userId,
         versionId: version.versionId,
-        questionKey: question.key,
-        choiceKey: input.choiceKey,
-        correct,
+        questionKey: graded.questionKey,
+        choiceKey: graded.choiceKey,
+        correct: graded.result.correct,
       })
-      return { correct, correctKey: question.correct, explanation: question.explanation }
+      return graded.result
     },
 
     async completionRatio(viewer, versionId) {
@@ -230,13 +247,19 @@ export function createLearningService(deps: LearningDeps): LearningService {
 
     async resumeTarget(userId) {
       const candidates = await repo.recentInProgress(userId, RESUME_CANDIDATES)
+      if (candidates.length === 0) return null
+      const resolved = new Map(
+        await Promise.all(
+          [...new Set(candidates.map((candidate) => candidate.versionId))].map(
+            async (versionId) => [versionId, await resolveVersion(userId, versionId)] as const,
+          ),
+        ),
+      )
       for (const candidate of candidates) {
-        const version = await readableOrUndefined({ userId }, candidate.versionId)
-        if (!version) continue
-        const lesson = (await tutorials.lessonsOf({ userId }, version.versionId)).find(
-          (entry) => entry.lessonKey === candidate.lessonKey,
-        )
-        if (!lesson) continue
+        const entry = resolved.get(candidate.versionId)
+        const lesson = entry?.lessons.find((item) => item.lessonKey === candidate.lessonKey)
+        if (!entry || !lesson) continue
+        const { version } = entry
         return {
           tutorialId: version.tutorialId,
           versionId: version.versionId,

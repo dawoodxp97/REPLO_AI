@@ -1,3 +1,4 @@
+import { OK_RESULT } from '@replo/contracts'
 import { authed } from '../../orpc'
 
 export const keysRouter = {
@@ -14,6 +15,6 @@ export const keysRouter = {
   }),
   delete: authed.keys.delete.handler(async ({ input, context }) => {
     await context.services.keys.delete(context.user.id, input.keyId)
-    return { ok: true as const }
+    return OK_RESULT
   }),
 }

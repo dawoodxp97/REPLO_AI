@@ -8,7 +8,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ModelPlan } from '@replo/contracts'
 import { DEFAULT_EXTRACTION_LIMITS, ANALYZER_VERSION } from '@replo/repo-analysis'
-import { user } from '../../platform/db/auth-schema'
+import { session, user } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   generationJobs,
@@ -22,6 +22,7 @@ import {
 } from '../../platform/db/schema'
 import type { GithubRest } from '../../platform/github/client'
 import { createJobHistory } from '../generation/job-history.service'
+import { createSessionService } from '../identity/session.service'
 import { createIndexingService } from '../indexing/indexing.service'
 import { createNotificationsService } from '../notifications/notifications.service'
 import { createStageOutputs } from '../pipeline/outputs'
@@ -132,7 +133,7 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     const indexing = createIndexingService({
       db,
       rest: unusedRest,
-      tokens: { installationToken: async () => undefined },
+      tokens: { installationToken: async () => undefined, userCanAccess: async () => false },
       sources: { ingestSource: async () => undefined },
       limits: { maxFiles: 5000, maxBytes: 50_000_000 },
       extraction: DEFAULT_EXTRACTION_LIMITS,
@@ -193,17 +194,31 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
       .returning({ id: notifications.id })
     if (!staleNote || !freshNote) throw new Error('notification seed failed')
 
+    const [expiredSession, liveSession] = await db
+      .insert(session)
+      .values([
+        { tokenHash: randomUUID(), userId: owner, expiresAt: daysBefore(1) },
+        { tokenHash: randomUUID(), userId: owner, expiresAt: new Date(NOW.getTime() + DAY) },
+      ])
+      .returning({ id: session.id })
+    if (!expiredSession || !liveSession) throw new Error('session seed failed')
+
     const retention = createRetentionService({
       jobs,
       pipeline: { purgeOutputs: (ids) => createStageOutputs(db).clearForJobs(ids) },
       indexing,
       notifications: createNotificationsService(db),
+      sessions: createSessionService(db),
     })
     const report = await retention.run(NOW)
 
     expect(report.finishedJobs).toBe(1)
     expect(report.snapshotsPurged).toBe(1)
     expect(report.notificationsPurged).toBeGreaterThanOrEqual(1)
+    expect(report.sessionsPurged).toBe(1)
+
+    const remainingSessions = await db.select({ id: session.id }).from(session)
+    expect(remainingSessions.map((row) => row.id)).toEqual([liveSession.id])
 
     const remainingNotes = await db
       .select({ id: notifications.id })

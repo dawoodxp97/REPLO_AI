@@ -4,21 +4,27 @@ import {
   type GenerationJobDto,
   type ModelPlan,
 } from '@replo/contracts'
+import { CanceledError, StoppedError } from '../../jobs/errors'
 import type { Db, Tx } from '../../platform/db/client'
-import { conflict, notFound } from '../../platform/errors'
+import { conflict, requireFound } from '../../platform/errors'
 import type { JobQueue } from '../../platform/queue/job-queue'
 import type { IndexingService } from '../indexing/indexing.service'
 import type { KeyJobs } from '../keys/keys.service'
 import type { NotificationsService } from '../notifications/notifications.service'
+import type { TutorialReader } from '../tutorials/reader.service'
 import {
-  IDLE_STATUSES,
   KEY_REMOVED,
   RETRYABLE_STATUSES,
+  TERMINAL_STATUSES,
   isStatusIn,
   jobsRepo,
   type JobRow,
 } from './generation.repo'
+import { announceClosed } from './job-closure'
 import { enqueueTutorial } from './job-payload'
+
+const CANCEL_ATTEMPTS = 2
+const SETTLED_STATUSES = [...TERMINAL_STATUSES, 'canceling'] as const
 
 export interface NewJob {
   userId: string
@@ -35,6 +41,7 @@ export interface JobServiceDeps {
   queue: JobQueue
   indexing: Pick<IndexingService, 'snapshotRef'>
   notifications: NotificationsService
+  tutorials: Pick<TutorialReader, 'refOf'>
 }
 
 export interface JobService extends KeyJobs {
@@ -45,19 +52,22 @@ export interface JobService extends KeyJobs {
   cancel(userId: string, jobId: string): Promise<GenerationJobDto>
   retry(userId: string, jobId: string): Promise<GenerationJobDto>
   linkTutorial(tx: Tx, jobId: string, tutorialId: string): Promise<void>
+  fenceRunning(tx: Tx, jobId: string, attempt: number): Promise<void>
 }
 
 export function createJobService(deps: JobServiceDeps): JobService {
-  const { db, queue, indexing, notifications } = deps
+  const { db, queue, indexing, notifications, tutorials } = deps
 
   const getOwnedJob: JobService['getOwnedJob'] = async (userId, jobId) => {
     const job = await jobsRepo(db).findOwned(jobId, userId)
-    return job ?? notFound('Job')
+    return requireFound(job, 'Job')
   }
 
   const toDto: JobService['toDto'] = async (job) => {
-    const snapshot = await indexing.snapshotRef(job.snapshotId)
-    if (!snapshot) notFound('Snapshot')
+    const snapshot = requireFound(await indexing.snapshotRef(job.snapshotId), 'Snapshot')
+    const tutorial = job.tutorialId
+      ? await tutorials.refOf({ userId: job.userId }, job.tutorialId)
+      : undefined
     return {
       jobId: job.id,
       repositoryId: snapshot.repositoryId,
@@ -68,6 +78,7 @@ export function createJobService(deps: JobServiceDeps): JobService {
       budgetUsd: job.budgetMicros / MICROS_PER_USD,
       spentUsd: job.spentMicros / MICROS_PER_USD,
       tutorialId: job.tutorialId,
+      tutorial: tutorial ?? null,
       error: job.errorCode ? { code: job.errorCode } : null,
     }
   }
@@ -94,19 +105,20 @@ export function createJobService(deps: JobServiceDeps): JobService {
     },
 
     async cancel(userId, jobId) {
-      const job = await getOwnedJob(userId, jobId)
-      if (job.status === 'running') {
-        await jobsRepo(db).requestCancel(job.id)
-      } else if (isStatusIn(IDLE_STATUSES, job.status)) {
-        await db.transaction(async (tx) => {
+      await getOwnedJob(userId, jobId)
+      for (let attempt = 0; attempt < CANCEL_ATTEMPTS; attempt++) {
+        const settled = await db.transaction(async (tx) => {
           const repo = jobsRepo(tx)
-          const canceled = await repo.cancelIfIdle(job.id)
-          if (!canceled) return
-          await repo.emit(job.id, { type: 'canceled' })
-          await notifications.recordJobEnd(tx, { userId, jobId: job.id, status: 'canceled' })
+          if (await repo.requestCancel(jobId)) return true
+          const canceled = await repo.cancelIfIdle(jobId)
+          if (!canceled) return false
+          await announceClosed(tx, notifications, { id: jobId, userId }, 'canceled')
+          return true
         })
+        const current = await getOwnedJob(userId, jobId)
+        if (settled || isStatusIn(SETTLED_STATUSES, current.status)) return toDto(current)
       }
-      return toDto(await getOwnedJob(userId, jobId))
+      return conflict('Job changed state; try again')
     },
 
     async retry(userId, jobId) {
@@ -129,16 +141,16 @@ export function createJobService(deps: JobServiceDeps): JobService {
       await jobsRepo(tx).linkTutorial(jobId, tutorialId)
     },
 
+    async fenceRunning(tx, jobId, attempt) {
+      const row = await jobsRepo(tx).lockForUpdate(jobId)
+      if (row?.status === 'canceling') throw new CanceledError()
+      if (row?.status !== 'running' || row.attempts !== attempt) throw new StoppedError()
+    },
+
     async failForKey(tx, keyId) {
       const repo = jobsRepo(tx)
-      for (const failed of await repo.failForKey(keyId)) {
-        await repo.emit(failed.id, { type: 'failed', data: { code: KEY_REMOVED } })
-        await notifications.recordJobEnd(tx, {
-          userId: failed.userId,
-          jobId: failed.id,
-          status: 'failed',
-        })
-      }
+      for (const failed of await repo.failForKey(keyId))
+        await announceClosed(tx, notifications, failed, 'failed', { code: KEY_REMOVED })
     },
   }
 }

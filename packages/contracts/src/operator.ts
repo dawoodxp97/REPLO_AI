@@ -1,7 +1,7 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { JobStatus, Stage } from './jobs'
-import { OffsetCursor, Provider, pageInput } from './common'
+import { OffsetCursor, Provider, pageInput, pageOutput } from './common'
 import { Pipeline } from './models'
 
 export const OperatorJobRow = z.object({
@@ -48,11 +48,14 @@ export const OperatorJobDetail = z.object({
 })
 export type OperatorJobDetail = z.infer<typeof OperatorJobDetail>
 
+export const OperatorJobPage = pageOutput(OperatorJobRow, OffsetCursor)
+export type OperatorJobPage = z.infer<typeof OperatorJobPage>
+
 export const operatorContract = {
   jobs: oc
     .route({ method: 'GET', path: '/operator/jobs' })
     .input(pageInput(OffsetCursor).extend({ status: JobStatus.optional() }))
-    .output(z.object({ items: z.array(OperatorJobRow), nextCursor: z.string().nullable() })),
+    .output(OperatorJobPage),
   job: oc
     .route({ method: 'GET', path: '/operator/jobs/{jobId}' })
     .input(z.object({ jobId: z.uuid() }))

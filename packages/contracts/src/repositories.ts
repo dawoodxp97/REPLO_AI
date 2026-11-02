@@ -1,6 +1,15 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { Audience, CommitSha, IdCursor, ModelPreset, OkResult, pageInput } from './common'
+import {
+  Audience,
+  BudgetUsd,
+  CommitSha,
+  IdCursor,
+  ModelPreset,
+  OkResult,
+  pageInput,
+  pageOutput,
+} from './common'
 import { CustomModelRefusal, CustomModels, Pipeline } from './models'
 import { GenerationJobDto, JobStatus } from './jobs'
 
@@ -64,10 +73,7 @@ export const RepositoryListItem = z.object({
 })
 export type RepositoryListItem = z.infer<typeof RepositoryListItem>
 
-export const RepositoryPage = z.object({
-  items: z.array(RepositoryListItem),
-  nextCursor: IdCursor.nullable(),
-})
+export const RepositoryPage = pageOutput(RepositoryListItem, IdCursor)
 export type RepositoryPage = z.infer<typeof RepositoryPage>
 
 export const ImportRepositoryInput = z.object({
@@ -76,7 +82,7 @@ export const ImportRepositoryInput = z.object({
   keyId: z.uuid(),
   preset: ModelPreset.default('balanced'),
   customModels: CustomModels.optional(),
-  budgetUsd: z.number().positive().max(50).optional(),
+  budgetUsd: BudgetUsd.optional(),
 })
 export type ImportRepositoryInput = z.infer<typeof ImportRepositoryInput>
 

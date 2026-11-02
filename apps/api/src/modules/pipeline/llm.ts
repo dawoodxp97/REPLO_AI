@@ -21,17 +21,18 @@ const OUTPUT_ERRORS = new Set([
   'AI_TypeValidationError',
   'AI_JSONParseError',
 ])
+const SECTION_SEPARATOR = '\n\n'
+
 interface LlmRequest<S extends z.ZodType> {
   stage: Stage
-  system: string
-  prompt: string
+  sections: readonly string[]
   schema: S
   maxOutputTokens: number
 }
 
 export interface LlmSession {
   hasRole(role: ModelRole): boolean
-  call<S extends z.ZodType>(role: ModelRole, request: LlmRequest<S>): Promise<z.infer<S>>
+  ask<S extends z.ZodType>(role: ModelRole, request: LlmRequest<S>): Promise<z.infer<S>>
 }
 
 export interface LlmDeps {
@@ -45,6 +46,7 @@ interface LlmJob {
   userId: string
   keyId: string | null
   plan: ModelPlan
+  system: string
   budget: Budget
   signal: AbortSignal
 }
@@ -60,16 +62,17 @@ export async function openLlm(deps: LlmDeps, job: LlmJob): Promise<LlmSession> {
   return {
     hasRole: (role) => registry[role].length > 0,
 
-    async call(role, request) {
+    async ask(role, request) {
       if (registry[role].length === 0)
         throw new JobError('MODEL_UNAVAILABLE', false, `no model is planned for ${role}`)
 
-      const attempt = (prompt: string) =>
+      const prompt = request.sections.join(SECTION_SEPARATOR)
+      const attempt = (text: string) =>
         generateStructured({
           role,
           schema: request.schema,
-          system: request.system,
-          prompt,
+          system: job.system,
+          prompt: text,
           budget: job.budget,
           registry,
           resolveModel: (spec) => resolve(run, spec.id),
@@ -79,14 +82,14 @@ export async function openLlm(deps: LlmDeps, job: LlmJob): Promise<LlmSession> {
         })
 
       try {
-        return await guarded(() => attempt(request.prompt))
+        return await guarded(() => attempt(prompt))
       } catch (err) {
         if (!isOutputError(err)) throw err
         const reason = err instanceof Error ? err.message : 'output did not match the schema'
         try {
           return await guarded(() =>
             attempt(
-              `${request.prompt}\n\nYour previous reply was rejected (${reason}). Reply again with one JSON object only.`,
+              `${prompt}\n\nYour previous reply was rejected (${reason}). Reply again with one JSON object only.`,
             ),
           )
         } catch (retryErr) {

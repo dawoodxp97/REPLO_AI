@@ -1,11 +1,14 @@
 import type { ComponentProps } from 'react'
 import { cn } from '../lib/cn'
+import { controlClass } from '../lib/control'
 
-export function Input({ className, ...props }: ComponentProps<'input'>) {
+export function Input({ className, type, ...props }: ComponentProps<'input'>) {
   return (
     <input
+      type={type}
       className={cn(
-        'h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground disabled:opacity-50 aria-[invalid=true]:border-destructive',
+        controlClass,
+        'h-9 px-3 py-1 file:border-0 file:bg-transparent file:text-sm file:font-medium',
         className,
       )}
       {...props}

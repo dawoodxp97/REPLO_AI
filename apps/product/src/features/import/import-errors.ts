@@ -1,10 +1,9 @@
 import { BudgetBelowEstimate, PresetUnavailable, RepoLimitData } from '@replo/contracts'
-import { apiErrorDetails } from '@/lib/api-error'
+import { KEY_ERROR_COPY } from '@/features/keys'
 import { formatBytes, formatCount, formatUsd } from '@/lib/format'
+import { createErrorDescriber, type DataDescriber, type ErrorCopy } from '@/lib/error-copy'
 
-const GENERIC_ERROR = 'Something went wrong. Try again.'
-
-const IMPORT_ERROR_COPY: Record<string, string> = {
+const IMPORT_ERROR_COPY = {
   REPO_NOT_ACCESSIBLE:
     'We could not read this repository. For private repos, install the GitHub App and select it.',
   UNSUPPORTED_LANGUAGE:
@@ -13,29 +12,13 @@ const IMPORT_ERROR_COPY: Record<string, string> = {
     'The Free preset uses OpenRouter :free models. Pick an OpenRouter key, or choose another preset.',
   CUSTOM_MODEL_NOT_ALLOWED:
     'One of your custom models is not allowed. Check it in Settings → Models.',
-  KEY_INVALID: 'That API key was rejected by the provider. Check it in Settings → API keys.',
-  KEY_CHECK_UNAVAILABLE: 'The provider did not answer the key check. Try again in a few minutes.',
-}
+  KEY_INVALID: KEY_ERROR_COPY.KEY_INVALID,
+  KEY_CHECK_UNAVAILABLE: KEY_ERROR_COPY.KEY_CHECK_UNAVAILABLE,
+} as const satisfies ErrorCopy
 
-export function describeImportError(error: unknown): string {
-  const details = apiErrorDetails(error)
-  if (!details) return GENERIC_ERROR
-
-  switch (details.code) {
-    case 'REPO_TOO_LARGE':
-      return describeRepositoryLimit(details.data)
-    case 'BUDGET_BELOW_ESTIMATE':
-      return describeBudgetShortfall(details.data)
-    case 'PRESET_UNAVAILABLE':
-      return describePresetUnavailable(details.data)
-    default:
-      return IMPORT_ERROR_COPY[details.code] ?? GENERIC_ERROR
-  }
-}
-
-function describeRepositoryLimit(data: unknown): string {
+const describeRepositoryLimit: DataDescriber = (data) => {
   const limit = RepoLimitData.safeParse(data)
-  if (!limit.success) return GENERIC_ERROR
+  if (!limit.success) return null
   const cap =
     limit.data.metric === 'files'
       ? `${formatCount(limit.data.limit)} files`
@@ -43,13 +26,19 @@ function describeRepositoryLimit(data: unknown): string {
   return `This repository is over the ${cap} limit. Importing a sub-directory is not available yet.`
 }
 
-function describeBudgetShortfall(data: unknown): string {
+const describeBudgetShortfall: DataDescriber = (data) => {
   const shortfall = BudgetBelowEstimate.safeParse(data)
-  if (!shortfall.success) return GENERIC_ERROR
+  if (!shortfall.success) return null
   return `The estimate is ${formatUsd(shortfall.data.estimateUsd)}, above your ${formatUsd(shortfall.data.budgetUsd)} ceiling. Raise the ceiling or choose a cheaper preset.`
 }
 
-function describePresetUnavailable(data: unknown): string {
+const describePresetUnavailable: DataDescriber = (data) => {
   const unavailable = PresetUnavailable.safeParse(data)
-  return unavailable.success ? unavailable.data.reason : GENERIC_ERROR
+  return unavailable.success ? unavailable.data.reason : null
 }
+
+export const describeImportError = createErrorDescriber(IMPORT_ERROR_COPY, {
+  REPO_TOO_LARGE: describeRepositoryLimit,
+  BUDGET_BELOW_ESTIMATE: describeBudgetShortfall,
+  PRESET_UNAVAILABLE: describePresetUnavailable,
+})

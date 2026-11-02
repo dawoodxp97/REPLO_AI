@@ -1,4 +1,4 @@
-import { TutorialContent } from '@replo/contracts'
+import { TutorialContent, type TutorialRef } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
 import { notFound } from '../../platform/errors'
 import { canRead, ownershipOf, type Viewer } from './access'
@@ -25,6 +25,7 @@ export interface TutorialReader {
   readableVersion(viewer: Viewer, versionId: string): Promise<ReadableVersion>
   lessonsOf(viewer: Viewer, versionId: string): Promise<LessonEntry[]>
   currentVersionOf(viewer: Viewer, tutorialId: string): Promise<string>
+  refOf(viewer: Viewer, tutorialId: string): Promise<TutorialRef | undefined>
   ownedLessonKeys(userId: string, versionIds: readonly string[]): Promise<Map<string, string[]>>
 }
 
@@ -70,6 +71,12 @@ export function createTutorialReader(db: Db): TutorialReader {
       if (!row || !canRead(ownershipOf(row.tutorial), viewer)) notFound('Tutorial')
       if (!row.tutorial.currentVersionId) notFound('Tutorial version')
       return row.tutorial.currentVersionId
+    },
+
+    async refOf(viewer, tutorialId) {
+      const row = await repo.findById(tutorialId)
+      if (!row || !canRead(ownershipOf(row.tutorial), viewer)) return undefined
+      return { owner: row.owner, repo: row.name, slug: row.tutorial.slug }
     },
   }
 }

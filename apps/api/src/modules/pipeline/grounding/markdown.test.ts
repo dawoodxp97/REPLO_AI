@@ -18,6 +18,30 @@ describe('sanitizeMarkdown', () => {
   })
 })
 
+describe('sanitizeMarkdown code spans', () => {
+  it('keeps generic type arguments inside inline code', () => {
+    expect(sanitizeMarkdown('`createStore<State>` returns a `Map<string, Job>`')).toBe(
+      '`createStore<State>` returns a `Map<string, Job>`',
+    )
+    expect(sanitizeMarkdown('Awaits `Promise<void>`')).toBe('Awaits `Promise<void>`')
+  })
+
+  it('keeps tags inside fenced blocks', () => {
+    const fenced = 'Use:\n```ts\nconst a: Array<T> = []\n```'
+    expect(sanitizeMarkdown(fenced)).toBe(fenced)
+  })
+
+  it('still strips markup next to a code span', () => {
+    expect(sanitizeMarkdown('`Map<string, Job>` <img src=x onerror=alert(1)>')).toBe(
+      '`Map<string, Job>`',
+    )
+  })
+
+  it('does not treat an escaped backtick as a code span', () => {
+    expect(sanitizeMarkdown('\\`<img src=x onerror=alert(1)>\\`')).toBe('\\`\\`')
+  })
+})
+
 describe('codeIdentifiers', () => {
   it('returns every identifier inside code spans and ignores the prose around them', () => {
     expect(codeIdentifiers('Call `addToCart()` then `npm install` and `cart.items`')).toEqual([

@@ -9,12 +9,11 @@ const mono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 const serif = Newsreader({
   subsets: ['latin'],
   variable: '--font-newsreader',
-  style: ['normal', 'italic'],
 })
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
-const SITE_TITLE = 'Replo — learn a GitHub repo, with receipts'
+const SITE_TITLE = 'Replo — grounded tutorials for GitHub repositories'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

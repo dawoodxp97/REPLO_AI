@@ -1,48 +1,63 @@
 import type { TutorialOverviewDto } from '@replo/contracts'
+import { Item, ItemGroup } from '@replo/ui'
 import Link from 'next/link'
-import { lessonPath, type TutorialRef } from '@/lib/tutorial-paths'
+import { formatMinutes } from '@/lib/format'
+import {
+  lessonPath,
+  withTutorialContext,
+  type TutorialLinkContext,
+  type TutorialRef,
+} from '@/lib/tutorial-paths'
 
 export type OutlineChapter = TutorialOverviewDto['outline'][number]
+
+function chapterMinutes(chapter: OutlineChapter): number {
+  return chapter.lessons.reduce((total, lesson) => total + lesson.minutes, 0)
+}
 
 export function TutorialOutline({
   tutorial,
   chapters,
-  shareToken,
+  linkContext,
 }: {
   tutorial: TutorialRef
   chapters: readonly OutlineChapter[]
-  shareToken?: string
+  linkContext: TutorialLinkContext
 }) {
   return (
-    <ol className="space-y-6">
-      {chapters.map((chapter, index) => (
-        <li key={chapter.key} className="space-y-2">
-          <h3 className="font-serif text-xl font-medium">
-            <span className="mr-2 font-mono text-sm text-muted-foreground">{index + 1}.</span>
-            {chapter.title}
-          </h3>
-          <p className="text-sm text-muted-foreground">{chapter.summary}</p>
-          <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+    <ol className="space-y-8">
+      {chapters.map((chapter) => (
+        <li key={chapter.key} className="space-y-3">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h3 className="text-sm font-semibold tracking-tight">{chapter.title}</h3>
+              <p className="tabular font-mono text-xs text-muted-foreground">
+                {chapter.lessons.length} {chapter.lessons.length === 1 ? 'lesson' : 'lessons'} ·{' '}
+                {formatMinutes(chapterMinutes(chapter))}
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground">{chapter.summary}</p>
+          </div>
+          <ItemGroup>
             {chapter.lessons.map((lesson) => (
-              <li key={lesson.key}>
+              <Item key={lesson.key} className="p-0">
                 <Link
-                  href={withShare(lessonPath(tutorial, chapter.key, lesson.key), shareToken)}
-                  className="flex items-center justify-between gap-4 px-4 py-3 text-sm transition-colors hover:bg-accent"
+                  href={withTutorialContext(
+                    lessonPath(tutorial, chapter.key, lesson.key),
+                    linkContext,
+                  )}
+                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-sm transition-colors outline-none hover:bg-accent focus-visible:bg-accent"
                 >
-                  <span>{lesson.title}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {lesson.minutes} min
+                  <span className="min-w-0">{lesson.title}</span>
+                  <span className="tabular shrink-0 font-mono text-xs text-muted-foreground">
+                    {formatMinutes(lesson.minutes)}
                   </span>
                 </Link>
-              </li>
+              </Item>
             ))}
-          </ul>
+          </ItemGroup>
         </li>
       ))}
     </ol>
   )
-}
-
-export function withShare(href: string, shareToken: string | undefined): string {
-  return shareToken ? `${href}?share=${encodeURIComponent(shareToken)}` : href
 }

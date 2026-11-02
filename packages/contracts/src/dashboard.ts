@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { OffsetCursor, pageInput } from './common'
+import { OffsetCursor, pageInput, pageOutput } from './common'
 import { JobStatus, Stage } from './jobs'
 
 export const TimeZone = z.string().refine((zone) => {
@@ -55,17 +55,11 @@ export const ActivityItem = z.object({
 })
 export type ActivityItem = z.infer<typeof ActivityItem>
 
-export const ActivityPage = z.object({
-  items: z.array(ActivityItem),
-  nextCursor: z.string().nullable(),
-})
+export const ActivityPage = pageOutput(ActivityItem, OffsetCursor)
 export type ActivityPage = z.infer<typeof ActivityPage>
 
 export const dashboardContract = {
-  summary: oc
-    .route({ method: 'GET', path: '/dashboard/summary' })
-    .input(z.object({ tz: TimeZone.default('UTC') }))
-    .output(DashboardSummary),
+  summary: oc.route({ method: 'GET', path: '/dashboard/summary' }).output(DashboardSummary),
   recent: oc
     .route({ method: 'GET', path: '/dashboard/recent' })
     .input(pageInput(OffsetCursor).extend({ tz: TimeZone.default('UTC') }))

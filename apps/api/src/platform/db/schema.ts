@@ -508,7 +508,10 @@ export const tutorialReports = pgTable(
     status: text('status').$type<'open' | 'actioned' | 'dismissed'>().notNull().default('open'),
     createdAt: createdAt(),
   },
-  (t) => [index('tutorial_reports_tutorial_idx').on(t.tutorialId)],
+  (t) => [
+    index('tutorial_reports_tutorial_idx').on(t.tutorialId),
+    uniqueIndex('tutorial_reports_tutorial_reporter_uniq').on(t.tutorialId, t.reporterId),
+  ],
 )
 
 export const operators = pgTable('operators', {
@@ -536,7 +539,7 @@ export const userPreferences = pgTable('user_preferences', {
   userId: text('user_id')
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),
-  theme: text('theme').$type<Theme>().notNull().default('light'),
+  theme: text('theme').$type<Theme>().notNull().default('system'),
   defaultAudience: text('default_audience').$type<Audience>().notNull().default('intermediate'),
   autoAdvance: boolean('auto_advance').notNull().default(true),
   quizzesEnabled: boolean('quizzes_enabled').notNull().default(true),

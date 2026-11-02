@@ -25,9 +25,26 @@ describe('parseDiagram', () => {
     expect(parseDiagram('sequenceDiagram\n  A->>B: hi')).toBeUndefined()
     expect(parseDiagram('flowchart TD\n  A["<b>x</b>"] --> B')).toBeUndefined()
   })
+
+  it('refuses ids Mermaid treats as keywords', () => {
+    expect(parseDiagram('flowchart TD\n  start --> end')).toBeUndefined()
+    expect(parseDiagram('flowchart TD\n  End --> next')).toBeUndefined()
+    expect(parseDiagram('flowchart TD\n  graph --> next')).toBeUndefined()
+    expect(parseDiagram('flowchart TD\n  ending --> endpoint')).toBeDefined()
+  })
 })
 
 describe('checkDiagram', () => {
+  it('rejects a diagram that uses a reserved id even when every node is mapped', () => {
+    expect(
+      checkDiagram(
+        'flowchart LR\n  start --> end',
+        { start: 'src/api/routes.ts', end: 'src/cart.ts' },
+        index(),
+      ),
+    ).toEqual({ ok: false, reason: 'INVALID_SYNTAX' })
+  })
+
   it('keeps edges that follow real imports and drops the rest', async () => {
     const idx = index()
     await idx.load([])

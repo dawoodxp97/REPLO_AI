@@ -23,3 +23,26 @@ export function formatUsd(usd: number): string {
 export function formatCount(value: number): string {
   return new Intl.NumberFormat('en-US').format(value)
 }
+
+const DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+
+export function formatDate(iso: string): string {
+  return DATE_FORMAT.format(new Date(iso))
+}
+
+export function formatMinutes(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes))
+  const hours = Math.floor(total / 60)
+  const rest = total % 60
+  if (hours === 0) return `${rest} min`
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`
+}
+
+export function formatPercent(ratio: number): string {
+  return `${Math.round(ratio * 100)}%`
+}

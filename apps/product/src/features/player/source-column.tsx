@@ -1,10 +1,12 @@
-import type { SourceRef } from '@replo/contracts'
+import { FileCode } from 'lucide-react'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@replo/ui'
+import type { SourceRefMap } from './source-ref-map'
 import { SourceView } from './source-view'
 
 export interface ReferenceSourceProps {
   versionId: string
   refId: string | null
-  references: Readonly<Record<string, SourceRef | undefined>>
+  references: SourceRefMap
   shareToken?: string
 }
 
@@ -16,9 +18,17 @@ export function ReferenceSource({
 }: ReferenceSourceProps) {
   if (refId === null) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Choose a reference in the lesson to read its source here.
-      </p>
+      <Empty className="min-h-64">
+        <EmptyHeader>
+          <EmptyMedia>
+            <FileCode />
+          </EmptyMedia>
+          <EmptyTitle>No source selected</EmptyTitle>
+          <EmptyDescription>
+            Choose a reference in the lesson to read its source here.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
@@ -36,6 +46,7 @@ export function ReferenceSource({
       range={{ start: reference.startLine, end: reference.endLine }}
       shareToken={shareToken}
       windowed
+      scrollToHighlight
     />
   )
 }

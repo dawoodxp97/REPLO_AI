@@ -5,6 +5,7 @@ import {
   type Stage,
 } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
+import { isoOrNull } from '../../platform/time'
 import { readModelRepo, retentionRepo, jobsRepo, type JobRow } from './generation.repo'
 
 export interface InFlightJob {
@@ -89,7 +90,7 @@ export function createJobHistory(db: Db): JobHistory {
           stage: stage.stage,
           status: stage.status,
           attempt: stage.attempt,
-          finishedAt: stage.finishedAt?.toISOString() ?? null,
+          finishedAt: isoOrNull(stage.finishedAt),
         })),
         llmCalls: detail.calls.map((call) => ({
           id: call.id,
@@ -128,6 +129,6 @@ function toOperatorRow(job: JobRow): OperatorJobRow {
     spentMicros: job.spentMicros,
     budgetMicros: job.budgetMicros,
     createdAt: job.createdAt.toISOString(),
-    finishedAt: job.finishedAt?.toISOString() ?? null,
+    finishedAt: isoOrNull(job.finishedAt),
   }
 }

@@ -1,4 +1,4 @@
-import { and, eq, gt, ne } from 'drizzle-orm'
+import { and, eq, gt, lte, ne } from 'drizzle-orm'
 import type { AuthProvider } from '@replo/contracts'
 import type { DbOrTx } from '../../platform/db/client'
 import { authIdentity, session, user } from '../../platform/db/auth-schema'
@@ -137,6 +137,14 @@ export const identityRepo = (db: DbOrTx) => ({
 
   async deleteSession(sessionId: string): Promise<void> {
     await db.delete(session).where(eq(session.id, sessionId))
+  },
+
+  async deleteExpiredSessions(now: Date): Promise<number> {
+    const rows = await db
+      .delete(session)
+      .where(lte(session.expiresAt, now))
+      .returning({ id: session.id })
+    return rows.length
   },
 
   async deleteOtherSessions(userId: string, keepSessionId: string): Promise<void> {

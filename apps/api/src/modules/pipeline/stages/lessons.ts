@@ -1,45 +1,43 @@
 import type { StageContext } from '../../../jobs/generate-tutorial.worker'
 import { JobError } from '../../../jobs/errors'
-import { dataFiles, focusPathsOf, sourceIndexOf } from '../context'
-import { ChapterDraft, type OutlineChapterDraft, OutlineDraft, type LessonDraft } from '../drafts'
-import { dataSection, promptFor, systemFor } from '../prompts'
-import { WHOLE_JOB } from '../outputs'
-import { openSession, snapshotView, type StageDeps } from '../stage-deps'
-
-export const CHAPTER_UNIT = 'lessons'
+import { dataFiles, fallbackFocusPaths, focusPathsOf } from '../context'
+import {
+  ChapterDraft,
+  chapterDraftFor,
+  type LessonDraft,
+  type OutlineChapterDraft,
+  OutlineDraft,
+} from '../drafts'
+import { dataSection, promptFor } from '../prompts'
+import { WHOLE_JOB } from '../stored-outputs'
+import { checkpointed, stageWorkspace, type StageDeps } from '../stage-deps'
 
 export async function runLessons(deps: StageDeps, ctx: StageContext): Promise<void> {
   const outline = await deps.outputs.read(ctx.job.id, 'outline', WHOLE_JOB, OutlineDraft)
   if (!outline) throw new JobError('OUTLINE_MISSING', false, 'lessons need an outline')
 
-  const view = await snapshotView(deps, ctx)
-  const index = sourceIndexOf(view, deps.indexing, ctx.job.snapshotId)
-  const session = await openSession(deps, ctx)
-  const system = systemFor(ctx.job.audience)
+  const { view, index, session } = await stageWorkspace(deps, ctx)
 
   for (const [position, chapter] of outline.chapters.entries()) {
     ctx.signal.throwIfAborted()
-    if (!(await deps.outputs.read(ctx.job.id, CHAPTER_UNIT, chapter.key, ChapterDraft))) {
-      const focus = focusPathsOf(chapter.lessons)
+    await checkpointed(deps, ctx, 'lessons', chapter.key, ChapterDraft, async () => {
+      const named = focusPathsOf(chapter.lessons)
+      const focus = named.length > 0 ? named : fallbackFocusPaths(view, index)
+      if (focus.length === 0)
+        throw new JobError('OUTLINE_INVALID', false, `chapter ${chapter.key} names no source file`)
       await index.load(focus)
-      const drafted = await session.call('author', {
+      const drafted = await session.ask('author', {
         stage: 'lessons',
-        system,
-        prompt: [
+        sections: [
           promptFor('lessons'),
           dataSection('chapter', JSON.stringify(chapterSpec(chapter))),
           dataFiles(index, focus),
-        ].join('\n\n'),
-        schema: ChapterDraft,
+        ],
+        schema: chapterDraftFor(chapter.lessons.length),
         maxOutputTokens: 12000,
       })
-      await deps.outputs.write(
-        ctx.job.id,
-        CHAPTER_UNIT,
-        chapter.key,
-        alignLessons(chapter, drafted),
-      )
-    }
+      return alignLessons(chapter, drafted)
+    })
     await ctx.progress({ chapter: chapter.key, done: position + 1, total: outline.chapters.length })
   }
 }

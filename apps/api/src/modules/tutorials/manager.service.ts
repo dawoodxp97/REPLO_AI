@@ -2,7 +2,7 @@ import type { TutorialSummaryDto, Visibility } from '@replo/contracts'
 import type { Db, Tx } from '../../platform/db/client'
 import { notFound } from '../../platform/errors'
 import { ok, refused, type Outcome } from '../../platform/outcome'
-import { isOwner, newShareToken, ownershipOf, tutorialPath } from './access'
+import { canRead, isOwner, newShareToken, ownershipOf, tutorialPath } from './access'
 import { isOsiApproved } from './licences'
 import type { TutorialLibrary } from './library.service'
 import { tutorialsRepo } from './tutorials.repo'
@@ -24,7 +24,12 @@ export interface TutorialManager {
   ): Promise<Outcome<TutorialSummaryDto, OpenLicenseRequired>>
   createShareLink(userId: string, tutorialId: string): Promise<{ token: string; url: string }>
   deleteTutorial(userId: string, tutorialId: string): Promise<void>
-  report(reporterId: string, tutorialId: string, reason: string): Promise<void>
+  report(
+    reporterId: string,
+    tutorialId: string,
+    reason: string,
+    shareToken?: string | undefined,
+  ): Promise<void>
   removeForRepository(tx: Tx, userId: string, repositoryId: string): Promise<void>
   settleOwnerDeletion(tx: Tx, userId: string, mode: 'delete' | 'anonymise'): Promise<void>
   recordPush(
@@ -76,9 +81,10 @@ export function createTutorialManager(deps: TutorialManagerDeps): TutorialManage
       await repo.deleteTutorial(row.tutorial.id)
     },
 
-    async report(reporterId, tutorialId, reason) {
+    async report(reporterId, tutorialId, reason, shareToken) {
       const row = await repo.findById(tutorialId)
-      if (!row || row.tutorial.visibility !== 'public') notFound('Tutorial')
+      if (!row || !canRead(ownershipOf(row.tutorial), { userId: reporterId, shareToken }))
+        notFound('Tutorial')
       await repo.insertReport({ tutorialId, reporterId, reason })
     },
 

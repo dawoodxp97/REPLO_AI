@@ -1,3 +1,5 @@
+import { cn, FieldLegend, FieldSet, RadioGroupItem } from '@replo/ui'
+
 export interface RadioCardOption<T extends string> {
   value: T
   title: string
@@ -10,6 +12,7 @@ export interface RadioCardGroupProps<T extends string> {
   options: readonly RadioCardOption<T>[]
   value: T | undefined
   onChange: (value: T) => void
+  className?: string
 }
 
 export function RadioCardGroup<T extends string>({
@@ -18,31 +21,33 @@ export function RadioCardGroup<T extends string>({
   options,
   value,
   onChange,
+  className,
 }: RadioCardGroupProps<T>) {
   return (
-    <fieldset className="space-y-3">
-      <legend className="mb-2 text-sm font-medium">{legend}</legend>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
+    <FieldSet className={cn('gap-2', className)}>
+      <FieldLegend>{legend}</FieldLegend>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-2.5">
         {options.map((option) => (
           <label
             key={option.value}
-            className="flex min-h-11 cursor-pointer flex-col gap-1 rounded-lg border border-border bg-card p-4 has-[:checked]:border-primary has-[:checked]:ring-1 has-[:checked]:ring-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring"
+            className="flex cursor-pointer items-start gap-3 rounded-lg border bg-card p-3.5 shadow-xs transition-colors hover:bg-accent/50 has-[:checked]:border-primary/60 has-[:checked]:bg-accent/60 has-[:checked]:ring-1 has-[:checked]:ring-primary/60"
           >
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <input
-                type="radio"
-                name={name}
-                value={option.value}
-                checked={value === option.value}
-                onChange={() => onChange(option.value)}
-                className="size-4 accent-primary"
-              />
-              {option.title}
+            <RadioGroupItem
+              name={name}
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+              className="mt-0.5"
+            />
+            <span className="flex flex-col gap-1">
+              <span className="text-sm leading-none font-medium">{option.title}</span>
+              <span className="text-[0.8125rem] leading-snug text-muted-foreground">
+                {option.description}
+              </span>
             </span>
-            <span className="text-xs text-muted-foreground">{option.description}</span>
           </label>
         ))}
       </div>
-    </fieldset>
+    </FieldSet>
   )
 }
