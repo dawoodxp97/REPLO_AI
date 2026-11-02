@@ -1,7 +1,8 @@
 'use client'
 
 import type { Theme } from '@replo/contracts'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
+import { usePreferenceUpdate } from '@/features/settings/use-preference-update'
 import { orpc } from '@/lib/orpc'
 
 export function applyTheme(theme: Theme) {
@@ -12,17 +13,14 @@ export function applyTheme(theme: Theme) {
 
 export function useThemePreference() {
   const settings = useQuery(orpc.settings.get.queryOptions())
-  const queryClient = useQueryClient()
-  const update = useMutation(
-    orpc.settings.update.mutationOptions({
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.settings.key() }),
-    }),
-  )
+  const { update } = usePreferenceUpdate()
 
   function setTheme(theme: Theme) {
     applyTheme(theme)
     update.mutate({ theme })
   }
 
-  return { theme: settings.data?.theme, setTheme }
+  const pendingTheme = update.isPending ? update.variables?.theme : undefined
+
+  return { theme: pendingTheme ?? settings.data?.theme, setTheme }
 }

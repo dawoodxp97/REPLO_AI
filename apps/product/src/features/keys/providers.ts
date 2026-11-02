@@ -1,6 +1,6 @@
 import type { Provider } from '@replo/contracts'
 
-export const PROVIDER_LABELS: Record<Provider, string> = {
+export const LLM_PROVIDER_LABELS: Record<Provider, string> = {
   openrouter: 'OpenRouter',
   anthropic: 'Anthropic',
   openai: 'OpenAI',

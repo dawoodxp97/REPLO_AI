@@ -6,6 +6,8 @@ import { createDb, type Db } from './db/client'
 import { createLogger } from './logger'
 import type { ShutdownStep } from './shutdown'
 
+const BOSS_POOL_MAX = 4
+
 type Pool = ReturnType<typeof createDb>['pool']
 
 export interface Runtime {
@@ -27,9 +29,12 @@ export async function bootstrap(
     pretty: config.NODE_ENV === 'development',
     name,
   })
-  const { db, pool } = createDb(config.DATABASE_URL)
+  const { db, pool } = createDb(config.DATABASE_URL, {
+    max: config.DB_POOL_MAX,
+    onPoolError: (err) => log.error({ err }, 'idle pg client error'),
+  })
 
-  const boss = new PgBoss({ ...bossOptions, connectionString: config.DATABASE_URL })
+  const boss = new PgBoss({ max: BOSS_POOL_MAX, ...bossOptions, connectionString: config.DATABASE_URL })
   boss.on('error', (err) => log.error({ err }, 'pg-boss error'))
   await boss.start()
   await declareQueues(boss)

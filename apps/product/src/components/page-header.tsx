@@ -49,3 +49,22 @@ export function SectionHeader({
     </div>
   )
 }
+
+export function TitledSection({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id: string
+  title: ReactNode
+  description?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <section aria-labelledby={id} className="space-y-3">
+      <SectionHeader id={id} title={title} description={description} />
+      {children}
+    </section>
+  )
+}

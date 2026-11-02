@@ -9,7 +9,6 @@ export interface FileTreeListProps {
   links: TutorialLinks
   nodes: readonly TreeNode[]
   selectedPath: string | null
-  citedPaths: ReadonlySet<string>
 }
 
 const ROW_CLASS = 'flex min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1.5'
@@ -50,7 +49,6 @@ function FileRow({
   name,
   links,
   selectedPath,
-  citedPaths,
 }: FileTreeListProps & { entry: SourceTreeEntry; name: string }) {
   if (!entry.readable) {
     return (
@@ -71,7 +69,7 @@ function FileRow({
       )}
     >
       <span className="truncate font-mono text-xs">{name}</span>
-      {citedPaths.has(entry.path) ? (
+      {entry.cited ? (
         <Badge variant="outline" className="shrink-0">
           cited
         </Badge>

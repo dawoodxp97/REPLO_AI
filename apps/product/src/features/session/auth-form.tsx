@@ -1,6 +1,6 @@
-import { Alert, AlertDescription, Button } from '@replo/ui'
-import { CircleAlert } from 'lucide-react'
+import { Button } from '@replo/ui'
 import type { FormEventHandler, ReactNode } from 'react'
+import { InlineError } from '@/components/inline-error'
 
 export interface AuthFormProps {
   onSubmit: FormEventHandler<HTMLFormElement>
@@ -22,12 +22,7 @@ export function AuthForm({
   return (
     <form noValidate className="flex flex-col gap-4" onSubmit={onSubmit}>
       {children}
-      {error ? (
-        <Alert variant="destructive" role="alert">
-          <CircleAlert />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      {error ? <InlineError>{error}</InlineError> : null}
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? pendingLabel : submitLabel}
       </Button>

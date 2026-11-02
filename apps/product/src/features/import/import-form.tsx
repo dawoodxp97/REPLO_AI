@@ -1,10 +1,10 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ImportRepositoryInput } from '@replo/contracts'
-import { Alert, Button } from '@replo/ui'
-import { CircleAlert } from 'lucide-react'
+import { ImportRepositoryInput, type RepositorySource } from '@replo/contracts'
+import { Button } from '@replo/ui'
 import { useForm } from 'react-hook-form'
+import { InlineError } from '@/components/inline-error'
 import { AudienceField } from './audience-field'
 import { BudgetField } from './budget-field'
 import { EstimateCard } from './estimate-card'
@@ -15,14 +15,16 @@ import { KeyField } from './key-field'
 import { PreflightPanel } from './preflight-panel'
 import { PresetField } from './preset-field'
 import { SourceField } from './source-field'
+import { useImportDefaults } from './use-import-defaults'
 import { useImportPlan } from './use-import-plan'
 import { useStartImport } from './use-start-import'
 
-export function ImportForm() {
+export function ImportForm({ initialSource }: { initialSource?: RepositorySource }) {
   const form = useForm<ImportFormValues, unknown, ImportRepositoryInput>({
     resolver: zodResolver(ImportRepositoryInput),
-    defaultValues: IMPORT_FORM_DEFAULTS,
+    defaultValues: { ...IMPORT_FORM_DEFAULTS, source: initialSource },
   })
+  useImportDefaults(form)
   const { canSubmit, source, estimateInput, settling } = useImportPlan(form.control)
   const startImport = useStartImport()
 
@@ -55,10 +57,7 @@ export function ImportForm() {
       </ImportSection>
       <EstimateCard input={estimateInput} settling={settling} />
       {startImport.isError ? (
-        <Alert variant="destructive" role="alert">
-          <CircleAlert />
-          {describeImportError(startImport.error)}
-        </Alert>
+        <InlineError>{describeImportError(startImport.error)}</InlineError>
       ) : null}
       <div>
         <Button type="submit" disabled={!canSubmit || startImport.isPending}>

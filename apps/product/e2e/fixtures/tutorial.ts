@@ -185,14 +185,15 @@ export const SOURCE_FILES: Record<string, SourceFileDto> = {
 }
 
 export const SOURCE_TREE: SourceTreeEntry[] = [
-  { path: 'README.md', sizeBytes: 640, language: 'markdown', role: 'doc', readable: true },
-  { path: 'public/logo.png', sizeBytes: 20480, language: null, role: 'asset', readable: false },
+  { path: 'README.md', sizeBytes: 640, language: 'markdown', role: 'doc', readable: true, cited: false },
+  { path: 'public/logo.png', sizeBytes: 20480, language: null, role: 'asset', readable: false, cited: false },
   {
     path: 'src/cart/thunks.ts',
     sizeBytes: 1200,
     language: 'typescript',
     role: 'source',
     readable: true,
+    cited: true,
   },
   {
     path: 'src/ui/ProductCard.tsx',
@@ -200,6 +201,7 @@ export const SOURCE_TREE: SourceTreeEntry[] = [
     language: 'tsx',
     role: 'source',
     readable: true,
+    cited: true,
   },
 ]
 

@@ -1,10 +1,12 @@
 import type { GithubRepoDto } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
 import {
-  collectPages,
+  classifyGithubFailure,
   GithubApiError,
+  collectPages,
   GithubTokenRejectedError,
   pageQuery,
+  repoApiPath,
   type GithubRest,
 } from '../../platform/github/client'
 import {
@@ -18,6 +20,25 @@ import { installUrlFor, requireGithubApp, type GithubAppCredentials } from './gi
 import { suspendedAt } from './github.events'
 import { toRepositorySummary } from './github.mapper'
 import { githubInstallationsRepo } from './github.repo'
+
+const TOKEN_REUSE_MARGIN_MS = 5 * 60_000
+const TOKEN_DEFAULT_LIFETIME_MS = 50 * 60_000
+const TOKEN_INFLIGHT_MS = 10_000
+
+interface MintedToken {
+  token: string
+  expiresAt: number | undefined
+}
+
+interface CachedToken {
+  reuseUntil: number
+  token: Promise<MintedToken | undefined>
+}
+
+const reuseDeadline = (expiresAt: number | undefined) =>
+  expiresAt === undefined
+    ? Date.now() + TOKEN_DEFAULT_LIFETIME_MS
+    : expiresAt - TOKEN_REUSE_MARGIN_MS
 
 interface ActiveInstallation {
   githubInstallationId: number
@@ -63,6 +84,19 @@ export function createGithubService(deps: {
     return createAppJwt(app.appId, app.privateKey, Math.floor(Date.now() / 1000))
   }
 
+  const tokenCache = new Map<number, CachedToken>()
+
+  const mintInstallationToken = async (installationId: number): Promise<MintedToken | undefined> => {
+    const body = await rest.request(
+      `/app/installations/${installationId}/access_tokens`,
+      InstallationToken,
+      { method: 'POST', token: appJwt() },
+    )
+    if (!body) return undefined
+    const expiresAt = body.expires_at ? Date.parse(body.expires_at) : Number.NaN
+    return { token: body.token, expiresAt: Number.isFinite(expiresAt) ? expiresAt : undefined }
+  }
+
   const userInstallationRepositories = (userToken: string, installationId: number) =>
     collectPages((page) =>
       rest
@@ -88,10 +122,9 @@ export function createGithubService(deps: {
         installationId: installation.githubInstallationId,
       }))
     } catch (error) {
-      if (error instanceof GithubApiError) {
-        if (error.status === 401) throw new GithubTokenRejectedError()
-        return []
-      }
+      const failure = classifyGithubFailure(error)
+      if (failure === 'token_rejected') throw new GithubTokenRejectedError()
+      if (error instanceof GithubApiError) return []
       throw error
     }
   }
@@ -125,15 +158,12 @@ export function createGithubService(deps: {
       const userToken = await deps.userTokens.githubAccessToken(userId)
       if (!userToken) return false
       try {
-        const repository = await rest.request(
-          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`,
-          GithubRepository,
-          { token: userToken },
-        )
+        const repository = await rest.request(repoApiPath(owner, name), GithubRepository, {
+          token: userToken,
+        })
         return repository !== undefined
       } catch (error) {
-        if (error instanceof GithubApiError && error.status === 401)
-          throw new GithubTokenRejectedError()
+        if (classifyGithubFailure(error) === 'token_rejected') throw new GithubTokenRejectedError()
         throw error
       }
     },
@@ -142,14 +172,27 @@ export function createGithubService(deps: {
       return githubInstallationsRepo(db).listActiveForUser(userId)
     },
 
-    async installationToken(installationId) {
-      if (!deps.app) return undefined
-      const body = await rest.request(
-        `/app/installations/${installationId}/access_tokens`,
-        InstallationToken,
-        { method: 'POST', token: appJwt() },
+    installationToken(installationId) {
+      if (!deps.app) return Promise.resolve(undefined)
+      const cached = tokenCache.get(installationId)
+      if (cached && cached.reuseUntil > Date.now())
+        return cached.token.then((minted) => minted?.token)
+      const entry: CachedToken = {
+        reuseUntil: Date.now() + TOKEN_INFLIGHT_MS,
+        token: mintInstallationToken(installationId),
+      }
+      tokenCache.set(installationId, entry)
+      entry.token.then(
+        (minted) => {
+          if (tokenCache.get(installationId) !== entry) return
+          if (minted === undefined) tokenCache.delete(installationId)
+          else entry.reuseUntil = reuseDeadline(minted.expiresAt)
+        },
+        () => {
+          if (tokenCache.get(installationId) === entry) tokenCache.delete(installationId)
+        },
       )
-      return body?.token
+      return entry.token.then((minted) => minted?.token)
     },
 
     async linkInstallation({ userId, installationId, userToken }) {

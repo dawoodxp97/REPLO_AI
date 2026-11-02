@@ -1,11 +1,7 @@
-import { Alert, AlertDescription, cn } from '@replo/ui'
+import { Alert, AlertDescription, MonoLabel } from '@replo/ui'
 import { TriangleAlert } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { displayClass } from './page-section'
-
-export const linkClass =
-  'text-link underline decoration-link/40 underline-offset-4 transition-colors hover:decoration-link'
 
 export const bulletListClass = 'list-disc space-y-2 pl-5 marker:text-muted-foreground'
 
@@ -26,7 +22,7 @@ export function Article({
     <main id="main" className="mx-auto w-full max-w-3xl px-4 pt-12 pb-24 sm:px-6 sm:pt-20">
       <div className="max-w-[68ch]">
         {notice}
-        <h1 className={cn(displayClass, 'text-3xl leading-[1.1] sm:text-4xl')}>{title}</h1>
+        <h1 className={'heading-display text-3xl leading-[1.1] sm:text-4xl'}>{title}</h1>
         {lede ? (
           <p className="mt-4 text-lg leading-relaxed text-pretty text-muted-foreground">{lede}</p>
         ) : null}
@@ -41,7 +37,7 @@ export function Article({
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-12 space-y-4 border-t pt-8">
-      <h2 className={cn(displayClass, 'text-xl sm:text-2xl')}>{title}</h2>
+      <h2 className={'heading-display text-xl sm:text-2xl'}>{title}</h2>
       {children}
     </section>
   )
@@ -61,11 +57,11 @@ export function DraftNotice() {
 export function NextLinks({ links }: { links: readonly { href: string; title: string }[] }) {
   return (
     <nav aria-label="Related pages" className="mt-14 border-t pt-6">
-      <p className="mb-3 font-mono text-[0.6875rem] tracking-wide text-muted-foreground">Related</p>
+      <MonoLabel className="mb-3 block">Related</MonoLabel>
       <ul className={bulletListClass}>
         {links.map((link) => (
           <li key={link.href}>
-            <Link href={link.href} className={linkClass}>
+            <Link href={link.href} className="link-inline">
               {link.title}
             </Link>
           </li>

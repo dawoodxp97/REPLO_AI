@@ -2,6 +2,7 @@ import { and, eq, inArray, lt, notExists, sql } from 'drizzle-orm'
 import type { SnapshotStats } from '@replo/contracts'
 import type { Analysis } from '@replo/repo-analysis'
 import type { DbOrTx } from '../../platform/db/client'
+import { insertChunked } from '../../platform/db/insert-chunked'
 import {
   fileEdges,
   generationJobs,
@@ -14,16 +15,6 @@ import {
 } from '../../platform/db/schema'
 import type { ArchiveRecord } from './archive'
 import { ANALYZER_VERSION } from '@replo/repo-analysis'
-
-const INSERT_CHUNK = 500
-
-async function insertChunked<T>(
-  rows: readonly T[],
-  insert: (chunk: T[]) => PromiseLike<unknown>,
-): Promise<void> {
-  for (let offset = 0; offset < rows.length; offset += INSERT_CHUNK)
-    await insert(rows.slice(offset, offset + INSERT_CHUNK))
-}
 
 const snapshotFileColumns = {
   path: snapshotFiles.path,
@@ -67,7 +58,7 @@ export const snapshotsRepo = (db: DbOrTx) => ({
     return row
   },
 
-  async unreferencedBefore(cutoff: Date): Promise<{ id: string }[]> {
+  async unreferencedBefore(cutoff: Date, limit: number): Promise<{ id: string }[]> {
     return db
       .select({ id: repoSnapshots.id })
       .from(repoSnapshots)
@@ -88,6 +79,7 @@ export const snapshotsRepo = (db: DbOrTx) => ({
           ),
         ),
       )
+      .limit(limit)
   },
 
   async deleteSnapshots(ids: readonly string[]): Promise<void> {
@@ -95,11 +87,19 @@ export const snapshotsRepo = (db: DbOrTx) => ({
     await db.delete(repoSnapshots).where(inArray(repoSnapshots.id, [...ids]))
   },
 
-  async repositoryOf(repositoryId: string) {
+  async findWithRepository(snapshotId: string) {
     const [row] = await db
-      .select({ owner: repositories.owner, name: repositories.name })
-      .from(repositories)
-      .where(eq(repositories.id, repositoryId))
+      .select({
+        repositoryId: repoSnapshots.repositoryId,
+        id: repoSnapshots.id,
+        commitSha: repoSnapshots.commitSha,
+        analysis: repoSnapshots.analysis,
+        owner: repositories.owner,
+        repositoryName: repositories.name,
+      })
+      .from(repoSnapshots)
+      .innerJoin(repositories, eq(repositories.id, repoSnapshots.repositoryId))
+      .where(eq(repoSnapshots.id, snapshotId))
       .limit(1)
     return row
   },
@@ -145,7 +145,7 @@ export const snapshotsRepo = (db: DbOrTx) => ({
 
   async replaceFiles(snapshotId: string, files: readonly ArchiveRecord[]): Promise<void> {
     await db.delete(snapshotFiles).where(eq(snapshotFiles.snapshotId, snapshotId))
-    await insertChunked(files, (chunk) =>
+    await insertChunked(files, 6, (chunk) =>
       db.insert(snapshotFiles).values(
         chunk.map((file) => ({
           snapshotId,
@@ -169,7 +169,7 @@ export const snapshotsRepo = (db: DbOrTx) => ({
   async replaceIndex(snapshotId: string, index: Analysis): Promise<void> {
     await db.delete(symbols).where(eq(symbols.snapshotId, snapshotId))
     await db.delete(fileEdges).where(eq(fileEdges.snapshotId, snapshotId))
-    await insertChunked(index.symbols, (chunk) =>
+    await insertChunked(index.symbols, 9, (chunk) =>
       db.insert(symbols).values(
         chunk.map((symbol) => ({
           snapshotId,
@@ -184,7 +184,7 @@ export const snapshotsRepo = (db: DbOrTx) => ({
         })),
       ),
     )
-    await insertChunked(index.edges, (chunk) =>
+    await insertChunked(index.edges, 4, (chunk) =>
       db.insert(fileEdges).values(
         chunk.map((edge) => ({
           snapshotId,

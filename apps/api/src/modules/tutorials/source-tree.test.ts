@@ -10,13 +10,15 @@ function file(overrides: Partial<SnapshotFile> & Pick<SnapshotFile, 'path'>): Sn
   return { blobSha: BLOB, language: 'typescript', role: 'source', sizeBytes: 120, ...overrides }
 }
 
+const NO_CITATIONS: ReadonlySet<string> = new Set()
+
 describe('toSourceTree', () => {
   it('sorts every file by path and keeps the pinned commit', () => {
     const tree = toSourceTree(SHA, [
       file({ path: 'src/cart.ts' }),
       file({ path: 'README.md', language: 'markdown', role: 'doc' }),
       file({ path: 'lib/index.ts' }),
-    ])
+    ], NO_CITATIONS)
 
     expect(tree.commitSha).toBe(SHA)
     expect(tree.files.map((entry) => entry.path)).toEqual([
@@ -27,7 +29,7 @@ describe('toSourceTree', () => {
   })
 
   it('marks a text source file readable and reports its size, role and language', () => {
-    const [entry] = toSourceTree(SHA, [file({ path: 'src/cart.ts', sizeBytes: 480 })]).files
+    const [entry] = toSourceTree(SHA, [file({ path: 'src/cart.ts', sizeBytes: 480 })], NO_CITATIONS).files
 
     expect(entry).toEqual({
       path: 'src/cart.ts',
@@ -35,6 +37,7 @@ describe('toSourceTree', () => {
       language: 'typescript',
       role: 'source',
       readable: true,
+      cited: false,
     })
   })
 
@@ -42,7 +45,7 @@ describe('toSourceTree', () => {
     const [atLimit, overLimit] = toSourceTree(SHA, [
       file({ path: 'src/at-limit.ts', sizeBytes: MAX_INDEXED_FILE_BYTES }),
       file({ path: 'src/over-limit.ts', sizeBytes: MAX_INDEXED_FILE_BYTES + 1 }),
-    ]).files
+    ], NO_CITATIONS).files
 
     expect(atLimit?.readable).toBe(true)
     expect(overLimit?.readable).toBe(false)
@@ -52,13 +55,26 @@ describe('toSourceTree', () => {
     const [html, image] = toSourceTree(SHA, [
       file({ path: 'public/index.html', language: 'html', role: 'asset' }),
       file({ path: 'public/logo.png', language: null, role: 'asset' }),
-    ]).files
+    ], NO_CITATIONS).files
 
     expect(html?.readable).toBe(true)
     expect(image?.readable).toBe(false)
   })
 
   it('lists an empty snapshot as an empty tree', () => {
-    expect(toSourceTree(SHA, [])).toEqual({ commitSha: SHA, files: [] })
+    expect(toSourceTree(SHA, [], NO_CITATIONS)).toEqual({ commitSha: SHA, files: [] })
+  })
+
+  it('flags the files a lesson cites', () => {
+    const files = toSourceTree(
+      SHA,
+      [file({ path: 'src/cart.ts' }), file({ path: 'lib/index.ts' })],
+      new Set(['src/cart.ts']),
+    ).files
+
+    expect(files.map((entry) => [entry.path, entry.cited])).toEqual([
+      ['lib/index.ts', false],
+      ['src/cart.ts', true],
+    ])
   })
 })

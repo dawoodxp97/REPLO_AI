@@ -3,7 +3,6 @@ import Link from 'next/link'
 import {
   Article,
   bulletListClass,
-  linkClass,
   NextLinks,
   numberedListClass,
   Section,
@@ -51,7 +50,7 @@ export default function HowItWorksPage() {
             <strong className="font-semibold text-foreground">Check and publish.</strong> Every
             reference is checked against the pinned commit. Claims that fail are removed or
             downgraded. A tutorial with weak support is published as a Draft.{' '}
-            <Link href="/docs/grounding/" className={linkClass}>
+            <Link href="/docs/grounding/" className="link-inline">
               How the checks work
             </Link>
             .

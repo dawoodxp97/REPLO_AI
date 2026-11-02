@@ -21,9 +21,9 @@ export function PlayerHeader({
     <header className="flex items-center justify-between gap-3 border-b bg-background px-4 py-2">
       <div className="flex min-w-0 items-center gap-2">
         {onOpenOutline ? (
-          <Button variant="outline" size="sm" onClick={onOpenOutline}>
+          <Button variant="outline" size="sm" onClick={onOpenOutline} aria-label="Lessons">
             <ListTree />
-            Lessons
+            <span className="hidden sm:inline">Lessons</span>
           </Button>
         ) : null}
         <LinkButton href={overviewHref} variant="ghost" size="sm" className="min-w-0 max-w-full">
@@ -32,13 +32,13 @@ export function PlayerHeader({
         </LinkButton>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <Button variant="outline" size="sm" onClick={onOpenCommands}>
+        <Button variant="outline" size="sm" onClick={onOpenCommands} aria-label="Commands">
           <Search />
-          Commands
+          <span className="hidden sm:inline">Commands</span>
         </Button>
-        <LinkButton href={sourceHref} variant="ghost" size="sm">
+        <LinkButton href={sourceHref} variant="ghost" size="sm" aria-label="Source explorer">
           <Code />
-          Source explorer
+          <span className="hidden sm:inline">Source explorer</span>
         </LinkButton>
       </div>
     </header>

@@ -5,7 +5,7 @@ const never = () => new Promise<never>(() => {})
 
 describe('withTimeout', () => {
   it('returns the handler result', async () => {
-    await expect(withTimeout(1000, new AbortController().signal, async () => 7)).resolves.toBe(7)
+    await expect(withTimeout(1000, new AbortController().signal, async () => 7, 5)).resolves.toBe(7)
   })
 
   it('rejects with a TimeoutError when a handler ignores the signal', async () => {

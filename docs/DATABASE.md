@@ -75,6 +75,12 @@ There are no platform quotas or credits (ADR-007). Each job has a budget ceiling
 - **Preferences:** `user_preferences.theme` defaults to `system` (migration `0010`).
 - **Revocation/deletion:** uninstall/repo-removal webhook sets `revoked_at`, hides tutorials, schedules blob purge. Removing a repo from the library (FR-LIB-2) deletes that user's tutorials, versions and progress for it. Deleting a tutorial (FR-LIB-3) removes its versions, progress and quiz attempts. Account deletion cascades (keys, preferences, progress, private tutorials, blobs); user chooses delete vs. anonymise for public tutorials.
 
+## Indexes added in the refactor round
+
+- `0012`: `session_expires_at_idx`, `notifications_created_at_idx`, partial `notifications_user_unread_idx` on `(user_id)` where `read_at is null`.
+- `0013_yielding_sphinx`: `generation_jobs(status, finished_at)`, partial `generation_jobs(key_id)` over the in-flight statuses, `job_events(at)`; `tutorial_versions.published_at` is NOT NULL (nulls backfilled with `now()`).
+- `0014`: `generation_jobs_snapshot_idx`, `learning_progress_user_status_updated_idx`, `repositories_qualified_name_trgm_idx` (gin on `owner || '/' || name`), partial `user_repositories_active_idx`.
+
 ## Migrations workflow
 
 ```bash

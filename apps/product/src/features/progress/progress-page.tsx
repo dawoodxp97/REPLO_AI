@@ -4,12 +4,11 @@ import type { TutorialOverviewDto } from '@replo/contracts'
 import { Skeleton } from '@replo/ui'
 import { LinkButton } from '@/components/link-button'
 import { PageHeader, SectionHeader } from '@/components/page-header'
-import { findChapterKey } from '@/features/player/lesson-navigation'
+import { resolveLessonHref } from '@/features/player/lesson-navigation'
 import { useTutorialOverview } from '@/features/player/use-tutorial-overview'
-import { createTutorialLinks } from '@/lib/tutorial-paths'
+import { formatRepoName } from '@/lib/format'
 import {
-  lessonPath,
-  withTutorialContext,
+  createTutorialLinks,
   type TutorialLinkContext,
   type TutorialRef,
 } from '@/lib/tutorial-paths'
@@ -50,9 +49,7 @@ function ProgressView({
       description={
         <>
           Your progress in{' '}
-          <span className="font-mono">
-            {tutorial.owner}/{tutorial.repo}
-          </span>
+          <span className="font-mono">{formatRepoName(tutorial.owner, tutorial.repo)}</span>
         </>
       }
       action={
@@ -82,11 +79,9 @@ function ProgressView({
   }
 
   const { nextLessonKey } = progress.data
-  const resumeChapter = nextLessonKey ? findChapterKey(overview.outline, nextLessonKey) : undefined
-  const resumeHref =
-    nextLessonKey && resumeChapter
-      ? withTutorialContext(lessonPath(tutorial, resumeChapter, nextLessonKey), linkContext)
-      : null
+  const resumeHref = nextLessonKey
+    ? resolveLessonHref(overview.outline, createTutorialLinks(tutorial, linkContext), nextLessonKey)
+    : null
 
   return (
     <div className="space-y-8">

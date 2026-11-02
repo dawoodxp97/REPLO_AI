@@ -1,4 +1,4 @@
-import { apiErrorDetails } from '@/lib/api-error'
+import { createErrorDescriber } from '@/lib/error-copy'
 
 const NOTICES: Record<string, string> = {
   OAUTH_DENIED: 'Sign-in was cancelled at the provider. Try again when you are ready.',
@@ -18,13 +18,7 @@ export function authNotice(code: string | undefined): string | null {
   return code && Object.hasOwn(NOTICES, code) ? (NOTICES[code] ?? null) : null
 }
 
-export function describeAuthError(error: unknown): string {
-  switch (apiErrorDetails(error)?.code) {
-    case 'EMAIL_TAKEN':
-      return 'An account with this email already exists. Sign in instead.'
-    case 'INVALID_CREDENTIALS':
-      return 'That email and password do not match an account.'
-    default:
-      return 'Something went wrong. Try again.'
-  }
-}
+export const describeAuthError = createErrorDescriber({
+  EMAIL_TAKEN: 'An account with this email already exists. Sign in instead.',
+  INVALID_CREDENTIALS: 'That email and password do not match an account.',
+})

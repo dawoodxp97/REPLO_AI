@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
 import { orpc } from '@/lib/orpc'
 
@@ -11,6 +11,7 @@ export function useLibrarySearch(query: string) {
     orpc.search.own.queryOptions({
       input: { q: debounced, limit: 10 },
       enabled: debounced.length >= MIN_QUERY_LENGTH,
+      placeholderData: keepPreviousData,
     }),
   )
   return { debounced, results }

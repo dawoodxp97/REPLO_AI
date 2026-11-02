@@ -1,33 +1,24 @@
 import { OAuthProvider } from '@replo/contracts'
 import { z } from 'zod'
-import { parseCookies, serializeCookie } from '../../platform/cookies'
+import { serializeCookie } from '../../platform/cookies'
 import type { App } from '../../platform/http'
 import type { AuthService } from './auth.service'
-import { newOAuthAttempt, OAuthFailure, type OAuthClients } from './oauth'
+import { createAuthRedirects } from './auth-redirects'
+import { newOAuthAttempt, OAuthFailure, type OAuthClients, type OAuthGrant } from './oauth'
+import { ATTEMPT_COOKIE, AuthIntent, encodeAttempt, readAttempt } from './oauth-attempt'
 import { sessionFromRequest } from './session-request'
 import type { SessionCookie } from './session'
 
-const ATTEMPT_COOKIE = 'replo_oauth'
 const ATTEMPT_PATH = '/auth'
 const ATTEMPT_LIFETIME_SECONDS = 600
 
-const Intent = z.enum(['sign-in', 'link'])
-
 const ProviderParams = z.object({ provider: OAuthProvider })
-const StartQuery = z.object({ intent: Intent.default('sign-in') })
+const StartQuery = z.object({ intent: AuthIntent.default('sign-in') })
 const CallbackQuery = z.object({
   code: z.string().min(1).optional(),
   state: z.string().min(1).optional(),
   error: z.string().optional(),
 })
-const Attempt = z.object({
-  provider: OAuthProvider,
-  state: z.string().min(1),
-  codeVerifier: z.string().min(1),
-  intent: Intent,
-})
-type Attempt = z.infer<typeof Attempt>
-
 export interface AuthRouteDeps {
   auth: AuthService
   clients: OAuthClients
@@ -35,19 +26,6 @@ export interface AuthRouteDeps {
   productOrigin: string
   apiPublicUrl: string
   secure: boolean
-}
-
-function readAttempt(cookieHeader: string | undefined): Attempt | undefined {
-  const raw = parseCookies(cookieHeader).get(ATTEMPT_COOKIE)
-  if (!raw) return undefined
-  let json: unknown
-  try {
-    json = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'))
-  } catch {
-    return undefined
-  }
-  const parsed = Attempt.safeParse(json)
-  return parsed.success ? parsed.data : undefined
 }
 
 export function registerAuthRoutes(app: App, deps: AuthRouteDeps) {
@@ -60,16 +38,9 @@ export function registerAuthRoutes(app: App, deps: AuthRouteDeps) {
       maxAgeSeconds,
     })
 
-  const callbackUrl = (provider: OAuthProvider) =>
-    new URL(`/auth/${provider}/callback`, deps.apiPublicUrl).toString()
-  const productUrl = (path: string, params: Record<string, string> = {}) => {
-    const url = new URL(path, deps.productOrigin)
-    for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value)
-    return url.toString()
-  }
-  const errorParams = (error?: string): Record<string, string> => (error ? { error } : {})
-  const loginUrl = (error?: string) => productUrl('/login', errorParams(error))
-  const settingsUrl = (error?: string) => productUrl('/settings/profile', errorParams(error))
+  const redirects = createAuthRedirects(deps)
+  const { login: loginUrl, settings: settingsUrl, product: productUrl } = redirects
+  const callbackUrl = redirects.callback
 
   app.get('/auth/:provider/start', async (request, reply) => {
     const params = ProviderParams.safeParse(request.params)
@@ -82,14 +53,12 @@ export function registerAuthRoutes(app: App, deps: AuthRouteDeps) {
       return reply.redirect(loginUrl())
 
     const attempt = newOAuthAttempt()
-    const encoded = Buffer.from(
-      JSON.stringify({
-        provider: params.data.provider,
-        state: attempt.state,
-        codeVerifier: attempt.codeVerifier,
-        intent: query.data.intent,
-      } satisfies Attempt),
-    ).toString('base64url')
+    const encoded = encodeAttempt({
+      provider: params.data.provider,
+      state: attempt.state,
+      codeVerifier: attempt.codeVerifier,
+      intent: query.data.intent,
+    })
     reply.header('set-cookie', attemptCookie(encoded, ATTEMPT_LIFETIME_SECONDS))
     return reply.redirect(
       client.authorizationUrl({
@@ -126,7 +95,7 @@ export function registerAuthRoutes(app: App, deps: AuthRouteDeps) {
     )
       return fail('OAUTH_STATE')
 
-    let grant: Awaited<ReturnType<typeof client.complete>>
+    let grant: OAuthGrant
     try {
       grant = await client.complete({
         redirectUri: callbackUrl(provider),

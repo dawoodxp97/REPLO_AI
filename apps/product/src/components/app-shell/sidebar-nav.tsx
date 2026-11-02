@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LinkButton } from '@/components/link-button'
+import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
 import { PRIMARY_NAV } from './nav-items'
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
@@ -12,9 +13,9 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <LinkButton href="/import" className="w-full justify-start" onClick={onNavigate}>
+      <LinkButton href={importPath()} className="w-full justify-start" onClick={onNavigate}>
         <Plus />
-        New tutorial
+        {NEW_TUTORIAL_LABEL}
       </LinkButton>
       <nav aria-label="Primary">
         <ul className="flex flex-col gap-0.5">

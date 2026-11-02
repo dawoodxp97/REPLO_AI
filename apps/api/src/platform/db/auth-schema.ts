@@ -34,7 +34,10 @@ export const session = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('session_user_id_idx').on(t.userId)],
+  (t) => [
+    index('session_user_id_idx').on(t.userId),
+    index('session_expires_at_idx').on(t.expiresAt),
+  ],
 )
 
 export const authIdentity = pgTable(

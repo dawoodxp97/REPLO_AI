@@ -50,3 +50,52 @@ export function openEventStream(
     },
   }
 }
+
+export interface PollingStreamOptions {
+  stream: EventStream
+  reply: FastifyReply
+  pollMs: number
+  heartbeatMs: number
+  sessionRecheckMs: number
+  sessionStillValid: () => Promise<boolean>
+  unauthorizedFrame?: string
+  tick: (send: (frame: string) => void) => Promise<'continue' | 'done'>
+}
+
+const waitUnless = (ms: number, closed: Promise<void>) =>
+  new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, ms)
+    void closed.then(() => {
+      clearTimeout(timer)
+      resolve()
+    })
+  })
+
+export async function runPollingStream(options: PollingStreamOptions): Promise<void> {
+  const { stream, reply } = options
+  const closed = reply.raw.destroyed
+    ? Promise.resolve()
+    : new Promise<void>((resolve) => reply.raw.once('close', resolve))
+  let lastWrite = Date.now()
+  let lastSessionCheck = Date.now()
+  const send = (frame: string) => {
+    stream.send(frame)
+    lastWrite = Date.now()
+  }
+  try {
+    while (stream.isOpen() && !reply.raw.destroyed) {
+      if (Date.now() - lastSessionCheck >= options.sessionRecheckMs) {
+        lastSessionCheck = Date.now()
+        if (!(await options.sessionStillValid())) {
+          if (options.unauthorizedFrame) stream.send(options.unauthorizedFrame)
+          break
+        }
+      }
+      if ((await options.tick(send)) === 'done') break
+      if (Date.now() - lastWrite > options.heartbeatMs) send(KEEP_ALIVE_FRAME)
+      await waitUnless(options.pollMs, closed)
+    }
+  } finally {
+    stream.close()
+  }
+}

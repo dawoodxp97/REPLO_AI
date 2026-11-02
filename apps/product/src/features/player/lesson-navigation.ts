@@ -1,4 +1,5 @@
 import type { LearnerLesson, TutorialOverviewDto } from '@replo/contracts'
+import type { TutorialLinks } from '@/lib/tutorial-paths'
 
 export interface LessonPosition {
   chapterKey: string
@@ -55,6 +56,15 @@ export function findChapterKey(
   lessonKey: string,
 ): string | undefined {
   return outline.find((chapter) => chapter.lessons.some((lesson) => lesson.key === lessonKey))?.key
+}
+
+export function resolveLessonHref(
+  outline: TutorialOverviewDto['outline'],
+  links: TutorialLinks,
+  lessonKey: string,
+): string | null {
+  const chapterKey = findChapterKey(outline, lessonKey)
+  return chapterKey ? links.lesson({ chapterKey, lessonKey }) : null
 }
 
 export function nextReference(

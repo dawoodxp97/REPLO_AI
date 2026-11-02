@@ -1,7 +1,13 @@
 import type { EnabledProvidersDto, OAuthProvider, SignInInput, SignUpInput } from '@replo/contracts'
-import type { SessionUser } from '../../context'
 import type { Outcome } from '../../platform/outcome'
 import type { OAuthProfile } from './oauth'
+
+export interface SessionUser {
+  id: string
+  name: string | null
+  email: string | null
+  image: string | null
+}
 
 export interface IssuedSession {
   token: string

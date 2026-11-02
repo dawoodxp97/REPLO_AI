@@ -1,6 +1,7 @@
 import type { FastifyRequest } from 'fastify'
 import { describe, expect, it } from 'vitest'
-import { buildRateRules } from './rate-limit-rules'
+import { router } from '../router'
+import { buildRateRules, RATE_LIMITED_PATHS } from './rate-limit-rules'
 
 const request = (ip: string) => ({ ip }) as FastifyRequest
 
@@ -23,6 +24,26 @@ describe('buildRateRules', () => {
     for (const path of ['/rpc/repositories/import', '/rpc/keys/add', '/rpc/keys/validate']) {
       expect(await ruleFor(path, 'u1').key(request('1.2.3.4'))).toBe('user:u1')
       expect(await ruleFor(path).key(request('1.2.3.4'))).toBe('ip:1.2.3.4')
+    }
+  })
+
+  it('only names procedures that exist on the router', () => {
+    const lookup = (path: string): unknown =>
+      path
+        .replace('/rpc/', '')
+        .split('/')
+        .reduce<unknown>(
+          (node, key) =>
+            typeof node === 'object' && node !== null ? Reflect.get(node, key) : undefined,
+          router,
+        )
+    for (const path of Object.values(RATE_LIMITED_PATHS).flat())
+      expect(lookup(path), path).toBeDefined()
+  })
+
+  it('limits the github-backed and destructive procedures per user', async () => {
+    for (const path of RATE_LIMITED_PATHS.gated) {
+      expect(await ruleFor(path, 'u1').key(request('1.2.3.4'))).toBe('user:u1')
     }
   })
 

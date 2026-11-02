@@ -1,12 +1,10 @@
 import type { OAuthProvider } from '@replo/contracts'
 import { env } from '@/lib/env'
 
-export const PROVIDER_LABELS: Record<OAuthProvider, string> = {
+export const OAUTH_PROVIDER_LABELS: Record<OAuthProvider, string> = {
   github: 'GitHub',
   google: 'Google',
 }
-
-export const OAUTH_PROVIDERS = Object.keys(PROVIDER_LABELS) as OAuthProvider[]
 
 export const providerStartUrl = (provider: OAuthProvider, intent?: 'link') =>
   `${env.apiUrl}/auth/${provider}/start${intent ? `?intent=${intent}` : ''}`

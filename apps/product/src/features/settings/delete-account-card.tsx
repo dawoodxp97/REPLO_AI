@@ -1,23 +1,14 @@
 'use client'
 
 import type { DeleteAccountInput } from '@replo/contracts'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  FormField,
-  Input,
-} from '@replo/ui'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@replo/ui'
 import { useState } from 'react'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { TextField } from '@/components/text-field'
 import { RadioCardGroup, type RadioCardOption } from '@/components/radio-card-group'
-import { useDeleteAccount } from './use-delete-account'
+import { DELETE_CONFIRM_WORD, useDeleteAccount } from './use-delete-account'
 
 type PublicTutorials = DeleteAccountInput['publicTutorials']
-
-const CONFIRM_WORD = 'DELETE'
 
 const PUBLIC_TUTORIAL_OPTIONS = [
   {
@@ -55,20 +46,19 @@ export function DeleteAccountCard() {
           title="Delete your account?"
           description="This cannot be undone. Keys and progress are deleted at once."
           confirmLabel="Delete my account"
-          confirmDisabled={confirmText !== CONFIRM_WORD}
+          confirmDisabled={confirmText !== DELETE_CONFIRM_WORD}
           run={() => run(publicTutorials)}
           describeError={() => 'The account could not be deleted. Try again.'}
           onOpenChange={resetForm}
         >
-          <FormField id="confirm-delete" label={`Type ${CONFIRM_WORD} to confirm`}>
-            <Input
-              id="confirm-delete"
-              autoComplete="off"
-              value={confirmText}
-              onChange={(event) => setConfirmText(event.target.value)}
-              className="font-mono"
-            />
-          </FormField>
+          <TextField
+            id="confirm-delete"
+            label={`Type ${DELETE_CONFIRM_WORD} to confirm`}
+            autoComplete="off"
+            value={confirmText}
+            onChange={(event) => setConfirmText(event.target.value)}
+            className="font-mono"
+          />
           <RadioCardGroup
             name="public-tutorials"
             legend="Your public tutorials"

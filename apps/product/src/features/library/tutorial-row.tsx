@@ -17,10 +17,11 @@ import {
 import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { formatDate, formatPercent } from '@/lib/format'
+import { formatDate, formatPercent, formatRepoName } from '@/lib/format'
 import { tutorialPath } from '@/lib/tutorial-paths'
 import { useDeleteTutorial } from './use-library'
 import { VisibilityControl } from './visibility-control'
+import { VISIBILITY_LABEL } from './visibility-options'
 
 function ReadProgress({ ratio }: { ratio: number }) {
   return (
@@ -38,19 +39,19 @@ export function TutorialRow({ tutorial }: { tutorial: TutorialSummaryDto }) {
 
   return (
     <Collapsible render={<Item />}>
-      <ItemContent>
+      <ItemContent className="basis-full sm:basis-0">
         <ItemTitle>
           <Link href={tutorialPath(tutorial)} className="break-words hover:underline">
             {tutorial.title}
           </Link>
         </ItemTitle>
         <ItemDescription className="font-mono text-xs">
-          {tutorial.owner}/{tutorial.repo} · v{tutorial.currentVersionNo} · updated{' '}
+          {formatRepoName(tutorial.owner, tutorial.repo)} · v{tutorial.currentVersionNo} · updated{' '}
           {formatDate(tutorial.updatedAt)}
         </ItemDescription>
       </ItemContent>
-      <ItemActions className="flex-wrap">
-        <Badge variant="outline">{tutorial.visibility}</Badge>
+      <ItemActions className="max-w-full flex-wrap">
+        <Badge variant="outline">{VISIBILITY_LABEL[tutorial.visibility]}</Badge>
         {tutorial.progress === null ? null : <ReadProgress ratio={tutorial.progress} />}
         <CollapsibleTrigger
           render={<Button variant="ghost" size="sm" />}

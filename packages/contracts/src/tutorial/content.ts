@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Audience, CommitSha } from '../common'
+import { Audience, CommitSha, NonNegativeInt } from '../common'
 
 export const SourceRef = z.object({
   path: z.string(),
@@ -52,10 +52,12 @@ export type Block = z.infer<typeof Block>
 export const QuestionOption = z.object({ key: z.string().min(1), text: z.string().min(1) })
 export type QuestionOption = z.infer<typeof QuestionOption>
 
+export const QuestionKind = z.enum(['multiple_choice', 'true_false'])
+
 export const Question = z
   .object({
     key: z.string(),
-    kind: z.enum(['multiple_choice', 'true_false']),
+    kind: QuestionKind,
     prompt: z.string(),
     options: z.array(QuestionOption).min(2).max(5),
     correct: z.string(),
@@ -128,8 +130,8 @@ export const ValidationReport = z.object({
   verifiedClaimRatio: z.number().min(0).max(1),
   judgeScore: z.number().min(0).max(1).nullable(),
   confidence: z.number().min(0).max(1),
-  fabricatedIdentifiers: z.number().int().nonnegative(),
-  repairs: z.number().int().nonnegative(),
+  fabricatedIdentifiers: NonNegativeInt,
+  repairs: NonNegativeInt,
   draft: z.boolean(),
   issues: z.array(
     z.object({ lessonKey: z.string().nullable(), code: z.string(), detail: z.string() }),

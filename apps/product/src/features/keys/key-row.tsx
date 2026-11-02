@@ -6,7 +6,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { describeKeyError } from './key-errors'
 import { keyMask, keyTitle } from './format-key-label'
 import { KeyValidationStatus } from './key-validation-status'
-import { PROVIDER_LABELS } from './providers'
+import { LLM_PROVIDER_LABELS } from './providers'
 import { useDeleteKey, useValidateKey } from './use-keys'
 
 export function KeyRow({ keyDto }: { keyDto: KeyDto }) {
@@ -35,7 +35,7 @@ export function KeyRow({ keyDto }: { keyDto: KeyDto }) {
         </Button>
         <ConfirmDialog
           triggerLabel="Delete"
-          title={`Delete the ${PROVIDER_LABELS[keyDto.provider]} key?`}
+          title={`Delete the ${LLM_PROVIDER_LABELS[keyDto.provider]} key?`}
           description="The key is removed from Replo at once and cannot be recovered. Any tutorial still generating with it will stop and need to be restarted with another key."
           confirmLabel="Delete key"
           run={() => remove.mutateAsync({ keyId: keyDto.id })}

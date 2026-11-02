@@ -56,10 +56,8 @@ export function createRepositoryLibrary(deps: RepositoryLibraryDeps): Repository
     },
 
     async remove(userId, repositoryId) {
-      const link = await repositoriesRepo(db).findLinked(userId, repositoryId)
-      if (!link) notFound('Repository')
       await db.transaction(async (tx) => {
-        await repositoriesRepo(tx).revokeLink(userId, repositoryId)
+        if (!(await repositoriesRepo(tx).revokeLink(userId, repositoryId))) notFound('Repository')
         await tutorials.removeForRepository(tx, userId, repositoryId)
       })
     },

@@ -1,22 +1,25 @@
 'use client'
 
 import type { RepositoryListItem } from '@replo/contracts'
-import { Badge, Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from '@replo/ui'
+import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from '@replo/ui'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { LinkButton } from '@/components/link-button'
+import { RepoVisibilityBadge } from '@/components/repo-visibility-badge'
 import { JobStatusLink } from '@/features/jobs/job-status-link'
+import { formatRepoName } from '@/lib/format'
+import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
 import { useRemoveRepository } from './use-repositories'
 
 export function RepositoryRow({ repository }: { repository: RepositoryListItem }) {
   const remove = useRemoveRepository()
-  const name = `${repository.owner}/${repository.name}`
+  const name = formatRepoName(repository.owner, repository.name)
 
   return (
     <Item>
       <ItemContent>
         <ItemTitle>
           <span className="font-mono break-all">{name}</span>
-          {repository.isPrivate ? <Badge variant="outline">Private</Badge> : null}
+          <RepoVisibilityBadge isPrivate={repository.isPrivate} />
         </ItemTitle>
         <ItemDescription className="text-xs">
           Default branch <span className="font-mono">{repository.defaultBranch}</span>
@@ -26,8 +29,8 @@ export function RepositoryRow({ repository }: { repository: RepositoryListItem }
         {repository.latestJob ? (
           <JobStatusLink jobId={repository.latestJob.jobId} status={repository.latestJob.status} />
         ) : (
-          <LinkButton href="/import" variant="outline" size="sm">
-            Generate tutorial
+          <LinkButton href={importPath(repository)} variant="outline" size="sm">
+            {NEW_TUTORIAL_LABEL}
           </LinkButton>
         )}
         <ConfirmDialog

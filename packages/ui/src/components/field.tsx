@@ -45,7 +45,7 @@ export function FieldDescription({ className, ...props }: ComponentProps<'p'>) {
   return (
     <p
       className={cn(
-        'text-[0.8125rem] leading-normal text-muted-foreground [&_a]:text-link [&_a]:underline [&_a]:underline-offset-4',
+        'text-compact leading-normal text-muted-foreground [&_a]:link-inline',
         className,
       )}
       {...props}
@@ -56,7 +56,7 @@ export function FieldDescription({ className, ...props }: ComponentProps<'p'>) {
 export function FieldError({ className, children, ...props }: ComponentProps<'p'>) {
   if (!children) return null
   return (
-    <p role="alert" className={cn('text-[0.8125rem] text-destructive', className)} {...props}>
+    <p role="alert" className={cn('text-compact text-destructive', className)} {...props}>
       {children}
     </p>
   )

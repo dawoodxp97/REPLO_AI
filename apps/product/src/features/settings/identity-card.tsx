@@ -16,7 +16,7 @@ export function IdentityCard({ user }: { user: MeDto['user'] }) {
           <p className="truncate text-sm font-semibold">
             {user.name ?? user.email ?? 'Your account'}
           </p>
-          <p className="truncate text-[0.8125rem] text-muted-foreground">
+          <p className="truncate text-compact text-muted-foreground">
             {user.email ?? 'No email on this account.'}
           </p>
         </div>

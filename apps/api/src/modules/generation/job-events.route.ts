@@ -1,13 +1,14 @@
 import type { App } from '../../platform/http'
 import { z } from 'zod'
 import type { AuthService } from '../identity/auth.service'
-import { parseCookies } from '../../platform/cookies'
-import { SESSION_COOKIE } from '../identity/session'
-import { sessionFromRequest } from '../identity/session-request'
+import { sessionFromRequest, sessionTokenOf } from '../identity/session-request'
 import type { Db } from '../../platform/db/client'
 import type { jobEvents } from '../../platform/db/schema'
-import { KEEP_ALIVE_FRAME, openEventStream, sseFrame } from '../../platform/sse'
-import { TERMINAL_STATUSES, isStatusIn, jobsRepo } from './generation.repo'
+import { openEventStream, runPollingStream, sseFrame } from '../../platform/sse'
+import { isTerminalStatus } from '../../platform/job-status'
+import { jobsRepo } from './generation.repo'
+
+const LastEventId = z.coerce.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)
 
 export const JOB_EVENTS_POLL_MS = 1000
 export const JOB_EVENTS_HEARTBEAT_MS = 15_000
@@ -26,8 +27,6 @@ const toSseFrame = (event: typeof jobEvents.$inferSelect) =>
       at: event.at.toISOString(),
     },
   })
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export interface JobEventsDeps {
   db: Db
@@ -52,49 +51,39 @@ export function registerJobEventsRoute(app: App, deps: JobEventsDeps) {
     const job = await jobs.findOwned(jobId.data, session.user.id)
     if (!job) return reply.code(404).send({ error: 'NOT_FOUND' })
 
-    const lastEventId = Number(request.headers['last-event-id'] ?? 0)
-    let cursor = Number.isFinite(lastEventId) ? lastEventId : 0
+    const lastEventId = LastEventId.safeParse(request.headers['last-event-id'] ?? 0)
+    let cursor = lastEventId.success ? lastEventId.data : 0
+    const closedAtConnect = isTerminalStatus(job.status)
 
     const stream = openEventStream(request, reply, deps.productOrigin)
-    let lastWrite = Date.now()
-    let lastSessionCheck = Date.now()
-    const sessionToken = parseCookies(request.headers.cookie).get(SESSION_COOKIE)
+    const sessionToken = sessionTokenOf(request)
 
-    const sessionStillValid = async () => {
-      lastSessionCheck = Date.now()
-      const current = await deps.auth.currentSession(sessionToken)
-      return current?.user.id === session.user.id
-    }
-
-    const flush = async () => {
+    const flush = async (send: (frame: string) => void) => {
+      let last: typeof jobEvents.$inferSelect | undefined
       let events = await jobs.eventsAfter(job.id, cursor)
       while (events.length > 0 && stream.isOpen()) {
         for (const event of events) {
           cursor = event.id
-          stream.send(toSseFrame(event))
-          lastWrite = Date.now()
+          last = event
+          send(toSseFrame(event))
         }
         events = await jobs.eventsAfter(job.id, cursor)
       }
+      return last
     }
 
-    try {
-      while (stream.isOpen()) {
-        if (Date.now() - lastSessionCheck >= sessionRecheckMs && !(await sessionStillValid())) break
-        await flush()
-        const current = await jobs.findById(job.id)
-        if (!current || isStatusIn(TERMINAL_STATUSES, current.status)) {
-          await flush()
-          break
-        }
-        if (Date.now() - lastWrite > heartbeatMs) {
-          stream.send(KEEP_ALIVE_FRAME)
-          lastWrite = Date.now()
-        }
-        await sleep(pollMs)
-      }
-    } finally {
-      stream.close()
-    }
+    await runPollingStream({
+      stream,
+      reply,
+      pollMs,
+      heartbeatMs,
+      sessionRecheckMs,
+      sessionStillValid: async () =>
+        (await deps.auth.currentSession(sessionToken))?.user.id === session.user.id,
+      tick: async (send) => {
+        const last = await flush(send)
+        return closedAtConnect || (last && isTerminalStatus(last.type)) ? 'done' : 'continue'
+      },
+    })
   })
 }

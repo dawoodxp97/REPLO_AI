@@ -26,9 +26,9 @@ describe('sanitizeMarkdown code spans', () => {
     expect(sanitizeMarkdown('Awaits `Promise<void>`')).toBe('Awaits `Promise<void>`')
   })
 
-  it('keeps tags inside fenced blocks', () => {
-    const fenced = 'Use:\n```ts\nconst a: Array<T> = []\n```'
-    expect(sanitizeMarkdown(fenced)).toBe(fenced)
+  it('removes model-authored fenced blocks', () => {
+    expect(sanitizeMarkdown('Use:\n```ts\nconst a: Array<T> = []\n```\nDone')).toBe('Use:\n\nDone')
+    expect(sanitizeMarkdown('Use:\n```ts\nconst a = 1')).toBe('Use:')
   })
 
   it('still strips markup next to a code span', () => {

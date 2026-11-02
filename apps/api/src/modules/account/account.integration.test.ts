@@ -12,7 +12,8 @@ import { createTutorialManager, type TutorialManager } from '../tutorials/manage
 import { createTutorialReader } from '../tutorials/reader.service'
 import { randomBytes } from 'node:crypto'
 import { KeyVault } from '../../platform/crypto/key-vault'
-import { createIdentityService } from './identity.service'
+import { createIdentityService } from '../identity/identity.service'
+import { createAccountService } from './account.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 
@@ -50,8 +51,12 @@ describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => 
     await pool.end()
   })
 
-  const identityWith = (tutorialsService: Pick<TutorialManager, 'settleOwnerDeletion'>) =>
-    createIdentityService({ db, vault, tutorials: tutorialsService })
+  const accountWith = (tutorialsService: Pick<TutorialManager, 'settleOwnerDeletion'>) =>
+    createAccountService({
+      db,
+      identity: createIdentityService({ db, vault }),
+      tutorials: tutorialsService,
+    })
 
   const seedUser = async () => {
     const id = randomUUID()
@@ -108,7 +113,7 @@ describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => 
     const publicId = await seedTutorial(owner, await seedRepo(), 'public')
     const privateId = await seedTutorial(owner, await seedRepo(), 'private')
 
-    await identityWith(manager).deleteAccount(owner, {
+    await accountWith(manager).deleteAccount(owner, {
       confirm: 'DELETE',
       publicTutorials: 'anonymise',
     })
@@ -125,7 +130,7 @@ describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => 
     const publicId = await seedTutorial(owner, await seedRepo(), 'public')
     const privateId = await seedTutorial(owner, await seedRepo(), 'private')
 
-    await identityWith(manager).deleteAccount(owner, {
+    await accountWith(manager).deleteAccount(owner, {
       confirm: 'DELETE',
       publicTutorials: 'delete',
     })
@@ -138,7 +143,7 @@ describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => 
   it('keeps the account and its tutorials when the settlement fails part-way', async () => {
     const owner = await seedUser()
     const publicId = await seedTutorial(owner, await seedRepo(), 'public')
-    const failing = identityWith({
+    const failing = accountWith({
       settleOwnerDeletion: async (tx, userId, mode) => {
         await manager.settleOwnerDeletion(tx, userId, mode)
         throw new Error('settlement failed')

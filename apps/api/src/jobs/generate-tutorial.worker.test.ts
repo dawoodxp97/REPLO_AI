@@ -9,13 +9,7 @@ import {
 } from './generate-tutorial.worker'
 
 const JOB_ID = '0198f2c0-0000-7000-8000-000000000001'
-const payload = {
-  v: 1,
-  jobId: JOB_ID,
-  userId: 'u1',
-  snapshotId: '0198f2c0-0000-7000-8000-000000000002',
-  audience: 'intermediate',
-}
+const payload = { jobId: JOB_ID }
 
 function fakeDeps(
   opts: {
@@ -220,6 +214,6 @@ describe('handleGenerateTutorial', () => {
 
   it('rejects malformed queued payloads', async () => {
     const t = fakeDeps()
-    await expect(handleGenerateTutorial({ v: 2 }, t.deps)).rejects.toThrow()
+    await expect(handleGenerateTutorial({ jobId: 'nope' }, t.deps)).rejects.toThrow()
   })
 })

@@ -1,4 +1,7 @@
 export { cn } from './lib/cn'
+export { Brand, BrandMark } from './components/brand-mark'
+export { CodePanel, CodePanelHeader } from './components/code-panel'
+export { MonoLabel } from './components/mono-label'
 export {
   Alert,
   AlertDescription,

@@ -16,6 +16,7 @@ import {
   jobStageOutputs,
   notifications,
   repositories,
+  repoPushEvents,
   repoSnapshots,
   tutorialVersions,
   tutorials,
@@ -26,6 +27,7 @@ import { createSessionService } from '../identity/session.service'
 import { createIndexingService } from '../indexing/indexing.service'
 import { createNotificationsService } from '../notifications/notifications.service'
 import { createStageOutputs } from '../pipeline/outputs'
+import { tutorialsRepo } from '../tutorials/tutorials.repo'
 import { createRetentionService } from './retention.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -145,6 +147,10 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     const referencedByJob = await seedSnapshot(repository.id, daysBefore(3))
     const referencedByVersion = await seedSnapshot(repository.id, daysBefore(3))
     const recent = await seedSnapshot(repository.id, daysBefore(0))
+    await db.insert(repoPushEvents).values([
+      { repositoryId: repository.id, commitSha: 'old', paths: ['a.ts'], pushedAt: daysBefore(10) },
+      { repositoryId: repository.id, commitSha: 'new', paths: ['a.ts'], pushedAt: daysBefore(1) },
+    ])
 
     const succeeded = await seedJob(owner, referencedByJob, 'succeeded', daysBefore(2))
     const failed = await seedJob(owner, referencedByJob, 'failed', daysBefore(2))
@@ -166,6 +172,7 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
       snapshotId: referencedByVersion,
       schemaVersion: 1,
       status: 'published',
+      publishedAt: new Date(),
       audience: 'intermediate',
       content: null,
       generator: {
@@ -205,8 +212,8 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
 
     const retention = createRetentionService({
       jobs,
-      pipeline: { purgeOutputs: (ids) => createStageOutputs(db).clearForJobs(ids) },
       indexing,
+      tutorials: { purgeObsoletePushEvents: () => tutorialsRepo(db).deleteObsoletePushEvents() },
       notifications: createNotificationsService(db),
       sessions: createSessionService(db),
     })
@@ -231,6 +238,9 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
 
     const events = await db.select({ type: jobEvents.type }).from(jobEvents)
     expect(events.map((row) => row.type)).toEqual(['succeeded'])
+
+    const pushes = await db.select({ commitSha: repoPushEvents.commitSha }).from(repoPushEvents)
+    expect(pushes.map((row) => row.commitSha)).toEqual(['new'])
 
     const snapshots = await db.select({ id: repoSnapshots.id }).from(repoSnapshots)
     expect(snapshots.map((row) => row.id).sort()).toEqual(

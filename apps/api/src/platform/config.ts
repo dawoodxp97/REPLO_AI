@@ -23,6 +23,7 @@ const Env = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
   DATABASE_URL: z.string().min(1),
+  DB_POOL_MAX: z.coerce.number().int().positive().default(10),
 
   API_PUBLIC_URL: z.url(),
   AUTH_COOKIE_DOMAIN: optionalString,

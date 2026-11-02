@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { OffsetCursor, pageInput, pageOutput } from './common'
+import { NonNegativeInt, OffsetCursor, pageInput, pageOutput } from './common'
 
 export const LESSON_STATUSES = ['in_progress', 'completed'] as const
 export const LessonStatus = z.enum(LESSON_STATUSES)
@@ -10,10 +10,10 @@ export const ProgressDto = z.object({
   tutorialId: z.uuid(),
   versionId: z.uuid(),
   lessons: z.record(z.string(), LessonStatus),
-  completed: z.number().int().nonnegative(),
-  total: z.number().int().nonnegative(),
+  completed: NonNegativeInt,
+  total: NonNegativeInt,
   nextLessonKey: z.string().nullable(),
-  quizAttempts: z.number().int().nonnegative(),
+  quizAttempts: NonNegativeInt,
 })
 export type ProgressDto = z.infer<typeof ProgressDto>
 

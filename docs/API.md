@@ -80,6 +80,16 @@ Every state-changing request must carry an `Origin` equal to `PRODUCT_ORIGIN` wh
 - `search.own` lesson hits carry their tutorial's `owner`, `repo`, `slug` and `tutorialTitle`, so every lesson hit links to its lesson even when the tutorial itself did not match.
 - Paged outputs share `pageOutput(item, cursor)`; `{ ok: true }` results share `OK_RESULT`; budget bounds share `BudgetUsd`.
 
+## Behaviour changes (2026-11-02)
+
+- No wire changes. `EnabledProvidersDto` is `z.record(OAuthProvider, boolean)` (same JSON).
+- `dashboard.recent` offset cursors above 5000 return `BAD_REQUEST` "Invalid cursor".
+- Rate limits now also cover `repositories/preflight`, `repositories/estimate`, `github/listRepos`, `search/own`, `me/deleteAccount` and `auth/revokeOtherSessions` at 120/min per user (per IP when anonymous), and `jobs/retry` at 20/hour, sharing the import budget.
+- Unknown content types under `/rpc` still return 404; the wildcard body parser now enforces the 1 MiB `bodyLimit`.
+- `TutorialReader.lessonsOf(viewer, versionId)` is replaced by `readableHead` and `lessonsOfVersion`; `source` and `sourceTree` take `commitSha` from the snapshot.
+- Job events SSE ends on a terminal last event instead of polling the job row; `Last-Event-ID` is validated.
+- `keys.validate` and import re-validation decrypt the key transiently in the API process (D-097).
+
 ## Typed errors (from the contract)
 
 `REPO_TOO_LARGE {metric: files|bytes, value, limit}` · `REPO_NOT_ACCESSIBLE` · `UNSUPPORTED_LANGUAGE` · `FREE_PRESET_REQUIRES_OPENROUTER` · `KEY_INVALID` · `KEY_ALREADY_EXISTS` · `KEY_CHECK_UNAVAILABLE` · `PRESET_UNAVAILABLE {reason}` · `CUSTOM_MODEL_NOT_ALLOWED {role, modelId}` · `BUDGET_BELOW_ESTIMATE {estimateUsd, budgetUsd}` · `PUBLIC_REQUIRES_OPEN_LICENSE` · `GITHUB_RELINK_REQUIRED` (`github.listRepos`, when GitHub rejects the stored user token). Plus oRPC built-ins (`UNAUTHORIZED`, `NOT_FOUND`, `BAD_REQUEST`, `NOT_IMPLEMENTED`…). Job failure codes (not API errors): `KEY_REMOVED`, `BUDGET_EXCEEDED`, `KEY_REJECTED`, `KEY_CHECK_UNAVAILABLE` during runs, `LLM_OUTPUT_INVALID`, `OUTLINE_MISSING`, `LESSONS_MISSING`, `VALIDATION_MISSING`.

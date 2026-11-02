@@ -34,27 +34,22 @@ const ProviderTiers = z.object({
 const CatalogFile = z
   .object({
     version: z.literal(1),
-    providers: z.object({
-      openrouter: ProviderTiers,
-      anthropic: ProviderTiers,
-      openai: ProviderTiers,
-      google: ProviderTiers,
-    }),
+    providers: z.record(z.enum(PROVIDERS), ProviderTiers),
     models: z.array(CatalogModel),
     freeAllowList: z.array(z.string()),
   })
   .superRefine((file, ctx) => {
-    const ids = new Set<string>()
+    const byId = new Map<string, CatalogModel>()
     for (const model of file.models) {
-      if (ids.has(model.id))
+      if (byId.has(model.id))
         ctx.addIssue({ code: 'custom', message: `duplicate model ${model.id}` })
-      ids.add(model.id)
+      byId.set(model.id, model)
     }
     for (const provider of PROVIDERS) {
       for (const tier of ['frontier', 'mid', 'cheap'] as const) {
         const id = file.providers[provider][tier]
         if (id === null) continue
-        const model = file.models.find((candidate) => candidate.id === id)
+        const model = byId.get(id)
         if (!model || model.provider !== provider)
           ctx.addIssue({
             code: 'custom',
@@ -63,7 +58,7 @@ const CatalogFile = z
       }
     }
     for (const id of file.freeAllowList) {
-      const model = file.models.find((candidate) => candidate.id === id)
+      const model = byId.get(id)
       if (!model || model.provider !== 'openrouter' || !model.free)
         ctx.addIssue({
           code: 'custom',
@@ -79,11 +74,8 @@ export interface Catalog {
 
 export function loadCatalog(raw: unknown): Catalog {
   const file = CatalogFile.parse(raw)
-  return {
-    file,
-    model: (provider, id) =>
-      file.models.find((model) => model.provider === provider && model.id === id),
-  }
+  const byKey = new Map(file.models.map((model) => [`${model.provider}:${model.id}`, model]))
+  return { file, model: (provider, id) => byKey.get(`${provider}:${id}`) }
 }
 
 export type PlanRoles = Record<CatalogRole, string | null>

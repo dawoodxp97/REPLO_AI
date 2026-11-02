@@ -4,12 +4,14 @@ import { createSourceParser, grammarFor, type SourceParser } from './grammars'
 import { extractFacts, type FileFacts, type SymbolDraft, type SymbolKind } from './extract'
 import {
   FRAMEWORK_ADAPTERS,
-  toSourcePath,
+  sortEntryPoints,
+  sortRoutes,
   type EntryPoint,
   type ManifestInfo,
   type PackageView,
   type RouteRecord,
 } from './adapters'
+import { toSourcePath } from './source-path'
 import { metricsFor, type Edge, type NodeMetrics } from './graph'
 import { EMPTY_COMPILER_PATHS, parseCompilerPaths } from './tsconfig'
 import {
@@ -18,7 +20,7 @@ import {
   type ResolverContext,
   type WorkspacePackage,
 } from './resolve'
-import { dirOf, joinPath } from './paths'
+import { compareText, dirOf, joinPath } from './paths'
 import { z } from 'zod'
 
 export const ANALYZER_VERSION = 1
@@ -126,18 +128,8 @@ function startSession(parser: SourceParser, options: AnalysisOptions): AnalysisS
         framework,
         symbols,
         edges,
-        entryPoints: adapters
-          .flatMap((output) => output.entryPoints)
-          .sort(
-            (a, b) =>
-              b.score - a.score || a.path.localeCompare(b.path) || a.kind.localeCompare(b.kind),
-          ),
-        routes: adapters
-          .flatMap((output) => output.routes)
-          .sort(
-            (a, b) =>
-              a.path.localeCompare(b.path) || a.line - b.line || a.pattern.localeCompare(b.pattern),
-          ),
+        entryPoints: sortEntryPoints(adapters.flatMap((output) => output.entryPoints)),
+        routes: sortRoutes(adapters.flatMap((output) => output.routes)),
         metrics: Object.fromEntries(metricsFor(parsedPaths(files), importEdges(edges))),
         unresolvedImports,
         parseErrors: [...new Set(parseErrors)].sort(),
@@ -185,7 +177,7 @@ function workspacePackages(
     compilerPaths: EMPTY_COMPILER_PATHS,
     workspace: new Map<string, WorkspacePackage>(),
   }
-  for (const [dir, manifest] of [...manifests].sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [dir, manifest] of [...manifests].sort(([a], [b]) => compareText(a, b))) {
     if (dir === '' || manifest.name === undefined) continue
     if (!patterns.some((pattern) => matchesWorkspace(pattern, dir))) continue
     const entry = manifest.main
@@ -203,14 +195,16 @@ const memberPackages = (
 ): PackageView[] =>
   [...manifests]
     .filter(([dir]) => dir !== '' && patterns.some((pattern) => matchesWorkspace(pattern, dir)))
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => compareText(a, b))
     .map(([dir, manifest]) => ({ dir, manifest }))
 
+const sortedFiles = (files: ReadonlyMap<string, FileRecord>): FileRecord[] =>
+  [...files.values()].sort((a, b) => compareText(a.path, b.path))
+
 const parsedPaths = (files: ReadonlyMap<string, FileRecord>): string[] =>
-  [...files.values()]
+  sortedFiles(files)
     .filter((file) => file.facts !== undefined)
     .map((file) => file.path)
-    .sort()
 
 const importEdges = (edges: readonly EdgeRecord[]): Edge[] =>
   edges
@@ -223,7 +217,7 @@ function buildEdges(
 ): { edges: EdgeRecord[]; unresolvedImports: number } {
   const edges = new Map<string, EdgeRecord>()
   let unresolvedImports = 0
-  for (const file of [...files.values()].sort((a, b) => a.path.localeCompare(b.path))) {
+  for (const file of sortedFiles(files)) {
     for (const reference of file.facts?.imports ?? []) {
       const resolution = resolveSpecifier(file.path, reference.specifier, resolver)
       if (resolution.kind === 'external') continue
@@ -240,9 +234,9 @@ function buildEdges(
   }
   const sorted = [...edges.values()].sort(
     (a, b) =>
-      a.fromPath.localeCompare(b.fromPath) ||
-      a.toPath.localeCompare(b.toPath) ||
-      a.kind.localeCompare(b.kind),
+      compareText(a.fromPath, b.fromPath) ||
+      compareText(a.toPath, b.toPath) ||
+      compareText(a.kind, b.kind),
   )
   return { edges: sorted, unresolvedImports }
 }
@@ -253,7 +247,7 @@ const addEdge = (edges: Map<string, EdgeRecord>, edge: EdgeRecord) => {
 
 function buildSymbols(files: ReadonlyMap<string, FileRecord>): SymbolRecord[] {
   const records: SymbolRecord[] = []
-  for (const file of [...files.values()].sort((a, b) => a.path.localeCompare(b.path))) {
+  for (const file of sortedFiles(files)) {
     const seen = new Set<string>()
     for (const symbol of file.facts?.symbols ?? []) {
       const base = `${file.path}#${symbol.qualifiedName}`
@@ -262,5 +256,5 @@ function buildSymbols(files: ReadonlyMap<string, FileRecord>): SymbolRecord[] {
       records.push({ ...symbol, symbolKey, path: file.path })
     }
   }
-  return records.sort((a, b) => a.path.localeCompare(b.path) || a.startLine - b.startLine)
+  return records.sort((a, b) => compareText(a.path, b.path) || a.startLine - b.startLine)
 }

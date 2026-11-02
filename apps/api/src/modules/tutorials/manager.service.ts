@@ -2,7 +2,7 @@ import type { TutorialSummaryDto, Visibility } from '@replo/contracts'
 import type { Db, Tx } from '../../platform/db/client'
 import { notFound } from '../../platform/errors'
 import { ok, refused, type Outcome } from '../../platform/outcome'
-import { canRead, isOwner, newShareToken, ownershipOf, tutorialPath } from './access'
+import { isOwner, newShareToken, ownershipOf, readableTutorial, tutorialPath } from './access'
 import { isOsiApproved } from './licences'
 import type { TutorialLibrary } from './library.service'
 import { tutorialsRepo } from './tutorials.repo'
@@ -32,6 +32,7 @@ export interface TutorialManager {
   ): Promise<void>
   removeForRepository(tx: Tx, userId: string, repositoryId: string): Promise<void>
   settleOwnerDeletion(tx: Tx, userId: string, mode: 'delete' | 'anonymise'): Promise<void>
+  purgeObsoletePushEvents(): Promise<number>
   recordPush(
     tx: Tx,
     input: { repositoryId: string; commitSha: string; paths: string[]; pushedAt: Date },
@@ -82,9 +83,11 @@ export function createTutorialManager(deps: TutorialManagerDeps): TutorialManage
     },
 
     async report(reporterId, tutorialId, reason, shareToken) {
-      const row = await repo.findById(tutorialId)
-      if (!row || !canRead(ownershipOf(row.tutorial), { userId: reporterId, shareToken }))
-        notFound('Tutorial')
+      readableTutorial(
+        await repo.findById(tutorialId),
+        { userId: reporterId, shareToken },
+        'Tutorial',
+      )
       await repo.insertReport({ tutorialId, reporterId, reason })
     },
 
@@ -97,6 +100,8 @@ export function createTutorialManager(deps: TutorialManagerDeps): TutorialManage
       if (mode === 'anonymise') await writer.releasePublicOf(userId)
       await writer.deleteAllOf(userId)
     },
+
+    purgeObsoletePushEvents: () => repo.deleteObsoletePushEvents(),
 
     async recordPush(tx, input) {
       await tutorialsRepo(tx).recordPush(input)

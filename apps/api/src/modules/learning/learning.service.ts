@@ -1,4 +1,3 @@
-import { ORPCError } from '@orpc/server'
 import type {
   DashboardSummary,
   HistoryPage,
@@ -10,9 +9,10 @@ import type { Db } from '../../platform/db/client'
 import { notFound } from '../../platform/errors'
 import { decodeOffset, offsetPage } from '../../platform/pagination'
 import type { Viewer } from '../tutorials/access'
-import type { ReadableVersion, TutorialReader } from '../tutorials/reader.service'
+import type { ReadableHead, TutorialReader } from '../tutorials/reader.service'
 import { gradeAnswer } from './learning.quiz'
 import { learningRepo } from './learning.repo'
+import { countCompleted, ratioOf } from './learning.progress'
 
 interface LearningDeps {
   db: Db
@@ -57,27 +57,14 @@ export interface LearningService {
 
 const RESUME_CANDIDATES = 20
 
-function ratioOf(done: number, total: number): number | null {
-  return total === 0 ? null : done / total
-}
-
 export function createLearningService(deps: LearningDeps): LearningService {
   const { db, tutorials } = deps
   const repo = learningRepo(db)
 
-  const readableOrUndefined = async (viewer: Viewer, versionId: string) => {
-    try {
-      return await tutorials.readableVersion(viewer, versionId)
-    } catch (error) {
-      if (error instanceof ORPCError && error.code === 'NOT_FOUND') return undefined
-      throw error
-    }
-  }
-
   const resolveVersion = async (userId: string, versionId: string) => {
-    const version = await readableOrUndefined({ userId }, versionId)
+    const version = await tutorials.findReadableHead({ userId }, versionId)
     if (!version) return undefined
-    return { version, lessons: await tutorials.lessonsOf({ userId }, version.versionId) }
+    return { version, lessons: await tutorials.lessonsOfVersion(version.versionId) }
   }
 
   const resolveReadableVersion = async (
@@ -85,7 +72,7 @@ export function createLearningService(deps: LearningDeps): LearningService {
     tutorialId: string,
     versionId: string | undefined,
   ) => {
-    const version = await tutorials.readableVersion(
+    const version = await tutorials.readableHead(
       { userId },
       versionId ?? (await tutorials.currentVersionOf({ userId }, tutorialId)),
     )
@@ -93,9 +80,11 @@ export function createLearningService(deps: LearningDeps): LearningService {
     return version
   }
 
-  const lessonBoard = async (reader: Viewer & { userId: string }, version: ReadableVersion) => {
-    const { userId } = reader
-    const entries = await tutorials.lessonsOf(reader, version.versionId)
+  const lessonBoard = async (
+    userId: string,
+    version: ReadableHead,
+    entries: readonly { lessonKey: string }[],
+  ) => {
     const rows = await repo.forTutorial(userId, version.tutorialId)
     const completed = new Set(
       rows.filter((row) => row.status === 'completed').map((row) => row.lessonKey),
@@ -110,25 +99,38 @@ export function createLearningService(deps: LearningDeps): LearningService {
       if (completed.has(lessonKey)) lessons[lessonKey] = 'completed'
       else if (started.has(lessonKey)) lessons[lessonKey] = 'in_progress'
     }
-    return { entries, completed, lessons }
+    return { completed, lessons }
   }
 
-  const progressOf = async (userId: string, version: ReadableVersion): Promise<ProgressDto> => {
-    const { entries, completed, lessons } = await lessonBoard({ userId }, version)
+  const progressOf = async (
+    userId: string,
+    version: ReadableHead,
+    entries: readonly { lessonKey: string }[],
+  ): Promise<ProgressDto> => {
+    const [{ completed, lessons }, quizAttempts] = await Promise.all([
+      lessonBoard(userId, version, entries),
+      repo.countAttempts(userId, version.versionId),
+    ])
     return {
       tutorialId: version.tutorialId,
       versionId: version.versionId,
       lessons,
-      completed: entries.filter((entry) => completed.has(entry.lessonKey)).length,
+      completed: countCompleted(
+        entries.map((entry) => entry.lessonKey),
+        completed,
+      ),
       total: entries.length,
       nextLessonKey: entries.find((entry) => !completed.has(entry.lessonKey))?.lessonKey ?? null,
-      quizAttempts: await repo.countAttempts(userId, version.versionId),
+      quizAttempts,
     }
   }
 
+  const progressFor = async (userId: string, version: ReadableHead) =>
+    progressOf(userId, version, await tutorials.lessonsOfVersion(version.versionId))
+
   return {
     async progress(userId, input) {
-      return progressOf(
+      return progressFor(
         userId,
         await resolveReadableVersion(userId, input.tutorialId, input.versionId),
       )
@@ -137,7 +139,7 @@ export function createLearningService(deps: LearningDeps): LearningService {
     async history(userId, input) {
       const version = await resolveReadableVersion(userId, input.tutorialId, input.versionId)
       const lessons = new Map(
-        (await tutorials.lessonsOf({ userId }, version.versionId)).map((lesson) => [
+        (await tutorials.lessonsOfVersion(version.versionId)).map((lesson) => [
           lesson.lessonKey,
           lesson,
         ]),
@@ -168,13 +170,13 @@ export function createLearningService(deps: LearningDeps): LearningService {
     },
 
     async markLesson(userId, input) {
-      const version = await tutorials.readableVersion({ userId }, input.versionId)
-      const lessons = await tutorials.lessonsOf({ userId }, version.versionId)
+      const version = await tutorials.readableHead({ userId }, input.versionId)
+      const lessons = await tutorials.lessonsOfVersion(version.versionId)
       if (!lessons.some((lesson) => lesson.lessonKey === input.lessonKey)) notFound('Lesson')
       if (input.status === 'in_progress') {
         const completed = await repo.completedLessonKeys(userId, [version.tutorialId])
         if (completed.some((row) => row.lessonKey === input.lessonKey))
-          return progressOf(userId, version)
+          return progressOf(userId, version, lessons)
       }
       const now = new Date()
       await repo.upsert({
@@ -186,13 +188,13 @@ export function createLearningService(deps: LearningDeps): LearningService {
         completedAt: input.status === 'completed' ? now : null,
         updatedAt: now,
       })
-      return progressOf(userId, version)
+      return progressOf(userId, version, lessons)
     },
 
     async unmarkLesson(userId, input) {
-      const version = await tutorials.readableVersion({ userId }, input.versionId)
+      const version = await tutorials.readableHead({ userId }, input.versionId)
       await repo.deleteLesson(userId, version.tutorialId, input.lessonKey)
-      return progressOf(userId, version)
+      return progressFor(userId, version)
     },
 
     async submitQuiz(userId, input) {
@@ -210,12 +212,18 @@ export function createLearningService(deps: LearningDeps): LearningService {
 
     async completionRatio(viewer, versionId) {
       if (viewer.userId === undefined) return null
-      const reader = { userId: viewer.userId, shareToken: viewer.shareToken }
-      const version = await readableOrUndefined(reader, versionId)
+      const version = await tutorials.findReadableHead(
+        { userId: viewer.userId, shareToken: viewer.shareToken },
+        versionId,
+      )
       if (!version) return null
-      const { entries, completed } = await lessonBoard(reader, version)
+      const entries = await tutorials.lessonsOfVersion(version.versionId)
+      const { completed } = await lessonBoard(viewer.userId, version, entries)
       return ratioOf(
-        entries.filter((entry) => completed.has(entry.lessonKey)).length,
+        countCompleted(
+          entries.map((entry) => entry.lessonKey),
+          completed,
+        ),
         entries.length,
       )
     },
@@ -238,9 +246,7 @@ export function createLearningService(deps: LearningDeps): LearningService {
       return new Map(
         targets.map(({ tutorialId, versionId }) => {
           const keys = lessonKeys.get(versionId) ?? []
-          const done = completed.get(tutorialId)
-          const finished = keys.filter((key) => done?.has(key)).length
-          return [versionId, ratioOf(finished, keys.length)]
+          return [versionId, ratioOf(countCompleted(keys, completed.get(tutorialId)), keys.length)]
         }),
       )
     },

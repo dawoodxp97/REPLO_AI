@@ -29,10 +29,7 @@ export const SignInInput = z.object({
 })
 export type SignInInput = z.infer<typeof SignInInput>
 
-export const EnabledProvidersDto = z.object({
-  google: z.boolean(),
-  github: z.boolean(),
-})
+export const EnabledProvidersDto = z.record(OAuthProvider, z.boolean())
 export type EnabledProvidersDto = z.infer<typeof EnabledProvidersDto>
 
 export const authContract = {

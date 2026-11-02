@@ -7,7 +7,7 @@ import {
 } from '@replo/ui'
 import { ExternalLink } from 'lucide-react'
 import { Fragment } from 'react'
-import { shortSha } from './source-ref-label'
+import { shortSha } from '@/lib/format'
 
 export interface SourceFileHeaderProps {
   path: string

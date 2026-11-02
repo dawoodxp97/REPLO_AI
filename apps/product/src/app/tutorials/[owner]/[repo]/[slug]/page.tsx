@@ -43,12 +43,10 @@ export default async function TutorialOverviewRoute({ params, searchParams }: Ro
   const query = await searchParams
   const overview = await loadOverviewFor(ref, query)
   if (!overview) notFound()
+  const linkContext = { version: parseVersion(query.version), shareToken: query.share }
 
   if (query.resume !== undefined) {
-    const target = await resumeTarget(ref, overview, {
-      version: parseVersion(query.version),
-      shareToken: query.share,
-    })
+    const target = await resumeTarget(ref, overview, linkContext)
     if (target) redirect(target)
   }
 
@@ -58,8 +56,8 @@ export default async function TutorialOverviewRoute({ params, searchParams }: Ro
         overview={overview}
         shareUrl={`${env.appUrl}${tutorialPath(ref)}`}
         latestVersionHref={latestVersionHref(ref, overview, query.share)}
-        shareToken={query.share}
-        versionNo={parseVersion(query.version)}
+        shareToken={linkContext.shareToken}
+        versionNo={linkContext.version}
       />
     </TutorialShell>
   )

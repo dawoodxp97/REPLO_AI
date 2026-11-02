@@ -24,7 +24,7 @@ export const notificationsRepo = (db: DbOrTx) => ({
       .from(notifications)
       .where(and(eq(notifications.userId, userId), older))
       .orderBy(desc(notifications.createdAt), desc(notifications.id))
-      .limit(limit + 1)
+      .limit(limit)
   },
 
   async unreadCount(userId: string) {
@@ -43,12 +43,12 @@ export const notificationsRepo = (db: DbOrTx) => ({
       .returning()
   },
 
-  markAllRead(userId: string) {
-    return db
+  async markAllRead(userId: string): Promise<number> {
+    const result = await db
       .update(notifications)
       .set({ readAt: sql`now()` })
       .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)))
-      .returning({ id: notifications.id })
+    return result.rowCount ?? 0
   },
 
   remove(userId: string, id: string) {
@@ -62,10 +62,8 @@ export const notificationsRepo = (db: DbOrTx) => ({
     await db.insert(notifications).values(row)
   },
 
-  purgeCreatedBefore(before: Date) {
-    return db
-      .delete(notifications)
-      .where(lt(notifications.createdAt, before))
-      .returning({ id: notifications.id })
+  async purgeCreatedBefore(before: Date): Promise<number> {
+    const result = await db.delete(notifications).where(lt(notifications.createdAt, before))
+    return result.rowCount ?? 0
   },
 })

@@ -1,4 +1,10 @@
-import { classifyRole, detectLanguage, isBinaryExtension, isExcludedPath, isIndexableRole } from './filters'
+import {
+  classifyRole,
+  detectLanguage,
+  isBinaryExtension,
+  isExcludedPath,
+  isIndexableRole,
+} from './filters'
 
 export interface TreeEntry {
   path: string
@@ -45,8 +51,7 @@ export function inventory(entries: readonly TreeEntry[]): Inventory {
     if (role === 'source') summary.sourceFileCount += 1
     if (isIndexableRole(role)) summary.indexableFileCount += 1
     if (!isBinaryExtension(entry.path)) summary.totalBytes += entry.size ?? 0
-    const languageKey = language === 'other' ? 'other' : language
-    summary.languages[languageKey] = (summary.languages[languageKey] ?? 0) + 1
+    summary.languages[language] = (summary.languages[language] ?? 0) + 1
   }
   return summary
 }

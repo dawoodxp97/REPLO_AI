@@ -1,12 +1,13 @@
 'use client'
 
 import type { PreflightResult, RepositorySource } from '@replo/contracts'
-import { Alert, Badge, Button } from '@replo/ui'
+import { Button } from '@replo/ui'
 import { useMutation } from '@tanstack/react-query'
-import { CircleAlert } from 'lucide-react'
 import { useEffect } from 'react'
+import { InlineError } from '@/components/inline-error'
 import { DescriptionItem } from '@/components/description-item'
-import { formatBytes, formatCount } from '@/lib/format'
+import { RepoVisibilityBadge } from '@/components/repo-visibility-badge'
+import { formatBytes, formatCount, formatRepoName, shortSha } from '@/lib/format'
 import { orpc } from '@/lib/orpc'
 import { describeImportError } from './import-errors'
 
@@ -31,16 +32,11 @@ export function PreflightPanel({ source }: { source: RepositorySource | undefine
         >
           {preflight.isPending ? 'Checking…' : 'Check repository'}
         </Button>
-        <p className="text-[0.8125rem] text-muted-foreground">
+        <p className="text-compact text-muted-foreground">
           Languages, size and framework, checked before any model is called.
         </p>
       </div>
-      {preflight.isError ? (
-        <Alert variant="destructive" role="alert">
-          <CircleAlert />
-          {describeImportError(preflight.error)}
-        </Alert>
-      ) : null}
+      {preflight.isError ? <InlineError>{describeImportError(preflight.error)}</InlineError> : null}
       {preflight.data ? <PreflightSummary result={preflight.data} /> : null}
     </div>
   )
@@ -54,17 +50,15 @@ function PreflightSummary({ result }: { result: PreflightResult }) {
     <dl className="grid grid-cols-1 gap-x-6 gap-y-4 border-t pt-4 sm:grid-cols-2">
       <DescriptionItem label="Repository">
         <span className="flex flex-wrap items-center gap-2 font-mono">
-          {repo.owner}/{repo.name}
-          <Badge variant={repo.isPrivate ? 'secondary' : 'outline'}>
-            {repo.isPrivate ? 'Private' : 'Public'}
-          </Badge>
+          {formatRepoName(repo.owner, repo.name)}
+          <RepoVisibilityBadge isPrivate={repo.isPrivate} />
         </span>
       </DescriptionItem>
       <DescriptionItem label="Default branch" className="font-mono">
         {repo.defaultBranch}
       </DescriptionItem>
       <DescriptionItem label="Commit" className="font-mono">
-        {result.commitSha.slice(0, 7)}
+        {shortSha(result.commitSha)}
       </DescriptionItem>
       <DescriptionItem label="License">{repo.license ?? 'None found'}</DescriptionItem>
       <DescriptionItem label="Files" className="tabular">

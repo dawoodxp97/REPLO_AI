@@ -48,7 +48,7 @@ export class Budget {
     this.reserved += estimateMicros
   }
 
-  release(estimateMicros = this.reserved): void {
+  release(estimateMicros: number): void {
     this.reserved = Math.max(0, this.reserved - estimateMicros)
   }
 
@@ -56,7 +56,7 @@ export class Budget {
     spec: ModelSpec,
     usage: { inputTokens?: number | undefined; outputTokens?: number | undefined },
     meta: { jobId: string; stage: string; latencyMs?: number },
-    reservedMicros = this.reserved,
+    reservedMicros: number,
   ): Promise<number> {
     const cost = costMicros(spec, usage)
     this.reserved = Math.max(0, this.reserved - reservedMicros)

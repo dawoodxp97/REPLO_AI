@@ -1,48 +1,23 @@
-import { STAGE_ABORT_GRACE_MS } from './schemas'
-
-type Outcome<T> = { value: T } | { error: unknown }
-
 export async function withTimeout<T>(
   ms: number,
   parent: AbortSignal,
   fn: (signal: AbortSignal) => Promise<T>,
-  graceMs: number = STAGE_ABORT_GRACE_MS,
+  graceMs: number,
 ): Promise<T> {
-  const controller = new AbortController()
-  const { signal } = controller
-  const onParentAbort = () => controller.abort(parent.reason)
-  if (parent.aborted) controller.abort(parent.reason)
-  else parent.addEventListener('abort', onParentAbort, { once: true })
-  const timer = setTimeout(
-    () => controller.abort(new DOMException(`Stage timed out after ${ms}ms`, 'TimeoutError')),
-    ms,
-  )
-  const aborted = new Promise<void>((resolve) => {
-    if (signal.aborted) resolve()
-    else signal.addEventListener('abort', () => resolve(), { once: true })
-  })
+  const signal = AbortSignal.any([parent, AbortSignal.timeout(ms)])
   let graceTimer: ReturnType<typeof setTimeout> | undefined
-  try {
-    const box: { outcome?: Outcome<T> } = {}
-    const settled = (async () => fn(signal))().then(
-      (value) => void (box.outcome = { value }),
-      (error: unknown) => void (box.outcome = { error }),
-    )
-    await Promise.race([settled, aborted])
-    if (!box.outcome) {
-      const grace = new Promise<void>((resolve) => {
-        graceTimer = setTimeout(resolve, graceMs)
-      })
-      await Promise.race([settled, grace])
+  const abandoned = new Promise<never>((_resolve, reject) => {
+    const giveUpAfterGrace = () => {
+      graceTimer = setTimeout(() => reject(signal.reason), graceMs)
     }
-    const { outcome } = box
-    if (outcome && 'value' in outcome) return outcome.value
-    if (signal.aborted) throw signal.reason
-    if (outcome) throw outcome.error
-    throw new Error('stage ended without an outcome')
+    if (signal.aborted) giveUpAfterGrace()
+    else signal.addEventListener('abort', giveUpAfterGrace, { once: true })
+  })
+  try {
+    return await Promise.race([fn(signal), abandoned])
+  } catch (error) {
+    throw signal.aborted ? signal.reason : error
   } finally {
-    clearTimeout(timer)
     clearTimeout(graceTimer)
-    parent.removeEventListener('abort', onParentAbort)
   }
 }

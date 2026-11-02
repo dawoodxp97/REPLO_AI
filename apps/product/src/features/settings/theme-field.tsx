@@ -2,17 +2,15 @@
 
 import { Theme } from '@replo/contracts'
 import { FormField, NativeSelect } from '@replo/ui'
-import { useState } from 'react'
 import { useThemePreference } from '@/features/session/use-theme-preference'
 import { THEME_LABELS } from './preference-labels'
 
 export function ThemeField({ initial }: { initial: Theme }) {
-  const { setTheme } = useThemePreference()
-  const [value, setValue] = useState(initial)
+  const { theme, setTheme } = useThemePreference()
+  const value = theme ?? initial
 
   function change(raw: string) {
     const next = Theme.safeParse(raw).data ?? 'system'
-    setValue(next)
     setTheme(next)
   }
 

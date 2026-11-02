@@ -15,7 +15,6 @@ import { withTimeout } from './with-timeout'
 
 export interface StageContext {
   job: JobRow
-  payload: GenerateTutorialPayload
   signal: AbortSignal
   budget: Budget
   progress(data: JobEventData): Promise<void>
@@ -34,6 +33,7 @@ export interface WorkerDeps {
 export async function handleGenerateTutorial(raw: unknown, deps: WorkerDeps): Promise<void> {
   const payload = GenerateTutorialPayload.parse(raw)
   const { jobs, log } = deps
+  const abortGraceMs = deps.abortGraceMs ?? STAGE_ABORT_GRACE_MS
 
   const job = await jobs.claim(payload.jobId)
   if (!job) {
@@ -68,14 +68,13 @@ export async function handleGenerateTutorial(raw: unknown, deps: WorkerDeps): Pr
         (signal) =>
           deps.stageHandlers[stage]({
             job,
-            payload,
             signal,
             budget,
             progress: async (data) => {
               await jobs.emit(job.id, { type: 'progress', stage, data })
             },
           }),
-        deps.abortGraceMs ?? STAGE_ABORT_GRACE_MS,
+        abortGraceMs,
       )
 
       await jobs.completeStage(job.id, stage)

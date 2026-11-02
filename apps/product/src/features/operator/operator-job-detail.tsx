@@ -12,7 +12,7 @@ import {
 import { CircleAlert } from 'lucide-react'
 import { DescriptionItem } from '@/components/description-item'
 import { JobStatusBadge } from '@/features/jobs/job-status-badge'
-import { formatDateTime, formatMicros } from './operator-format'
+import { formatDateTime, formatMicros } from '@/lib/format'
 import { OperatorLlmCallsTable } from './operator-llm-calls-table'
 import { OperatorStagesTable } from './operator-stages-table'
 
@@ -35,7 +35,7 @@ export function OperatorJobDetailView({ detail }: { detail: OperatorJobDetail })
         <CardHeader>
           <CardTitle className="flex flex-wrap items-center gap-2">
             <JobStatusBadge status={job.status} />
-            <span className="font-mono text-[0.8125rem] font-normal text-muted-foreground">
+            <span className="font-mono text-compact font-normal text-muted-foreground">
               {job.pipeline} pipeline
             </span>
           </CardTitle>

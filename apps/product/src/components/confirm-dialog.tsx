@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  Alert,
   AlertDialog,
   AlertDialogClose,
   AlertDialogContent,
@@ -12,6 +11,7 @@ import {
   type ButtonVariantProps,
 } from '@replo/ui'
 import { useState, type ReactNode } from 'react'
+import { InlineError } from './inline-error'
 
 export interface ConfirmDialogProps {
   triggerLabel: string
@@ -74,11 +74,7 @@ export function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </div>
         {children}
-        {error ? (
-          <Alert variant="destructive" role="alert">
-            {error}
-          </Alert>
-        ) : null}
+        {error ? <InlineError>{error}</InlineError> : null}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
           <Button

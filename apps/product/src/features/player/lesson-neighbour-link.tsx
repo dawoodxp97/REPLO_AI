@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ROW_LINK_CLASS } from '@/components/row-link'
 import Link from 'next/link'
 import { cn } from '@replo/ui'
 import type { LessonPosition } from './lesson-navigation'
@@ -19,7 +20,8 @@ export function LessonNeighbourLink({ direction, position, links }: LessonNeighb
       href={links.lesson(position)}
       rel={previous ? 'prev' : 'next'}
       className={cn(
-        'group flex max-w-[16rem] min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/40',
+        ROW_LINK_CLASS,
+        'group flex max-w-[16rem] min-w-0 items-center gap-2 text-sm',
         previous ? 'text-left' : 'flex-row-reverse text-right',
       )}
     >

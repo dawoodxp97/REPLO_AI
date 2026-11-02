@@ -12,6 +12,8 @@ import type { ImportFormValues } from './import-form-values'
 export function PresetField({ control }: { control: Control<ImportFormValues> }) {
   const { field } = useController({ control, name: 'preset' })
   const catalog = useQuery(orpc.models.catalog.queryOptions())
+  const preferences = useQuery(orpc.models.getPreferences.queryOptions())
+  const allowCustom = Boolean(preferences.data?.customModels)
 
   return (
     <QueryBoundary
@@ -23,7 +25,7 @@ export function PresetField({ control }: { control: Control<ImportFormValues> })
         <RadioCardGroup
           name="preset"
           legend="Model preset"
-          options={toPresetOptions(presets)}
+          options={toPresetOptions(presets, allowCustom)}
           value={field.value}
           onChange={field.onChange}
         />
@@ -32,9 +34,12 @@ export function PresetField({ control }: { control: Control<ImportFormValues> })
   )
 }
 
-function toPresetOptions(presets: readonly PresetInfo[]): RadioCardOption<ModelPreset>[] {
+function toPresetOptions(
+  presets: readonly PresetInfo[],
+  allowCustom: boolean,
+): RadioCardOption<ModelPreset>[] {
   return presets
-    .filter((preset) => preset.preset !== 'custom')
+    .filter((preset) => allowCustom || preset.preset !== 'custom')
     .map((preset) => ({
       value: preset.preset,
       title: preset.label,

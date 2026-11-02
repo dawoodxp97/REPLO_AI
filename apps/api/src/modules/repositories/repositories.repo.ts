@@ -92,17 +92,11 @@ export const repositoriesRepo = (db: DbOrTx) => {
       return row
     },
 
-    async findLinked(userId: string, repositoryId: string) {
-      const [row] = await db
-        .select({ repositoryId: userRepositories.repositoryId })
-        .from(userRepositories)
-        .where(and(activeLinkOf(userId), eq(userRepositories.repositoryId, repositoryId)))
-        .limit(1)
-      return row
-    },
-
-    async revokeLink(userId: string, repositoryId: string): Promise<void> {
-      await revokeWhere(and(activeLinkOf(userId), eq(userRepositories.repositoryId, repositoryId)))
+    async revokeLink(userId: string, repositoryId: string): Promise<boolean> {
+      const revoked = await revokeWhere(
+        and(activeLinkOf(userId), eq(userRepositories.repositoryId, repositoryId)),
+      ).returning({ repositoryId: userRepositories.repositoryId })
+      return revoked.length > 0
     },
 
     async linkedIds(userId: string): Promise<string[]> {

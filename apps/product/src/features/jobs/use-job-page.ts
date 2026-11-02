@@ -13,7 +13,7 @@ export function useJobPage(jobId: string) {
       refetchInterval: (query) => {
         const status = query.state.data?.status
         if (status !== undefined && !isActiveJob(status)) return false
-        return progress.connection === 'live' ? false : POLL_WITHOUT_STREAM_MS
+        return progress.connection === 'lost' ? POLL_WITHOUT_STREAM_MS : false
       },
     }),
   )

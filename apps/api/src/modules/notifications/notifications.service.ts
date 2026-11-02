@@ -6,16 +6,16 @@ import type {
 } from '@replo/contracts'
 import type { Db, Tx } from '../../platform/db/client'
 import { badRequest, requireFound } from '../../platform/errors'
+import { jobLink, type TerminalStatus } from '../../platform/job-status'
+import { keysetPage } from '../../platform/pagination'
 import { isoOrNull } from '../../platform/time'
 import { decodeCursor, encodeCursor } from './notifications.cursor'
 import { notificationsRepo, type NotificationRow } from './notifications.repo'
 
-export type JobEndStatus = 'succeeded' | 'failed' | 'canceled'
-
 export interface NotificationsService {
   recordJobEnd(
     tx: Tx,
-    input: { userId: string; jobId: string; status: JobEndStatus },
+    input: { userId: string; jobId: string; status: TerminalStatus },
   ): Promise<void>
   list(
     userId: string,
@@ -28,7 +28,7 @@ export interface NotificationsService {
   purgeCreatedBefore(before: Date): Promise<number>
 }
 
-const MESSAGES: Record<JobEndStatus, { kind: NotificationKind; title: string }> = {
+const MESSAGES: Record<TerminalStatus, { kind: NotificationKind; title: string }> = {
   succeeded: { kind: 'job_succeeded', title: 'Tutorial ready' },
   failed: { kind: 'job_failed', title: 'Generation failed' },
   canceled: { kind: 'job_canceled', title: 'Generation canceled' },
@@ -55,7 +55,7 @@ export function createNotificationsService(db: Db): NotificationsService {
         userId,
         kind,
         title,
-        link: `/jobs/${jobId}`,
+        link: jobLink(jobId),
         jobId,
       })
     },
@@ -63,14 +63,8 @@ export function createNotificationsService(db: Db): NotificationsService {
     async list(userId, { limit, cursor }) {
       const after = cursor === undefined ? undefined : decodeCursor(cursor)
       if (cursor !== undefined && after === undefined) badRequest('Invalid cursor')
-      const rows = await repo.page(userId, limit, after)
-      const items = rows.slice(0, limit)
-      const last = items.at(-1)
-      return {
-        items: items.map(toDto),
-        nextCursor:
-          rows.length > limit && last ? encodeCursor({ at: last.cursorAt, id: last.id }) : null,
-      }
+      const rows = await repo.page(userId, limit + 1, after)
+      return keysetPage(rows, limit, toDto, (row) => encodeCursor({ at: row.cursorAt, id: row.id }))
     },
 
     async unreadCount(userId) {
@@ -83,7 +77,7 @@ export function createNotificationsService(db: Db): NotificationsService {
     },
 
     async markAllRead(userId) {
-      return { updated: (await repo.markAllRead(userId)).length }
+      return { updated: await repo.markAllRead(userId) }
     },
 
     async delete(userId, notificationId) {
@@ -92,7 +86,7 @@ export function createNotificationsService(db: Db): NotificationsService {
     },
 
     async purgeCreatedBefore(before) {
-      return (await repo.purgeCreatedBefore(before)).length
+      return repo.purgeCreatedBefore(before)
     },
   }
 }

@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import type { OAuthProvider } from '@replo/contracts'
 import { z } from 'zod'
 import type { Config } from '../../platform/config'
+import { GITHUB_API_ORIGIN } from '../../platform/github/client'
 
 export interface OAuthCredentials {
   clientId: string
@@ -207,8 +208,6 @@ const GOOGLE_SPEC: OAuthProviderSpec = {
   },
 }
 
-const GITHUB_API_URL = 'https://api.github.com'
-
 const GithubUser = z.object({
   id: z.number().int().positive(),
   login: z.string().min(1),
@@ -227,8 +226,8 @@ const GITHUB_SPEC: OAuthProviderSpec = {
   authorizeParams: { allow_signup: 'true' },
   tokenParams: {},
   async fetchProfile(http, accessToken) {
-    const user = await http.getJson(`${GITHUB_API_URL}/user`, accessToken, GithubUser)
-    const emails = await http.getJson(`${GITHUB_API_URL}/user/emails`, accessToken, GithubEmails)
+    const user = await http.getJson(`${GITHUB_API_ORIGIN}/user`, accessToken, GithubUser)
+    const emails = await http.getJson(`${GITHUB_API_ORIGIN}/user/emails`, accessToken, GithubEmails)
     const primary = emails.find((entry) => entry.primary && entry.verified)
     return {
       providerAccountId: String(user.id),

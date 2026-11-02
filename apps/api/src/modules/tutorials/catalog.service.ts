@@ -73,7 +73,7 @@ export function createTutorialCatalog(deps: TutorialCatalogDeps): TutorialCatalo
     async summary(userId, tutorialId) {
       const row = requireFound(await repo.findById(tutorialId), 'Tutorial')
       const versionId = row.tutorial.currentVersionId
-      const current = versionId ? await repo.findVersion(versionId) : undefined
+      const current = versionId ? (await repo.findVersionHead(versionId))?.version : undefined
       const progress = versionId ? await learning.completionRatio({ userId }, versionId) : null
       return toTutorialSummary(row, current, progress)
     },
@@ -87,7 +87,7 @@ export function createTutorialCatalog(deps: TutorialCatalogDeps): TutorialCatalo
         kind: 'tutorial_published',
         title: `${row.title} published`,
         localDate: row.localDate,
-        at: (row.publishedAt ?? new Date(0)).toISOString(),
+        at: row.publishedAt.toISOString(),
         link: tutorialPath(row.owner, row.name, row.slug),
       }))
     },

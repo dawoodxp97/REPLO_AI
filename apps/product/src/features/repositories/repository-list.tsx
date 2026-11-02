@@ -10,6 +10,7 @@ import {
 } from '@replo/ui'
 import { LoadMore } from '@/components/load-more'
 import { LinkButton } from '@/components/link-button'
+import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
 import { QueryBoundary } from '@/components/query-boundary'
 import { pageItems } from '@/lib/paging'
 import { RepositoryRow } from './repository-row'
@@ -52,8 +53,8 @@ function NoRepositories() {
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <LinkButton href="/import" variant="outline">
-          Import a repository
+        <LinkButton href={importPath()} variant="outline">
+          {NEW_TUTORIAL_LABEL}
         </LinkButton>
       </EmptyContent>
     </Empty>

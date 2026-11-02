@@ -8,6 +8,7 @@ const entry = {
   language: 'typescript',
   role: 'source',
   readable: true,
+  cited: false,
 }
 
 describe('SourceTreeDto', () => {

@@ -1,4 +1,6 @@
 import type { ActivityItem, ActivityPage, DashboardSummary } from '@replo/contracts'
+import { isTerminalStatus, jobLink } from '../../platform/job-status'
+import { badRequest } from '../../platform/errors'
 import { decodeOffset, offsetPage } from '../../platform/pagination'
 import type { JobHistory, RecentJob } from '../generation/job-history.service'
 import type { LearningService } from '../learning/learning.service'
@@ -6,7 +8,7 @@ import type { RepositoryLibrary } from '../repositories/library.service'
 import type { TutorialLibrary } from '../tutorials/library.service'
 
 const IN_FLIGHT_LIMIT = 20
-const FINISHED_STATUSES = new Set(['succeeded', 'failed', 'canceled'])
+const MAX_FEED_OFFSET = 5000
 
 export interface DashboardDeps {
   tutorials: Pick<TutorialLibrary, 'counts' | 'recentPublished'>
@@ -63,6 +65,7 @@ export function createDashboardService(deps: DashboardDeps): DashboardService {
 
     async recent(userId, { zone, limit, cursor }) {
       const offset = decodeOffset(cursor)
+      if (offset > MAX_FEED_OFFSET) badRequest('Invalid cursor')
       const end = offset + limit
       const repositoryIds = await repositories.linkedIds(userId)
       const [published, recentJobs] = await Promise.all([
@@ -103,10 +106,10 @@ function toActivity(entry: RecentEntry, linked: Map<string, Repository>): Activi
   if (!repository) return undefined
   return {
     id: entryId(entry),
-    kind: FINISHED_STATUSES.has(entry.status) ? 'job_finished' : 'job_started',
+    kind: isTerminalStatus(entry.status) ? 'job_finished' : 'job_started',
     title: `${repository.owner}/${repository.name}: ${entry.status}`,
     localDate: entry.localDate,
     at: entry.at,
-    link: `/jobs/${entry.jobId}`,
+    link: jobLink(entry.jobId),
   }
 }

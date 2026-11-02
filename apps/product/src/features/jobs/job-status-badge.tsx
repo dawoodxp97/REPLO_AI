@@ -1,6 +1,6 @@
 import type { JobStatus } from '@replo/contracts'
 import { Badge, type BadgeProps } from '@replo/ui'
-import { ACTIVE_JOB_STATUSES, JOB_STATUS_LABELS } from './job-status'
+import { isActiveJob, JOB_STATUS_LABELS } from './job-status'
 
 const VARIANTS: Record<JobStatus, BadgeProps['variant']> = {
   queued: 'outline',
@@ -14,7 +14,7 @@ const VARIANTS: Record<JobStatus, BadgeProps['variant']> = {
 }
 
 export function JobStatusBadge({ status }: { status: JobStatus }) {
-  const active = ACTIVE_JOB_STATUSES.includes(status)
+  const active = isActiveJob(status)
   return (
     <Badge variant={VARIANTS[status]}>
       {active ? (

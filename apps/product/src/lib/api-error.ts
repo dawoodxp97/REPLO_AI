@@ -18,15 +18,11 @@ export function shouldRetryQuery(failureCount: number, error: unknown): boolean 
   return failureCount < 1 && !clientError
 }
 
-export async function nullOnApiError<T>(promise: Promise<T>, code: string): Promise<T | null> {
+export async function nullOnNotFound<T>(promise: Promise<T>): Promise<T | null> {
   try {
     return await promise
   } catch (error) {
-    if (isApiErrorCode(error, code)) return null
+    if (isApiErrorCode(error, 'NOT_FOUND')) return null
     throw error
   }
-}
-
-export function nullOnNotFound<T>(promise: Promise<T>): Promise<T | null> {
-  return nullOnApiError(promise, 'NOT_FOUND')
 }

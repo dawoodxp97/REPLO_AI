@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { DIAGRAM_STATUS_MESSAGE, type DiagramStatus } from './diagram-state'
 import { describeFlowchart } from './mermaid-steps'
 import { renderMermaid } from './render-mermaid'
+import { useColorScheme } from './use-color-scheme'
 
 interface DiagramRender {
   source: string
@@ -11,6 +12,7 @@ interface DiagramRender {
 }
 
 export function ArchitectureDiagram({ mermaid, caption }: { mermaid: string; caption: string }) {
+  const scheme = useColorScheme()
   const container = useRef<HTMLDivElement>(null)
   const [render, setRender] = useState<DiagramRender>({ source: mermaid, status: 'waiting' })
   const status = render.source === mermaid ? render.status : 'waiting'
@@ -27,7 +29,7 @@ export function ArchitectureDiagram({ mermaid, caption }: { mermaid: string; cap
       if (!entries.some((entry) => entry.isIntersecting)) return
       observer.disconnect()
       setRender({ source: mermaid, status: 'rendering' })
-      renderMermaid(node, mermaid, diagramId, () => cancelled).then(
+      renderMermaid(node, mermaid, diagramId, scheme, () => cancelled).then(
         (disposeDiagram) => {
           if (cancelled) {
             disposeDiagram()
@@ -47,7 +49,7 @@ export function ArchitectureDiagram({ mermaid, caption }: { mermaid: string; cap
       observer.disconnect()
       dispose?.()
     }
-  }, [mermaid, diagramId])
+  }, [mermaid, diagramId, scheme])
 
   return (
     <figure className="space-y-3">

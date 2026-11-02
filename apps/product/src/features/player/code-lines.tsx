@@ -1,4 +1,4 @@
-import { cn } from '@replo/ui'
+import { CodePanel, cn } from '@replo/ui'
 import type { CSSProperties } from 'react'
 import { useEffect, useRef } from 'react'
 import { centerWithinScrollParent } from './scroll-within'
@@ -40,11 +40,7 @@ export function CodeLines({
   }, [scrollToHighlight, highlightStart, highlightEnd, firstLine, lineCount])
 
   return (
-    <pre
-      tabIndex={0}
-      aria-label={label}
-      className="overflow-x-auto rounded-lg border bg-code-bg py-3 font-mono text-[13px] leading-6 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-    >
+    <CodePanel as="pre" tabIndex={0} aria-label={label} className="overflow-x-auto py-3">
       <code className="block min-w-max">
         {lines.map((text, index) => {
           const lineNumber = firstLine + index
@@ -69,7 +65,7 @@ export function CodeLines({
           )
         })}
       </code>
-    </pre>
+    </CodePanel>
   )
 }
 

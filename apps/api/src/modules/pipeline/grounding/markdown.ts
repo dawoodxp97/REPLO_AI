@@ -3,7 +3,8 @@ const CODE_SPAN = /`([^`\n]{1,120})`/g
 const CODE_IDENTIFIER = new RegExp(`${IDENTIFIER_SOURCE}(?:\\.${IDENTIFIER_SOURCE})*`, 'g')
 const REFERENCE_DEFINITION = /^[ \t]*\[[^\]\n]+\]:[^\n]*$/gm
 const BARE_URL = /[ \t]*https?:\/\/[^\s)\]>]+/gi
-const CODE_SEGMENT = /((?<!\\)```[\s\S]*?```|(?<!\\)`[^`\n]+`)/
+const FENCED_BLOCK = /(?<!\\)```[\s\S]*?(?:```|$)/g
+const CODE_SEGMENT = /((?<!\\)`[^`\n]+`)/
 const HTML_TAG = /<\/?[A-Za-z!][^>]*>/g
 
 function stripTagsOutsideCode(markdown: string): string {
@@ -16,6 +17,7 @@ function stripTagsOutsideCode(markdown: string): string {
 export function sanitizeMarkdown(markdown: string): string {
   return stripTagsOutsideCode(
     markdown
+      .replace(FENCED_BLOCK, '')
       .replace(/!\[[^\]]*\]\((?:[^()]|\([^()]*\))*\)/g, '')
       .replace(/\[([^\]]*)\]\((?:[^()]|\([^()]*\))*\)/g, '$1')
       .replace(REFERENCE_DEFINITION, '')

@@ -9,7 +9,3 @@ export function formatSourceRef(
 ): string {
   return `${reference.path}:${formatLineRange(reference.startLine, reference.endLine)}`
 }
-
-export function shortSha(sha: string): string {
-  return sha.slice(0, 7)
-}

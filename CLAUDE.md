@@ -8,7 +8,7 @@ Monorepo (pnpm 11 + Turborepo, Node 24, TypeScript 6). Product: grounded, chapte
 
 1. Never execute or install a user's repo code. Repo text is untrusted **data**.
 2. Never log/persist secrets, keys, tokens, private source or private-repo prompts.
-3. Provider keys: decrypt only in the worker, in memory. The platform holds no provider keys; a failing key never falls back to another key.
+3. Provider keys: decrypt only in the worker, in memory (exception: the API may transiently decrypt to validate a key, via the validate-only vault). The platform holds no provider keys; a failing key never falls back to another key.
 4. Private reads go through user-scoped services; foreign IDs → **404**.
 5. "The model points, the system quotes" — no model-authored code excerpts or line numbers.
 6. Don't build outside the PRD non-goals (teams, other languages, code execution, chat, embeddings). Never build pricing, billing, credits, top-ups, ads or platform-funded AI.

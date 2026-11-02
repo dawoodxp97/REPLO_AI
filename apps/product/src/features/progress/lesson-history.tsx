@@ -19,12 +19,11 @@ import { Check } from 'lucide-react'
 import { ErrorPanel } from '@/components/error-panel'
 import { LoadMore } from '@/components/load-more'
 import { TextLink } from '@/components/text-link'
-import { findChapterKey } from '@/features/player/lesson-navigation'
+import { resolveLessonHref } from '@/features/player/lesson-navigation'
 import { useUnmarkLesson } from '@/features/player/use-lesson-progress'
 import { formatDate } from '@/lib/format'
 import {
-  lessonPath,
-  withTutorialContext,
+  createTutorialLinks,
   type TutorialLinkContext,
   type TutorialRef,
 } from '@/lib/tutorial-paths'
@@ -51,25 +50,18 @@ function HistoryRow({
   linkContext: TutorialLinkContext
 }) {
   const unmark = useUnmarkLesson()
-  const chapterKey = findChapterKey(outline, entry.lessonKey)
+  const lessonHref = resolveLessonHref(
+    outline,
+    createTutorialLinks(tutorial, linkContext),
+    entry.lessonKey,
+  )
   const completed = entry.status === 'completed'
 
   return (
     <Item>
       <ItemContent>
         <ItemTitle>
-          {chapterKey ? (
-            <TextLink
-              href={withTutorialContext(
-                lessonPath(tutorial, chapterKey, entry.lessonKey),
-                linkContext,
-              )}
-            >
-              {entry.title}
-            </TextLink>
-          ) : (
-            entry.title
-          )}
+          {lessonHref ? <TextLink href={lessonHref}>{entry.title}</TextLink> : entry.title}
         </ItemTitle>
         <ItemDescription className="flex items-center gap-1.5">
           {completed ? <Check aria-hidden className="size-3.5 text-observed-text" /> : null}

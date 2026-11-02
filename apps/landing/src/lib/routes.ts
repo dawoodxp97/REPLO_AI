@@ -1,4 +1,8 @@
-export const KEY_GUIDE = { href: '/keys/', title: 'Your key' } as const
+export const KEY_GUIDE = {
+  href: '/keys/',
+  title: 'Your key',
+  summary: 'Choosing a provider, OpenRouter’s :free limits and how keys are handled.',
+} as const
 
 export const DOCS_INDEX = { href: '/docs/', title: 'Docs' } as const
 
@@ -25,6 +29,8 @@ export const DOCS_PAGES = [
     summary: 'What is stored, what is never stored or logged, and how long things are kept.',
   },
 ] as const
+
+export const GUIDES = [...DOCS_PAGES, KEY_GUIDE] as const
 
 export const POLICY_PAGES = [
   { href: '/privacy/', title: 'Privacy policy' },

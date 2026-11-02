@@ -10,6 +10,7 @@ import {
 } from '@replo/ui'
 import { LinkButton } from '@/components/link-button'
 import { LoadMore } from '@/components/load-more'
+import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
 import { PageHeader } from '@/components/page-header'
 import { QueryBoundary } from '@/components/query-boundary'
 import { pageItems } from '@/lib/paging'
@@ -24,7 +25,7 @@ export function LibraryPage() {
       <PageHeader
         title="Library"
         description="Your tutorials, who can read them, and how far you have read."
-        action={<LinkButton href="/import">Generate a tutorial</LinkButton>}
+        action={<LinkButton href={importPath()}>{NEW_TUTORIAL_LABEL}</LinkButton>}
       />
 
       <QueryBoundary query={list} errorTitle="We could not load your library">

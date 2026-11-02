@@ -1,4 +1,5 @@
 import type { Node } from 'web-tree-sitter'
+import { JSX_FILE } from './constants'
 
 export type SymbolKind =
   | 'function'
@@ -65,7 +66,7 @@ const stringValue = (node: Node | null | undefined): string | null => {
 const signatureOf = (node: Node) => node.text.split('\n')[0]?.trim().slice(0, MAX_SIGNATURE) ?? ''
 
 export function extractFacts(root: Node, path: string): FileFacts {
-  const isJsx = /\.(tsx|jsx)$/.test(path)
+  const isJsx = JSX_FILE.test(path)
   const facts: FileFacts = {
     symbols: [],
     imports: [],
@@ -99,9 +100,8 @@ export function extractFacts(root: Node, path: string): FileFacts {
       exported,
       signature: signatureOf(node),
     })
-    if (exported && kind === 'function' && /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/.test(name))
+    if (exported && (kind === 'function' || kind === 'component' || kind === 'hook'))
       facts.exportedFunctions.push(name)
-    if (exported && kind === 'component' && name === 'default') facts.exportedFunctions.push(name)
   }
 
   const visitDeclaration = (node: Node, exported: boolean) => {

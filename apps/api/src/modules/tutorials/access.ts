@@ -1,6 +1,7 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import type { Visibility } from '@replo/contracts'
-import type { TutorialRow } from './tutorials.repo'
+import { notFound } from '../../platform/errors'
+import type { TutorialRow, TutorialWithRepo } from './tutorials.repo'
 
 export interface Viewer {
   userId?: string | undefined
@@ -30,6 +31,15 @@ export function ownershipOf(tutorial: TutorialRow): Ownership {
     visibility: tutorial.visibility,
     shareToken: tutorial.shareToken,
   }
+}
+
+export function readableTutorial<T extends TutorialWithRepo>(
+  row: T | undefined,
+  viewer: Viewer,
+  label: string,
+): T {
+  if (!row || !canRead(ownershipOf(row.tutorial), viewer)) notFound(label)
+  return row
 }
 
 export function isOwner(tutorial: Pick<Ownership, 'ownerId'>, userId: string): boolean {

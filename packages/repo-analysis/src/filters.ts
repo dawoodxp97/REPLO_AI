@@ -104,10 +104,6 @@ export function detectLanguage(path: string): Language {
   return LANGUAGE_BY_EXTENSION[extensionOf(path)] ?? 'other'
 }
 
-function isSupportedSourceLanguage(language: Language): boolean {
-  return language === 'typescript' || language === 'javascript'
-}
-
 const TEST_PATTERN = /(^|\/)(__tests__|tests?|e2e)\//i
 const TEST_FILE = /\.(test|spec)\.[cm]?[jt]sx?$/i
 const GENERATED_FILE = /(\.min\.js|\.d\.ts|\.generated\.[jt]sx?|\.snap)$/i
@@ -118,13 +114,12 @@ export function classifyRole(path: string, language: Language = detectLanguage(p
   if (TEST_PATTERN.test(path) || TEST_FILE.test(path)) return 'test'
   if (language === 'markdown') return 'doc'
   if (language === 'css' || language === 'html') return 'source'
-  if (isSupportedSourceLanguage(language)) {
+  if (language === 'typescript' || language === 'javascript') {
     const file = path.slice(path.lastIndexOf('/') + 1)
     return /\.config\.[cm]?[jt]s$/.test(file) || /^\.[a-z]+rc\.[cm]?[jt]s$/.test(file)
       ? 'config'
       : 'source'
   }
   if (language === 'json' || language === 'yaml') return 'config'
-  if (!isBinaryExtension(path)) return 'source'
-  return 'asset'
+  return 'source'
 }

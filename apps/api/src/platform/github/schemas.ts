@@ -10,7 +10,10 @@ export const GithubRepository = z.object({
 })
 export type GithubRepository = z.infer<typeof GithubRepository>
 
-export const InstallationToken = z.object({ token: z.string().min(1) })
+export const InstallationToken = z.object({
+  token: z.string().min(1),
+  expires_at: z.string().optional(),
+})
 
 export const UserInstallation = z.object({
   id: z.number().int().positive(),

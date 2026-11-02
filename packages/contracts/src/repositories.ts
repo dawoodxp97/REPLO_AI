@@ -10,7 +10,7 @@ import {
   pageInput,
   pageOutput,
 } from './common'
-import { CustomModelRefusal, CustomModels, Pipeline } from './models'
+import { CustomModelRefusal, CustomModels, Pipeline, RoleModels } from './models'
 import { GenerationJobDto, JobStatus } from './jobs'
 
 export const RepositorySource = z.discriminatedUnion('kind', [
@@ -88,11 +88,7 @@ export type ImportRepositoryInput = z.infer<typeof ImportRepositoryInput>
 
 export const RunEstimate = z.object({
   pipeline: Pipeline,
-  models: z.object({
-    planner: z.string(),
-    author: z.string(),
-    summarizer: z.string().nullable(),
-  }),
+  models: RoleModels,
   requests: z.number().int(),
   inputTokens: z.number().int(),
   outputTokens: z.number().int(),

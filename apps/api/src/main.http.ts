@@ -98,7 +98,9 @@ registerNotificationsStream(app, {
 })
 
 await app.register(async (scope) => {
-  scope.addContentTypeParser('*', (_req, _payload, done) => done(null, undefined))
+  scope.addContentTypeParser('*', { parseAs: 'buffer', bodyLimit: BODY_LIMIT_BYTES }, (_req, _body, done) =>
+    done(null, undefined),
+  )
   const handler = new RPCHandler(router)
 
   scope.all('/rpc/*', async (request, reply) => {

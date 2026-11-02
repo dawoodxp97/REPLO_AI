@@ -5,8 +5,21 @@ import * as schema from './schema'
 
 export const fullSchema = { ...authSchema, ...schema }
 
-export function createDb(databaseUrl: string, opts: { max?: number } = {}) {
-  const pool = new pg.Pool({ connectionString: databaseUrl, max: opts.max ?? 10 })
+export interface DbOptions {
+  max?: number
+  onPoolError?: (err: Error) => void
+}
+
+export function createDb(databaseUrl: string, opts: DbOptions = {}) {
+  const pool = new pg.Pool({
+    connectionString: databaseUrl,
+    max: opts.max ?? 10,
+    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: 30_000,
+    statement_timeout: 30_000,
+    idle_in_transaction_session_timeout: 60_000,
+  })
+  pool.on('error', (err) => opts.onPoolError?.(err))
   const db = drizzle(pool, { schema: fullSchema })
   return { db, pool }
 }

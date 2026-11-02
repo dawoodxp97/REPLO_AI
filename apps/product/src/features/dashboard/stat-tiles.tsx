@@ -1,25 +1,25 @@
 import type { DashboardSummary } from '@replo/contracts'
-import { Card } from '@replo/ui'
+import { VISIBILITY_LABEL } from '@/features/library/visibility-options'
 import { formatCount } from '@/lib/format'
 
-const TILES = [
-  { label: 'Tutorials', count: (counts: DashboardSummary['counts']) => counts.total },
-  { label: 'Drafts', count: (counts: DashboardSummary['counts']) => counts.draft },
-  { label: 'Private', count: (counts: DashboardSummary['counts']) => counts.private },
-  { label: 'By link', count: (counts: DashboardSummary['counts']) => counts.link },
-  { label: 'Public', count: (counts: DashboardSummary['counts']) => counts.public },
-]
-
 export function StatTiles({ counts }: { counts: DashboardSummary['counts'] }) {
+  const parts = [
+    { label: 'Tutorials', count: counts.total },
+    { label: 'Drafts', count: counts.draft },
+    { label: VISIBILITY_LABEL.private, count: counts.private },
+    { label: VISIBILITY_LABEL.link, count: counts.link },
+    { label: VISIBILITY_LABEL.public, count: counts.public },
+  ]
+
   return (
-    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {TILES.map((tile) => (
-        <Card key={tile.label} className="gap-1 px-4 py-4">
-          <dt className="text-xs text-muted-foreground">{tile.label}</dt>
-          <dd className="tabular font-mono text-2xl font-semibold">
-            {formatCount(tile.count(counts))}
+    <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+      {parts.map((part) => (
+        <div key={part.label} className="flex items-baseline gap-1.5">
+          <dd className="tabular font-mono font-semibold text-foreground">
+            {formatCount(part.count)}
           </dd>
-        </Card>
+          <dt>{part.label}</dt>
+        </div>
       ))}
     </dl>
   )

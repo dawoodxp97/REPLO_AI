@@ -12,9 +12,8 @@ import { orpc } from '@/lib/orpc'
 import type { TutorialRef } from '@/lib/tutorial-paths'
 import { buildFileTree } from './file-tree'
 import { FileTreeList } from './file-tree-list'
-import { shortSha } from './source-ref-label'
+import { shortSha } from '@/lib/format'
 import { SourceView } from './source-view'
-import { useCitedPaths } from './use-cited-paths'
 import type { TutorialLinks } from '@/lib/tutorial-paths'
 import { useTutorialLinks } from './use-tutorial-links'
 import { useTutorialOverview } from './use-tutorial-overview'
@@ -108,7 +107,6 @@ function FileTreePanel({ overview, links, selectedPath, shareToken }: ExplorerLa
       input: { versionId: overview.versionId, shareToken },
     }),
   )
-  const citedPaths = useCitedPaths(overview, shareToken)
 
   return (
     <aside className="min-w-0 space-y-2">
@@ -130,7 +128,6 @@ function FileTreePanel({ overview, links, selectedPath, shareToken }: ExplorerLa
             links={links}
             nodes={buildFileTree(tree.data.files)}
             selectedPath={selectedPath}
-            citedPaths={citedPaths}
           />
         )}
       </nav>

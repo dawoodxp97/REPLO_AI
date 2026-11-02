@@ -47,7 +47,7 @@ export function Header() {
         </div>
       </Container>
       <Container className="md:hidden">
-        <PrimaryNav className="scrollbar-thin -mt-1 flex h-10 items-center gap-5 overflow-x-auto text-[0.8125rem] whitespace-nowrap text-muted-foreground" />
+        <PrimaryNav className="scrollbar-thin -mt-1 flex h-10 items-center gap-5 overflow-x-auto text-compact whitespace-nowrap [&_a]:py-2.5 text-muted-foreground" />
       </Container>
     </header>
   )

@@ -6,7 +6,7 @@ export {
   type UsageSink,
 } from './budget'
 export { generateStructured, type GenerateStructuredOptions } from './generate'
-export { type ModelRole, type ModelSpec, type Registry } from './registry'
+export { type ModelRole, type ModelSpec } from './registry'
 export { modelFor, type RunContext } from './resolve'
 export {
   PRESETS,
@@ -26,7 +26,7 @@ export {
   type Tier,
 } from './catalog'
 export { MODEL_CATALOG } from './catalog-data'
-export { estimateRun, type RoleCost, type RunEstimate } from './estimate'
+export { estimateRun, type RoleCost, type RunCostEstimate } from './estimate'
 export { createKeyChecker, type KeyCheck, type KeyChecker } from './providers'
 export { specFor } from './spec'
 export { type ProviderId } from './catalog'

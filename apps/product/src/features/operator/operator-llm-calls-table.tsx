@@ -1,9 +1,26 @@
 import type { OperatorJobDetail } from '@replo/contracts'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@replo/ui'
+import { DataTable, type DataColumn } from '@/components/data-table'
 import { SectionHeader } from '@/components/page-header'
-import { PROVIDER_LABELS } from '@/features/keys/providers'
-import { formatCount } from '@/lib/format'
-import { formatLatency, formatMicros } from './operator-format'
+import { LLM_PROVIDER_LABELS } from '@/features/keys/providers'
+import { formatCount, formatLatency, formatMicros } from '@/lib/format'
+
+type CallRow = OperatorJobDetail['llmCalls'][number]
+
+const NUMERIC = 'tabular font-mono text-xs whitespace-nowrap'
+
+const COLUMNS: readonly DataColumn<CallRow>[] = [
+  { header: 'Stage', cell: (row) => row.stage, className: 'font-mono text-xs' },
+  { header: 'Provider', cell: (row) => LLM_PROVIDER_LABELS[row.provider] },
+  { header: 'Model', cell: (row) => row.model, className: 'font-mono text-xs' },
+  {
+    header: 'Tokens in / out',
+    cell: (row) => `${formatCount(row.inputTokens)} / ${formatCount(row.outputTokens)}`,
+    className: NUMERIC,
+  },
+  { header: 'Latency', cell: (row) => formatLatency(row.latencyMs), className: NUMERIC },
+  { header: 'Cost', cell: (row) => formatMicros(row.costMicros), className: NUMERIC },
+  { header: 'Status', cell: (row) => row.status, className: 'font-mono text-xs' },
+]
 
 export function OperatorLlmCallsTable({ calls }: { calls: OperatorJobDetail['llmCalls'] }) {
   return (
@@ -16,40 +33,7 @@ export function OperatorLlmCallsTable({ calls }: { calls: OperatorJobDetail['llm
       {calls.length === 0 ? (
         <p className="text-sm text-muted-foreground">This job has not called a model yet.</p>
       ) : (
-        <div className="rounded-lg border bg-card shadow-xs">
-          <Table className="min-w-[44rem]">
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead scope="col">Stage</TableHead>
-                <TableHead scope="col">Provider</TableHead>
-                <TableHead scope="col">Model</TableHead>
-                <TableHead scope="col">Tokens in / out</TableHead>
-                <TableHead scope="col">Latency</TableHead>
-                <TableHead scope="col">Cost</TableHead>
-                <TableHead scope="col">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {calls.map((call) => (
-                <TableRow key={call.id}>
-                  <TableCell className="font-mono text-xs">{call.stage}</TableCell>
-                  <TableCell>{PROVIDER_LABELS[call.provider]}</TableCell>
-                  <TableCell className="font-mono text-xs">{call.model}</TableCell>
-                  <TableCell className="tabular font-mono text-xs whitespace-nowrap">
-                    {formatCount(call.inputTokens)} / {formatCount(call.outputTokens)}
-                  </TableCell>
-                  <TableCell className="tabular font-mono text-xs whitespace-nowrap">
-                    {formatLatency(call.latencyMs)}
-                  </TableCell>
-                  <TableCell className="tabular font-mono text-xs whitespace-nowrap">
-                    {formatMicros(call.costMicros)}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{call.status}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable columns={COLUMNS} rows={calls} getKey={(row) => row.id} minWidth="min-w-2xl" />
       )}
     </section>
   )

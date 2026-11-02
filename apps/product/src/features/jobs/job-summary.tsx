@@ -1,6 +1,6 @@
 import type { GenerationJobDto } from '@replo/contracts'
 import { Card, CardContent, Progress } from '@replo/ui'
-import { formatUsd } from '@/lib/format'
+import { formatUsd, shortSha } from '@/lib/format'
 import { ConnectionStatus } from './connection-status'
 import { JobStatusBadge } from './job-status-badge'
 import type { Connection } from './job-progress-state'
@@ -13,9 +13,9 @@ export function JobSummary({ job, connection }: { job: GenerationJobDto; connect
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <JobStatusBadge status={job.status} />
             <span className="font-mono text-xs text-muted-foreground" title={job.commitSha}>
-              {job.commitSha.slice(0, 7)}
+              {shortSha(job.commitSha)}
             </span>
-            <span className="text-[0.8125rem] text-muted-foreground">
+            <span className="text-compact text-muted-foreground">
               Spent <span className="tabular font-mono">{formatUsd(job.spentUsd)}</span> of{' '}
               <span className="tabular font-mono">{formatUsd(job.budgetUsd)}</span>
             </span>

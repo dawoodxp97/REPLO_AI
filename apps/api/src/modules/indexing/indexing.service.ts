@@ -19,18 +19,17 @@ import {
 } from '@replo/repo-analysis'
 import type { Db, Tx } from '../../platform/db/client'
 import type { SnapshotAnalysis, SnapshotStatus } from '../../platform/db/schema'
-import {
-  GithubApiError,
-  GithubTokenRejectedError,
-  type GithubRest,
-} from '../../platform/github/client'
+import { classifyGithubFailure, repoApiPath, type GithubRest } from '../../platform/github/client'
 import { JobError } from '../../jobs/errors'
 import { extractArchive } from './archive'
 import { installDirectory } from './install-directory'
 import { readManifest, readOptional } from './manifest'
+import { isAnalyzedFile } from './file-policy'
 import { snapshotsRepo } from './indexing.repo'
 
 const MAX_TARBALL_BYTES = 200_000_000
+const READ_CONCURRENCY = 32
+const PURGE_BATCH = 100
 
 interface SnapshotRef {
   repositoryId: string
@@ -132,13 +131,14 @@ export function createIndexingService(deps: IndexingDeps): IndexingService {
     try {
       return await tokens.userCanAccess(userId, repository)
     } catch (error) {
-      if (error instanceof GithubTokenRejectedError)
+      const failure = classifyGithubFailure(error)
+      if (failure === 'token_rejected')
         throw new JobError(
           'GITHUB_RELINK_REQUIRED',
           false,
           'GitHub rejected your saved sign-in; reconnect GitHub and retry',
         )
-      if (error instanceof GithubApiError && error.status === 403)
+      if (failure === 'forbidden')
         throw new JobError('GITHUB_FORBIDDEN', true, 'GitHub temporarily refused the request')
       throw error
     }
@@ -171,7 +171,7 @@ export function createIndexingService(deps: IndexingDeps): IndexingService {
   ): Promise<void> => {
     const token = await accessToken(source.installationId)
     const response = await rest.download(
-      `/repos/${source.owner}/${source.name}/tarball/${snapshot.commitSha}`,
+      `${repoApiPath(source.owner, source.name)}/tarball/${encodeURIComponent(snapshot.commitSha)}`,
       { token, signal },
     )
     const body = response?.body
@@ -223,30 +223,37 @@ export function createIndexingService(deps: IndexingDeps): IndexingService {
 
     async readView(snapshotId) {
       const repo = snapshotsRepo(db)
-      const snapshot = await repo.findById(snapshotId)
+      const snapshot = await repo.findWithRepository(snapshotId)
       if (!snapshot) return undefined
-      const repository = await repo.repositoryOf(snapshot.repositoryId)
-      if (!repository) return undefined
-      const manifest = await readManifest(snapshotDir(snapshot.id))
+      const [manifest, files, symbols, edges] = await Promise.all([
+        readManifest(snapshotDir(snapshot.id)),
+        repo.listFiles(snapshot.id),
+        repo.listSymbols(snapshot.id),
+        repo.listEdges(snapshot.id),
+      ])
       return {
         repositoryId: snapshot.repositoryId,
-        owner: repository.owner,
-        name: repository.name,
+        owner: snapshot.owner,
+        name: snapshot.repositoryName,
         commitSha: snapshot.commitSha,
         analysis: snapshot.analysis ?? null,
-        files: await repo.listFiles(snapshot.id),
-        symbols: await repo.listSymbols(snapshot.id),
-        edges: await repo.listEdges(snapshot.id),
+        files,
+        symbols,
+        edges,
         dependencies: Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }),
       }
     },
 
     async purgeUnreferenced(cutoff) {
       const repo = snapshotsRepo(db)
-      const doomed = (await repo.unreferencedBefore(cutoff)).map((row) => row.id)
-      await Promise.all(doomed.map((id) => rm(snapshotDir(id), { recursive: true, force: true })))
-      await repo.deleteSnapshots(doomed)
-      return doomed.length
+      let purged = 0
+      for (;;) {
+        const doomed = (await repo.unreferencedBefore(cutoff, PURGE_BATCH)).map((row) => row.id)
+        if (doomed.length === 0) return purged
+        await Promise.all(doomed.map((id) => rm(snapshotDir(id), { recursive: true, force: true })))
+        await repo.deleteSnapshots(doomed)
+        purged += doomed.length
+      }
     },
 
     readFile(snapshotId, path) {
@@ -293,23 +300,15 @@ export function createIndexingService(deps: IndexingDeps): IndexingService {
           (await readOptional(join(dir, 'tsconfig.json'))) ??
           (await readOptional(join(dir, 'jsconfig.json'))),
       })
-      for (const file of await snapshotsRepo(db).listFiles(snapshot.id)) {
+      const analyzed = (await snapshotsRepo(db).listFiles(snapshot.id)).filter(isAnalyzedFile)
+      for (let offset = 0; offset < analyzed.length; offset += READ_CONCURRENCY) {
         signal.throwIfAborted()
-        if (file.language === null) continue
-        const isManifest = file.path === 'package.json' || file.path.endsWith('/package.json')
-        const isAnalyzed =
-          isManifest ||
-          file.language === 'typescript' ||
-          file.language === 'javascript' ||
-          file.language === 'html'
-        if (!isAnalyzed) continue
-        const text = await readOptional(join(dir, file.path))
-        if (text === undefined) continue
-        session.addFile({
-          path: file.path,
-          text,
-          role: file.role,
-          language: file.language,
+        const batch = analyzed.slice(offset, offset + READ_CONCURRENCY)
+        const texts = await Promise.all(batch.map((file) => readOptional(join(dir, file.path))))
+        batch.forEach((file, position) => {
+          const text = texts[position]
+          if (text === undefined || file.language === null) return
+          session.addFile({ path: file.path, text, role: file.role, language: file.language })
         })
       }
       const result = session.finish()

@@ -1,21 +1,18 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { JobStatus, Stage } from './jobs'
-import { OffsetCursor, Provider, pageInput, pageOutput } from './common'
+import { JobProgressFields, JobStatus, Stage } from './jobs'
+import { JobRef, NonNegativeInt, OffsetCursor, Provider, pageInput, pageOutput } from './common'
 import { Pipeline } from './models'
 
 export const OperatorJobRow = z.object({
-  jobId: z.uuid(),
+  ...JobProgressFields,
   userId: z.string(),
-  status: JobStatus,
-  stage: Stage.nullable(),
-  progress: z.number().int().min(0).max(100),
   pipeline: Pipeline,
   errorCode: z.string().nullable(),
   errorMessage: z.string().nullable(),
-  attempts: z.number().int().nonnegative(),
-  spentMicros: z.number().int().nonnegative(),
-  budgetMicros: z.number().int().nonnegative(),
+  attempts: NonNegativeInt,
+  spentMicros: NonNegativeInt,
+  budgetMicros: NonNegativeInt,
   createdAt: z.iso.datetime(),
   finishedAt: z.iso.datetime().nullable(),
 })
@@ -37,10 +34,10 @@ export const OperatorJobDetail = z.object({
       stage: z.string(),
       provider: Provider,
       model: z.string(),
-      inputTokens: z.number().int().nonnegative(),
-      outputTokens: z.number().int().nonnegative(),
-      costMicros: z.number().int().nonnegative(),
-      latencyMs: z.number().int().nonnegative(),
+      inputTokens: NonNegativeInt,
+      outputTokens: NonNegativeInt,
+      costMicros: NonNegativeInt,
+      latencyMs: NonNegativeInt,
       status: z.string(),
       createdAt: z.iso.datetime(),
     }),
@@ -58,6 +55,6 @@ export const operatorContract = {
     .output(OperatorJobPage),
   job: oc
     .route({ method: 'GET', path: '/operator/jobs/{jobId}' })
-    .input(z.object({ jobId: z.uuid() }))
+    .input(JobRef)
     .output(OperatorJobDetail),
 }

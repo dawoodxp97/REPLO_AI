@@ -22,7 +22,7 @@ import {
 } from './platform/db/schema'
 import { loadConfig } from './platform/config'
 import type { JobQueue } from './platform/queue/job-queue'
-import { createDomainServices, createServices } from './composition'
+import { createDomainServices, createServices, vaultFrom } from './composition'
 import type { RequestContext, SessionUser } from './context'
 import { router } from './router'
 
@@ -98,8 +98,9 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
       PRODUCT_ORIGIN: 'http://localhost:3001',
       KEY_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
     })
-    const domain = createDomainServices({ config, db, queue: unusedQueue })
-    services = createServices({ config, db, domain, oauth: {} })
+    const vault = vaultFrom(config)
+    const domain = createDomainServices({ config, db, queue: unusedQueue, vault })
+    services = createServices({ config, db, domain, oauth: {}, vault })
   })
 
   afterAll(async () => {
@@ -336,6 +337,7 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
         snapshotId,
         schemaVersion: 1,
         status: 'published',
+        publishedAt: new Date(),
         audience: 'intermediate',
         content: null,
         generator,

@@ -1,23 +1,46 @@
 import type { OperatorJobRow } from '@replo/contracts'
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-  Progress,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@replo/ui'
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle, Progress } from '@replo/ui'
 import Link from 'next/link'
+import { DataTable, type DataColumn } from '@/components/data-table'
 import { LinkButton } from '@/components/link-button'
 import { JobStatusBadge } from '@/features/jobs/job-status-badge'
-import { formatDateTime, formatMicros } from './operator-format'
+import { formatDateTime, formatMicros } from '@/lib/format'
 
-const COLUMNS = ['Job', 'Status', 'Stage', 'Pipeline', 'Progress', 'Spent', 'Created'] as const
+const COLUMNS: readonly DataColumn<OperatorJobRow>[] = [
+  {
+    header: 'Job',
+    cell: (row) => (
+      <Link href={`/operator/jobs/${row.jobId}`} className="text-link underline underline-offset-4">
+        {row.jobId.slice(0, 8)}
+      </Link>
+    ),
+    className: 'font-mono text-xs',
+  },
+  { header: 'Status', cell: (row) => <JobStatusBadge status={row.status} /> },
+  { header: 'Stage', cell: (row) => row.stage ?? '—', className: 'font-mono text-xs' },
+  { header: 'Pipeline', cell: (row) => row.pipeline, className: 'font-mono text-xs' },
+  {
+    header: 'Progress',
+    cell: (row) => (
+      <div className="flex items-center gap-2">
+        <Progress value={row.progress} aria-label="Job progress" className="w-16" />
+        <span className="tabular w-9 text-right text-xs text-muted-foreground">
+          {row.progress}%
+        </span>
+      </div>
+    ),
+  },
+  {
+    header: 'Spent',
+    cell: (row) => `${formatMicros(row.spentMicros)} of ${formatMicros(row.budgetMicros)}`,
+    className: 'tabular font-mono text-xs whitespace-nowrap',
+  },
+  {
+    header: 'Created',
+    cell: (row) => formatDateTime(row.createdAt),
+    className: 'text-xs whitespace-nowrap text-muted-foreground',
+  },
+]
 
 export function OperatorJobsTable({
   rows,
@@ -41,52 +64,7 @@ export function OperatorJobsTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border bg-card shadow-xs">
-        <Table className="min-w-[48rem]">
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {COLUMNS.map((column) => (
-                <TableHead key={column} scope="col">
-                  {column}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.jobId}>
-                <TableCell className="font-mono text-xs">
-                  <Link
-                    href={`/operator/jobs/${row.jobId}`}
-                    className="text-link underline underline-offset-4"
-                  >
-                    {row.jobId.slice(0, 8)}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <JobStatusBadge status={row.status} />
-                </TableCell>
-                <TableCell className="font-mono text-xs">{row.stage ?? '—'}</TableCell>
-                <TableCell className="font-mono text-xs">{row.pipeline}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Progress value={row.progress} aria-label="Job progress" className="w-16" />
-                    <span className="tabular w-9 text-right text-xs text-muted-foreground">
-                      {row.progress}%
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="tabular font-mono text-xs whitespace-nowrap">
-                  {formatMicros(row.spentMicros)} of {formatMicros(row.budgetMicros)}
-                </TableCell>
-                <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
-                  {formatDateTime(row.createdAt)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable columns={COLUMNS} rows={rows} getKey={(row) => row.jobId} minWidth="min-w-3xl" />
       {nextCursor ? (
         <LinkButton
           href={`/operator?cursor=${encodeURIComponent(nextCursor)}`}

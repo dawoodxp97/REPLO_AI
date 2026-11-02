@@ -1,19 +1,17 @@
 import type { TutorialOverviewDto } from '@replo/contracts'
-import { Badge, Card, CardContent, Separator } from '@replo/ui'
-import { CopyLinkButton } from '@/components/copy-link-button'
-import { DescriptionItem } from '@/components/description-item'
+import { Badge } from '@replo/ui'
+import { BulletList } from '@/components/bullet-list'
 import { LinkButton } from '@/components/link-button'
-import { SectionHeader } from '@/components/page-header'
+import { SectionHeader, TitledSection } from '@/components/page-header'
 import { ArchitectureDiagram } from '@/features/diagram/architecture-diagram'
+import { formatRepoName, shortSha } from '@/lib/format'
 import {
-  lessonPath,
-  withTutorialContext,
+  createTutorialLinks,
   type TutorialLinkContext,
   type TutorialRef,
 } from '@/lib/tutorial-paths'
 import { TutorialBanners } from './banners'
-import { ReportForm } from './report-form'
-import { createTutorialLinks } from '@/lib/tutorial-paths'
+import { SharingCard } from './sharing-card'
 import { TutorialOutline } from './tutorial-outline'
 import { VersionList } from './version-list'
 
@@ -23,16 +21,6 @@ export interface TutorialOverviewProps {
   latestVersionHref: string | null
   shareToken?: string
   versionNo?: number
-}
-
-function BulletList({ items }: { items: readonly string[] }) {
-  return (
-    <ul className="list-disc space-y-1.5 pl-5 text-sm marker:text-muted-foreground">
-      {items.map((item) => (
-        <li key={item}>{item}</li>
-      ))}
-    </ul>
-  )
 }
 
 export function TutorialOverview({
@@ -47,13 +35,14 @@ export function TutorialOverview({
   const firstChapter = overview.outline[0]
   const firstLesson = firstChapter?.lessons[0]
   const linkContext: TutorialLinkContext = { version: versionNo, shareToken }
+  const links = createTutorialLinks(ref, linkContext)
   const viewing = overview.versions.find((version) => version.versionId === overview.versionId)
 
   return (
     <div className="space-y-8">
       <header className="space-y-4">
         <p className="font-mono text-xs text-muted-foreground">
-          {tutorial.owner}/{tutorial.repo} · commit {overview.commitSha.slice(0, 7)}
+          {formatRepoName(tutorial.owner, tutorial.repo)} · commit {shortSha(overview.commitSha)}
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-balance">{tutorial.title}</h1>
         <div className="flex flex-wrap items-center gap-2">
@@ -64,15 +53,12 @@ export function TutorialOverview({
         <div className="flex flex-wrap items-center gap-2">
           {firstChapter && firstLesson ? (
             <LinkButton
-              href={withTutorialContext(
-                lessonPath(ref, firstChapter.key, firstLesson.key),
-                linkContext,
-              )}
+              href={links.lesson({ chapterKey: firstChapter.key, lessonKey: firstLesson.key })}
             >
               Start reading
             </LinkButton>
           ) : null}
-          <LinkButton href={createTutorialLinks(ref, linkContext).progress()} variant="outline">
+          <LinkButton href={links.progress()} variant="outline">
             Your progress
           </LinkButton>
         </div>
@@ -93,16 +79,14 @@ export function TutorialOverview({
       {overview.objectives.length > 0 || overview.prerequisites.length > 0 ? (
         <div className="grid gap-8 md:grid-cols-2">
           {overview.objectives.length > 0 ? (
-            <section aria-labelledby="objectives-heading" className="space-y-3">
-              <SectionHeader id="objectives-heading" title="Objectives" />
+            <TitledSection id="objectives-heading" title="Objectives">
               <BulletList items={overview.objectives} />
-            </section>
+            </TitledSection>
           ) : null}
           {overview.prerequisites.length > 0 ? (
-            <section aria-labelledby="prerequisites-heading" className="space-y-3">
-              <SectionHeader id="prerequisites-heading" title="Before you start" />
+            <TitledSection id="prerequisites-heading" title="Before you start">
               <BulletList items={overview.prerequisites} />
-            </section>
+            </TitledSection>
           ) : null}
         </div>
       ) : null}
@@ -113,53 +97,28 @@ export function TutorialOverview({
       </section>
 
       {overview.openQuestions.length > 0 ? (
-        <section aria-labelledby="open-questions-heading" className="space-y-3">
-          <SectionHeader
-            id="open-questions-heading"
-            title="Open questions"
-            description="The code does not settle these, so the tutorial does not answer them."
-          />
+        <TitledSection
+          id="open-questions-heading"
+          title="Open questions"
+          description="The code does not settle these, so the tutorial does not answer them."
+        >
           <BulletList items={overview.openQuestions} />
-        </section>
+        </TitledSection>
       ) : null}
 
       <div className="grid gap-8 md:grid-cols-2">
-        <section aria-labelledby="versions-heading" className="space-y-3">
-          <SectionHeader id="versions-heading" title="Versions" />
+        <TitledSection id="versions-heading" title="Versions">
           <VersionList
             tutorial={ref}
             versions={overview.versions}
             currentVersionId={overview.versionId}
             shareToken={shareToken}
           />
-        </section>
+        </TitledSection>
 
-        <section aria-labelledby="sharing-heading" className="space-y-3">
-          <SectionHeader id="sharing-heading" title="Sharing and licence" />
-          <Card>
-            <CardContent className="space-y-4">
-              <dl className="space-y-4">
-                <DescriptionItem label="Licence">
-                  {overview.license ?? 'None found in the repository'}
-                </DescriptionItem>
-                {tutorial.visibility === 'public' ? (
-                  <DescriptionItem label="Public link">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="min-w-0 font-mono text-xs break-all">{shareUrl}</code>
-                      <CopyLinkButton url={shareUrl} />
-                    </div>
-                  </DescriptionItem>
-                ) : null}
-              </dl>
-              {tutorial.visibility === 'public' ? (
-                <>
-                  <Separator />
-                  <ReportForm tutorialId={tutorial.id} shareToken={shareToken} />
-                </>
-              ) : null}
-            </CardContent>
-          </Card>
-        </section>
+        <TitledSection id="sharing-heading" title="Sharing and licence">
+          <SharingCard overview={overview} shareUrl={shareUrl} shareToken={shareToken} />
+        </TitledSection>
       </div>
     </div>
   )

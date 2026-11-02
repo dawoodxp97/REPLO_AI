@@ -1,18 +1,11 @@
-import { Audience, type Stage } from '@replo/contracts'
+import type { Stage } from '@replo/contracts'
 import { z } from 'zod'
 
 export const GENERATE_TUTORIAL = 'generate-tutorial'
 export const REAP_STALLED_JOBS = 'reap-stalled-jobs'
 export const PURGE_RETENTION = 'purge-retention'
 
-export const GenerateTutorialV1 = z.object({
-  v: z.literal(1),
-  jobId: z.uuid(),
-  userId: z.string(),
-  snapshotId: z.uuid(),
-  audience: Audience,
-})
-export const GenerateTutorialPayload = z.discriminatedUnion('v', [GenerateTutorialV1])
+export const GenerateTutorialPayload = z.object({ jobId: z.uuid() })
 export type GenerateTutorialPayload = z.infer<typeof GenerateTutorialPayload>
 
 export const PROGRESS: Record<Stage, number> = {

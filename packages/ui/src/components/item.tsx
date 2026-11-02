@@ -60,10 +60,7 @@ export function ItemTitle({ className, ...props }: ComponentProps<'div'>) {
 export function ItemDescription({ className, ...props }: ComponentProps<'p'>) {
   return (
     <p
-      className={cn(
-        'line-clamp-2 text-[0.8125rem] leading-normal text-muted-foreground',
-        className,
-      )}
+      className={cn('line-clamp-2 text-compact leading-normal text-muted-foreground', className)}
       {...props}
     />
   )

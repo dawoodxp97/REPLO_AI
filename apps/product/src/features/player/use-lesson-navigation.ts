@@ -11,7 +11,7 @@ import type { TutorialLinks } from '@/lib/tutorial-paths'
 
 export interface LessonNavigationInput {
   overview: TutorialOverviewDto
-  chapter: ChapterDto
+  chapterData: ChapterDto
   lesson: LearnerLesson
   links: TutorialLinks
 }
@@ -30,7 +30,7 @@ export interface LessonNavigation {
 
 export function useLessonNavigation({
   overview,
-  chapter,
+  chapterData,
   lesson,
   links,
 }: LessonNavigationInput): LessonNavigation {
@@ -52,9 +52,7 @@ export function useLessonNavigation({
     previous,
     next,
     referenceIds: collectReferenceIds(lesson),
-    chapterTitle:
-      overview.outline.find((item) => item.key === chapter.chapter.key)?.title ??
-      chapter.chapter.title,
+    chapterTitle: chapterData.chapter.title,
     nextHref,
     goTo,
     goNext: () => {

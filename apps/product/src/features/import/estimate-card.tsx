@@ -77,7 +77,7 @@ function EstimateSummary({ estimate }: { estimate: RunEstimate }) {
         <DescriptionItem label="Pipeline">
           {estimate.pipeline === 'full' ? 'Full' : 'Lite (fewer requests)'}
         </DescriptionItem>
-        <DescriptionItem label="Models" className="font-mono text-[0.8125rem]">
+        <DescriptionItem label="Models" className="font-mono text-compact">
           {modelList(estimate)}
         </DescriptionItem>
       </dl>

@@ -5,6 +5,21 @@ import { FixedWindowLimiter } from './rate-limit'
 const MINUTE_MS = 60_000
 const HOUR_MS = 60 * MINUTE_MS
 
+export const RATE_LIMITED_PATHS = {
+  expensive: ['/rpc/repositories/import', '/rpc/jobs/retry'],
+  keysAdd: ['/rpc/keys/add'],
+  keysValidate: ['/rpc/keys/validate'],
+  gated: [
+    '/rpc/repositories/preflight',
+    '/rpc/repositories/estimate',
+    '/rpc/github/listRepos',
+    '/rpc/search/own',
+    '/rpc/me/deleteAccount',
+    '/rpc/auth/revokeOtherSessions',
+  ],
+  credentials: ['/rpc/auth/signIn', '/rpc/auth/signUp'],
+} as const
+
 type KeyOf = RateRule['key']
 
 export interface RateRuleDeps {
@@ -32,9 +47,10 @@ export function buildRateRules(deps: RateRuleDeps): RateRule[] {
     return userId ? `user:${userId}` : `ip:${request.ip}`
   }
   return [
-    limitedPaths(['/rpc/repositories/import'], 20, HOUR_MS, byUserOrIp),
-    limitedPaths(['/rpc/keys/add'], 30, HOUR_MS, byUserOrIp),
-    limitedPaths(['/rpc/keys/validate'], 60, HOUR_MS, byUserOrIp),
-    limitedPaths(['/rpc/auth/signIn', '/rpc/auth/signUp'], 20, MINUTE_MS, byIp),
+    limitedPaths(RATE_LIMITED_PATHS.expensive, 20, HOUR_MS, byUserOrIp),
+    limitedPaths(RATE_LIMITED_PATHS.keysAdd, 30, HOUR_MS, byUserOrIp),
+    limitedPaths(RATE_LIMITED_PATHS.keysValidate, 60, HOUR_MS, byUserOrIp),
+    limitedPaths(RATE_LIMITED_PATHS.gated, 120, MINUTE_MS, byUserOrIp),
+    limitedPaths(RATE_LIMITED_PATHS.credentials, 20, MINUTE_MS, byIp),
   ]
 }

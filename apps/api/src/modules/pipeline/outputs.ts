@@ -12,7 +12,6 @@ export interface StageOutputs {
   ): Promise<z.output<S> | undefined>
   write(jobId: string, stage: Stage, unit: string, value: unknown): Promise<void>
   clear(jobId: string): Promise<void>
-  clearForJobs(jobIds: readonly string[]): Promise<void>
 }
 
 export function createStageOutputs(db: Db): StageOutputs {
@@ -22,7 +21,6 @@ export function createStageOutputs(db: Db): StageOutputs {
       return raw === undefined ? undefined : schema.parse(raw)
     },
     write: (jobId, stage, unit, value) => stageOutputsRepo(db).upsert(jobId, stage, unit, value),
-    clear: (jobId) => stageOutputsRepo(db).deleteForJobs([jobId]),
-    clearForJobs: (jobIds) => stageOutputsRepo(db).deleteForJobs(jobIds),
+    clear: (jobId) => stageOutputsRepo(db).deleteForJob(jobId),
   }
 }

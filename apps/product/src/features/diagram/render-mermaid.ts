@@ -1,13 +1,20 @@
+import type { ColorScheme } from './use-color-scheme'
+
 export type DisposeDiagram = () => void
 
 export async function renderMermaid(
   container: HTMLElement,
   definition: string,
   id: string,
+  scheme: ColorScheme,
   isCancelled: () => boolean,
 ): Promise<DisposeDiagram> {
   const { default: mermaid } = await import('mermaid')
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' })
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'strict',
+    theme: scheme === 'dark' ? 'dark' : 'neutral',
+  })
   const { svg: markup } = await mermaid.render(id, definition)
   if (isCancelled()) return () => undefined
 

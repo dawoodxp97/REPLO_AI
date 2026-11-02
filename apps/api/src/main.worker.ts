@@ -1,6 +1,6 @@
 import { createServer } from 'node:http'
 import { Budget } from '@replo/ai'
-import { createDomainServices } from './composition'
+import { createDomainServices, vaultFrom } from './composition'
 import { handleGenerateTutorial } from './jobs/generate-tutorial.worker'
 import { GENERATE_TUTORIAL, PURGE_RETENTION, REAP_STALLED_JOBS } from './jobs/schemas'
 import { bootstrap } from './platform/bootstrap'
@@ -12,7 +12,12 @@ const SHUTDOWN_TIMEOUT_MS = 45_000
 
 const { config, log, db, boss, releaseSteps } = await bootstrap('worker')
 
-const services = createDomainServices({ config, db, queue: pgBossQueue(boss) })
+const services = createDomainServices({
+  config,
+  db,
+  queue: pgBossQueue(boss),
+  vault: vaultFrom(config),
+})
 
 for (let i = 0; i < config.WORKER_CONCURRENCY; i++) {
   await boss.work(GENERATE_TUTORIAL, { pollingIntervalSeconds: 2 }, async (batch) => {

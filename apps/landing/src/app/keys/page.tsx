@@ -9,8 +9,8 @@ import {
   TableRow,
 } from '@replo/ui'
 import type { Metadata } from 'next'
-import type { ReactNode } from 'react'
-import { Article, bulletListClass, linkClass, NextLinks, Section } from '@/components/article'
+import { Article, bulletListClass, NextLinks, Section } from '@/components/article'
+import { FreeModelTag, PROVIDERS } from '@/lib/providers'
 import { DOCS_PAGES, POLICY_PAGES } from '@/lib/routes'
 
 export const metadata: Metadata = {
@@ -18,36 +18,6 @@ export const metadata: Metadata = {
   description:
     'Which provider to use, how OpenRouter’s :free model limits apply to your account, and how Replo handles your key.',
 }
-
-const PROVIDERS: { name: string; href: string; recommended?: boolean; note: ReactNode }[] = [
-  {
-    name: 'OpenRouter',
-    href: 'https://openrouter.ai',
-    recommended: true,
-    note: (
-      <>
-        One key reaches many models, including <code className="font-mono text-[0.9em]">:free</code>{' '}
-        models. The free preset needs an OpenRouter key and uses only{' '}
-        <code className="font-mono text-[0.9em]">:free</code> models.
-      </>
-    ),
-  },
-  {
-    name: 'OpenAI',
-    href: 'https://platform.openai.com',
-    note: 'Supported. Works with an OpenAI API key.',
-  },
-  {
-    name: 'Google AI Studio',
-    href: 'https://aistudio.google.com',
-    note: 'Supported. Works with a Google AI Studio key.',
-  },
-  {
-    name: 'Anthropic',
-    href: 'https://console.anthropic.com',
-    note: 'Supported. Works with an Anthropic API key.',
-  },
-]
 
 export default function KeysPage() {
   return (
@@ -76,7 +46,7 @@ export default function KeysPage() {
                     scope="row"
                     className="h-auto px-4 py-3 align-top whitespace-normal text-foreground"
                   >
-                    <a href={provider.href} className={linkClass}>
+                    <a href={provider.href} className="link-inline">
                       {provider.name}
                     </a>
                     {provider.recommended ? (
@@ -87,6 +57,13 @@ export default function KeysPage() {
                   </TableHead>
                   <TableCell className="px-4 py-3 align-top whitespace-normal text-muted-foreground">
                     {provider.note}
+                    {provider.recommended ? (
+                      <>
+                        {' '}
+                        The free preset needs an OpenRouter key and uses only <FreeModelTag />{' '}
+                        models.
+                      </>
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))}
@@ -101,9 +78,9 @@ export default function KeysPage() {
 
       <Section title="OpenRouter’s :free limits">
         <p>
-          The <code className="font-mono text-[0.9em]">:free</code> models are limited per
-          OpenRouter account, not per Replo account. A run counts against the OpenRouter account of
-          the key it uses. Limits at the time of writing (25 October 2026):
+          The <FreeModelTag /> models are limited per OpenRouter account, not per Replo account. A
+          run counts against the OpenRouter account of the key it uses. Limits at the time of
+          writing (25 October 2026):
         </p>
         <ul className={bulletListClass}>
           <li>20 requests per minute.</li>
@@ -148,8 +125,8 @@ export default function KeysPage() {
           <li>
             <strong className="font-semibold text-foreground">Deletable at any time.</strong>{' '}
             Deleting a key takes effect at once. A run still using it is marked failed with the
-            error <code className="font-mono text-[0.9em]">KEY_REMOVED</code>. Nothing retries on
-            another key.
+            error <code className="font-mono text-inline-code">KEY_REMOVED</code>. Nothing retries
+            on another key.
           </li>
         </ul>
       </Section>
@@ -178,7 +155,7 @@ export default function KeysPage() {
         <p>
           You can delete a key at any time from your Replo settings. The deletion is immediate. Any
           run still using that key is marked failed with{' '}
-          <code className="font-mono text-[0.9em]">KEY_REMOVED</code>.
+          <code className="font-mono text-inline-code">KEY_REMOVED</code>.
         </p>
       </Section>
 

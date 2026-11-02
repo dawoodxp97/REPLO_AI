@@ -11,6 +11,7 @@ import { createAuthService, type AuthService } from './auth.service'
 import { createIdentityService, type IdentityService } from './identity.service'
 import type { OAuthProfile } from './oauth'
 import { hashSessionToken } from './session'
+import { createSessionService } from './session.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 
@@ -45,12 +46,8 @@ describe.skipIf(DATABASE_URL === '')('auth against Postgres', () => {
     await migrate(db, {
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
-    auth = createAuthService({ db, vault, enabled: { google: true, github: true } })
-    identity = createIdentityService({
-      db,
-      vault,
-      tutorials: { settleOwnerDeletion: async () => undefined },
-    })
+    auth = createAuthService({ db, vault, sessions: createSessionService(db), enabled: { google: true, github: true } })
+    identity = createIdentityService({ db, vault })
   })
 
   afterAll(async () => {

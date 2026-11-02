@@ -22,6 +22,23 @@ export type Visibility = z.infer<typeof Visibility>
 export const TutorialRef = z.object({ owner: z.string(), repo: z.string(), slug: z.string() })
 export type TutorialRef = z.infer<typeof TutorialRef>
 
+export const NonNegativeInt = z.number().int().nonnegative()
+export const Progress = z.number().int().min(0).max(100)
+export const JobRef = z.object({ jobId: z.uuid() })
+
+const KNOWN_TIME_ZONES = new Set<string>()
+
+export const TimeZone = z.string().refine((zone) => {
+  if (KNOWN_TIME_ZONES.has(zone)) return true
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: zone })
+  } catch {
+    return false
+  }
+  KNOWN_TIME_ZONES.add(zone)
+  return true
+}, 'unknown IANA time zone')
+
 export const MICROS_PER_USD = 1_000_000
 
 export const OffsetCursor = z.string().regex(/^\d{1,9}$/)

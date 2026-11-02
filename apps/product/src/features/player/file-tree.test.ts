@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { buildFileTree, type FolderNode, type TreeNode } from './file-tree'
 
 function entry(path: string, readable = true): SourceTreeEntry {
-  return { path, sizeBytes: 100, language: 'typescript', role: 'source', readable }
+  return { path, sizeBytes: 100, language: 'typescript', role: 'source', readable, cited: false }
 }
 
 function folder(nodes: TreeNode[], name: string): FolderNode {

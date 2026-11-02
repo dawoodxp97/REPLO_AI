@@ -1,8 +1,7 @@
-import { buttonVariants } from '@replo/ui'
+import { buttonVariants, MonoLabel } from '@replo/ui'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Article } from '@/components/article'
-import { MonoLabel } from '@/components/page-section'
 import { DOCS_INDEX, KEY_GUIDE } from '@/lib/routes'
 
 export const metadata: Metadata = {

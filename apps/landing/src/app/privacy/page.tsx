@@ -1,13 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import {
-  Article,
-  bulletListClass,
-  DraftNotice,
-  linkClass,
-  NextLinks,
-  Section,
-} from '@/components/article'
+import { Article, bulletListClass, DraftNotice, NextLinks, Section } from '@/components/article'
 import { DOCS_PAGES, KEY_GUIDE, POLICY_PAGES } from '@/lib/routes'
 
 export const metadata: Metadata = {
@@ -70,7 +63,7 @@ export default function PrivacyPage() {
           <li>
             The model provider you choose, for each run. It receives the code excerpts and prompts
             that the run needs, under its own terms. The{' '}
-            <Link href={KEY_GUIDE.href} className={linkClass}>
+            <Link href={KEY_GUIDE.href} className="link-inline">
               key guide
             </Link>{' '}
             explains this.
@@ -86,7 +79,7 @@ export default function PrivacyPage() {
       <Section title="How long we keep it">
         <p>
           The{' '}
-          <Link href={DOCS_PAGES[2].href} className={linkClass}>
+          <Link href={DOCS_PAGES[2].href} className="link-inline">
             keys and privacy
           </Link>{' '}
           guide lists each kind of data and how long it is kept. In short: repository archives are

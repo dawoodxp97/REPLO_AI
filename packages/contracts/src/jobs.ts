@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { CommitSha, TutorialRef } from './common'
+import { CommitSha, JobRef, Progress, TutorialRef } from './common'
 
 export const JOB_STATUSES = [
   'queued',
@@ -28,13 +28,18 @@ export const STAGES = [
 export const Stage = z.enum(STAGES)
 export type Stage = z.infer<typeof Stage>
 
-export const GenerationJobDto = z.object({
+export const JobProgressFields = {
   jobId: z.uuid(),
-  repositoryId: z.uuid(),
-  commitSha: CommitSha,
   status: JobStatus,
   stage: Stage.nullable(),
-  progress: z.number().int().min(0).max(100).default(0),
+  progress: Progress,
+}
+
+export const GenerationJobDto = z.object({
+  ...JobProgressFields,
+  repositoryId: z.uuid(),
+  commitSha: CommitSha,
+  progress: Progress.default(0),
   budgetUsd: z.number(),
   spentUsd: z.number(),
   tutorialId: z.uuid().nullable().default(null),
@@ -70,17 +75,14 @@ export const JobEventDto = z.object({
 export type JobEventDto = z.infer<typeof JobEventDto>
 
 export const jobsContract = {
-  get: oc
-    .route({ method: 'GET', path: '/jobs/{jobId}' })
-    .input(z.object({ jobId: z.uuid() }))
-    .output(GenerationJobDto),
+  get: oc.route({ method: 'GET', path: '/jobs/{jobId}' }).input(JobRef).output(GenerationJobDto),
   cancel: oc
     .route({ method: 'POST', path: '/jobs/{jobId}/cancel' })
-    .input(z.object({ jobId: z.uuid() }))
+    .input(JobRef)
     .output(GenerationJobDto),
   retry: oc
     .route({ method: 'POST', path: '/jobs/{jobId}/retry' })
-    .input(z.object({ jobId: z.uuid() }))
+    .input(JobRef)
     .output(GenerationJobDto)
     .errors({ CONFLICT: {} }),
 }

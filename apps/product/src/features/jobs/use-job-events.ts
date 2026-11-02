@@ -1,9 +1,11 @@
-import { JobEventType, type JobEventDto } from '@replo/contracts'
-import { useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { JobEventDto, JobEventType } from '@replo/contracts'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEventSource } from '@/hooks/use-event-source'
 import { env } from '@/lib/env'
+import { invalidateGenerationQueries } from '@/lib/generation-cache'
 import { orpc } from '@/lib/orpc'
-import { invalidateGenerationQueries } from './invalidate-generation-queries'
+import { parseJsonWith } from '@/lib/parse-json'
 import {
   applyJobEvent,
   INITIAL_JOB_PROGRESS,
@@ -12,65 +14,69 @@ import {
   withConnection,
   type JobProgress,
 } from './job-progress-state'
-import { parseJobEvent } from './parse-job-event'
 
 const TERMINAL_CLOSE_GRACE_MS = 1_000
+const STAGE_REFRESH_INTERVAL_MS = 5_000
 
 export interface JobEvents {
   progress: JobProgress
   restart: () => void
 }
 
-function refreshAfterEvent(queryClient: QueryClient, event: JobEventDto) {
-  if (isTerminalEvent(event.type)) {
-    void invalidateGenerationQueries(queryClient)
-    return
-  }
-  if (event.type === 'stage_started' || event.type === 'stage_completed') {
-    void queryClient.invalidateQueries({
-      queryKey: orpc.jobs.get.key({ input: { jobId: event.jobId } }),
-    })
-  }
-}
-
 export function useJobEvents(jobId: string): JobEvents {
   const queryClient = useQueryClient()
   const [progress, setProgress] = useState(INITIAL_JOB_PROGRESS)
-  const [generation, setGeneration] = useState(0)
-  const lastSeenId = useRef(0)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  useEffect(() => {
-    const source = new EventSource(`${env.apiUrl}/jobs/${jobId}/events`, { withCredentials: true })
-    let closeTimer: ReturnType<typeof setTimeout> | undefined
+  useEffect(
+    () => () => {
+      clearTimeout(closeTimer.current)
+      clearTimeout(refreshTimer.current)
+    },
+    [],
+  )
 
-    const finish = () => {
-      source.close()
-      setProgress((current) => withConnection(current, 'closed'))
+  const refreshJob = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: orpc.jobs.get.key({ input: { jobId } }) })
+  }, [queryClient, jobId])
+
+  const handle = (raw: string) => {
+    const event = parseJsonWith(JobEventDto, raw)
+    if (!event) return
+    clearTimeout(closeTimer.current)
+    setProgress((current) => applyJobEvent(current, event))
+    if (isTerminalEvent(event.type)) {
+      clearTimeout(refreshTimer.current)
+      refreshTimer.current = undefined
+      refreshJob()
+      void invalidateGenerationQueries(queryClient)
+      closeTimer.current = setTimeout(
+        () => setProgress((current) => withConnection(current, 'closed')),
+        TERMINAL_CLOSE_GRACE_MS,
+      )
+    } else if (
+      (event.type === 'stage_started' || event.type === 'stage_completed') &&
+      refreshTimer.current === undefined
+    ) {
+      refreshTimer.current = setTimeout(() => {
+        refreshTimer.current = undefined
+        refreshJob()
+      }, STAGE_REFRESH_INTERVAL_MS)
     }
+  }
 
-    const handle = (message: MessageEvent<string>) => {
-      const event = parseJobEvent(message.data)
-      if (!event || event.id <= lastSeenId.current) return
-      lastSeenId.current = event.id
-      clearTimeout(closeTimer)
-      setProgress((current) => applyJobEvent(current, event))
-      refreshAfterEvent(queryClient, event)
-      if (isTerminalEvent(event.type)) closeTimer = setTimeout(finish, TERMINAL_CLOSE_GRACE_MS)
-    }
-
-    source.onopen = () => setProgress((current) => withConnection(current, 'live'))
-    source.onerror = () => setProgress((current) => withConnection(current, 'lost'))
-    for (const type of JobEventType.options) source.addEventListener(type, handle)
-
-    return () => {
-      clearTimeout(closeTimer)
-      source.close()
-    }
-  }, [jobId, generation, queryClient])
+  useEventSource({
+    url: `${env.apiUrl}/jobs/${jobId}/events`,
+    events: JobEventType.options,
+    enabled: progress.connection !== 'closed',
+    onMessage: handle,
+    onOpen: () => setProgress((current) => withConnection(current, 'live')),
+    onError: () => setProgress((current) => withConnection(current, 'lost')),
+  })
 
   const restart = useCallback(() => {
     setProgress(restartJobProgress)
-    setGeneration((current) => current + 1)
   }, [])
 
   return { progress, restart }

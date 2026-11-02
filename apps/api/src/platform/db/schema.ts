@@ -26,6 +26,8 @@ import type {
   RouteRecord,
   SymbolRecord,
 } from '@replo/repo-analysis'
+import { sql } from 'drizzle-orm'
+import { IN_FLIGHT_STATUSES } from '../job-status'
 import {
   bigint,
   bigserial,
@@ -116,6 +118,10 @@ export const repositories = pgTable(
   (t) => [
     index('repositories_owner_name_idx').on(t.owner, t.name),
     index('repositories_name_trgm_idx').using('gin', t.name.op('gin_trgm_ops')),
+    index('repositories_qualified_name_trgm_idx').using(
+      'gin',
+      sql`(${t.owner} || '/' || ${t.name}) gin_trgm_ops`,
+    ),
   ],
 )
 
@@ -132,6 +138,9 @@ export const userRepositories = pgTable(
   (t) => [
     primaryKey({ columns: [t.userId, t.repositoryId] }),
     index('user_repositories_installation_idx').on(t.installationId),
+    index('user_repositories_active_idx')
+      .on(t.userId)
+      .where(sql`${t.revokedAt} is null`),
   ],
 )
 
@@ -288,7 +297,7 @@ export const tutorialVersions = pgTable(
     generationJobId: uuid('generation_job_id').references(() => generationJobs.id, {
       onDelete: 'set null',
     }),
-    publishedAt: ts('published_at'),
+    publishedAt: ts('published_at').notNull(),
   },
   (t) => [
     uniqueIndex('tutorial_versions_tutorial_no_idx').on(t.tutorialId, t.versionNo),
@@ -364,6 +373,11 @@ export const generationJobs = pgTable(
     uniqueIndex('generation_jobs_user_idem_idx').on(t.userId, t.idempotencyKey),
     index('generation_jobs_status_heartbeat_idx').on(t.status, t.heartbeatAt),
     index('generation_jobs_user_created_idx').on(t.userId, t.createdAt.desc()),
+    index('generation_jobs_status_finished_idx').on(t.status, t.finishedAt),
+    index('generation_jobs_snapshot_idx').on(t.snapshotId),
+    index('generation_jobs_key_in_flight_idx')
+      .on(t.keyId)
+      .where(sql`${t.status} in (${sql.raw(IN_FLIGHT_STATUSES.map((status) => `'${status}'`).join(', '))})`),
   ],
 )
 
@@ -407,7 +421,7 @@ export const jobEvents = pgTable(
     data: jsonb('data').$type<JobEventData>(),
     at: ts('at').notNull().defaultNow(),
   },
-  (t) => [index('job_events_job_id_idx').on(t.jobId, t.id)],
+  (t) => [index('job_events_job_id_idx').on(t.jobId, t.id), index('job_events_at_idx').on(t.at)],
 )
 
 export const llmCalls = pgTable(
@@ -448,6 +462,7 @@ export const learningProgress = pgTable(
   (t) => [
     primaryKey({ columns: [t.userId, t.versionId, t.lessonKey] }),
     index('learning_progress_user_tutorial_idx').on(t.userId, t.tutorialId),
+    index('learning_progress_user_status_updated_idx').on(t.userId, t.status, t.updatedAt.desc()),
   ],
 )
 
@@ -493,7 +508,13 @@ export const notifications = pgTable(
     readAt: ts('read_at'),
     createdAt: createdAt(),
   },
-  (t) => [index('notifications_user_created_idx').on(t.userId, t.createdAt.desc())],
+  (t) => [
+    index('notifications_user_created_idx').on(t.userId, t.createdAt.desc()),
+    index('notifications_created_at_idx').on(t.createdAt),
+    index('notifications_user_unread_idx')
+      .on(t.userId)
+      .where(sql`${t.readAt} is null`),
+  ],
 )
 
 export const tutorialReports = pgTable(

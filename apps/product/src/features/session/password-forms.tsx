@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form'
 import { orpc } from '@/lib/orpc'
 import { AuthForm } from './auth-form'
 import { describeAuthError } from './auth-notices'
-import { TextField } from './text-field'
+import { TextField } from '@/components/text-field'
 
 function useEnterApp() {
   const queryClient = useQueryClient()

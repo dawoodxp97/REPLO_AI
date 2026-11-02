@@ -14,12 +14,10 @@ import type { NotificationsService } from '../notifications/notifications.servic
 import type { TutorialReader } from '../tutorials/reader.service'
 import {
   KEY_REMOVED,
-  RETRYABLE_STATUSES,
-  TERMINAL_STATUSES,
-  isStatusIn,
   jobsRepo,
   type JobRow,
 } from './generation.repo'
+import { RETRYABLE_STATUSES, TERMINAL_STATUSES, isStatusIn } from '../../platform/job-status'
 import { announceClosed } from './job-closure'
 import { enqueueTutorial } from './job-payload'
 

@@ -1,13 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import {
-  Article,
-  bulletListClass,
-  DraftNotice,
-  linkClass,
-  NextLinks,
-  Section,
-} from '@/components/article'
+import { Article, bulletListClass, DraftNotice, NextLinks, Section } from '@/components/article'
 import { POLICY_PAGES } from '@/lib/routes'
 
 export const metadata: Metadata = {
@@ -65,7 +58,7 @@ export default function TermsPage() {
         <p>
           You can keep a tutorial private, share it by a link, or make it public. A public tutorial
           is allowed only for a repository with an OSI-approved licence. See{' '}
-          <Link href={POLICY_PAGES[2].href} className={linkClass}>
+          <Link href={POLICY_PAGES[2].href} className="link-inline">
             Licence and attribution
           </Link>
           .
@@ -88,7 +81,7 @@ export default function TermsPage() {
         <p>
           Anyone can report a public tutorial. Replo reviews reports by hand and may remove or
           change a tutorial. See{' '}
-          <Link href={POLICY_PAGES[3].href} className={linkClass}>
+          <Link href={POLICY_PAGES[3].href} className="link-inline">
             Reports and takedown
           </Link>
           .

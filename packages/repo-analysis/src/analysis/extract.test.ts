@@ -68,12 +68,12 @@ describe('extractFacts: declarations', () => {
     ])
   })
 
-  it('records exported HTTP verb functions for route handlers', () => {
+  it('records every exported function name', () => {
     const facts = factsOf(
       'export async function GET() {}\nexport function POST() {}\nexport function helper() {}\n',
       'app/api/x/route.ts',
     )
-    expect(facts.exportedFunctions).toEqual(['GET', 'POST'])
+    expect(facts.exportedFunctions).toEqual(['GET', 'POST', 'helper'])
   })
 
   it('reports the 1-based line span and a trimmed signature', () => {

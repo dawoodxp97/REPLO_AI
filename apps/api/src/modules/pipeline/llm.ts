@@ -8,7 +8,7 @@ import {
   type Catalog,
   type LanguageModel,
   type ModelRole,
-  type Registry,
+  type ModelSpec,
   type RunContext,
 } from '@replo/ai'
 import type { ModelPlan, Stage } from '@replo/contracts'
@@ -57,25 +57,24 @@ export async function openLlm(deps: LlmDeps, job: LlmJob): Promise<LlmSession> {
 
   const run: RunContext = { provider: opened.provider, decryptedKey: opened.decryptedKey }
   const resolve = deps.resolve ?? modelFor
-  const registry = registryFor(deps.catalog, job.plan)
+  const specs = specsFor(deps.catalog, job.plan)
 
   return {
-    hasRole: (role) => registry[role].length > 0,
+    hasRole: (role) => specs[role] !== null,
 
     async ask(role, request) {
-      if (registry[role].length === 0)
-        throw new JobError('MODEL_UNAVAILABLE', false, `no model is planned for ${role}`)
+      const spec = specs[role]
+      if (!spec) throw new JobError('MODEL_UNAVAILABLE', false, `no model is planned for ${role}`)
 
       const prompt = request.sections.join(SECTION_SEPARATOR)
       const attempt = (text: string) =>
         generateStructured({
-          role,
+          spec,
           schema: request.schema,
           system: job.system,
           prompt: text,
           budget: job.budget,
-          registry,
-          resolveModel: (spec) => resolve(run, spec.id),
+          model: resolve(run, spec.id),
           meta: { jobId: job.jobId, stage: request.stage },
           maxOutputTokens: request.maxOutputTokens,
           signal: job.signal,
@@ -101,13 +100,13 @@ export async function openLlm(deps: LlmDeps, job: LlmJob): Promise<LlmSession> {
   }
 }
 
-function registryFor(catalog: Catalog, plan: ModelPlan): Registry {
+function specsFor(catalog: Catalog, plan: ModelPlan): Record<ModelRole, ModelSpec | null> {
   const spec = (id: string | null) => {
-    if (id === null) return []
+    if (id === null) return null
     const found = specFor(catalog, plan.provider, id)
     if (!found)
       throw new JobError('MODEL_UNAVAILABLE', false, `model ${id} is not priced in the catalogue`)
-    return [found]
+    return found
   }
   return {
     planner: spec(plan.models.planner),

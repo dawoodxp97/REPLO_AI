@@ -2,7 +2,7 @@ import type { ImportRepositoryInput } from '@replo/contracts'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { invalidateGenerationQueries } from '@/features/jobs/invalidate-generation-queries'
+import { invalidateGenerationQueries } from '@/lib/generation-cache'
 import { createIdempotencyKeys } from '@/lib/idempotency-key'
 import { client } from '@/lib/orpc'
 
@@ -16,9 +16,9 @@ export function useStartImport() {
       client.repositories.import(input, {
         context: { idempotencyKey: idempotencyKeys.keyFor(input) },
       }),
-    onSuccess: async (job) => {
-      await invalidateGenerationQueries(queryClient)
+    onSuccess: (job) => {
       router.push(`/jobs/${job.jobId}`)
+      void invalidateGenerationQueries(queryClient)
     },
   })
 }

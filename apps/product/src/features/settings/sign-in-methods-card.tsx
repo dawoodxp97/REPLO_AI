@@ -1,6 +1,6 @@
 'use client'
 
-import type { SignInMethodsDto } from '@replo/contracts'
+import { OAUTH_PROVIDERS, type SignInMethodsDto } from '@replo/contracts'
 import {
   Alert,
   AlertDescription,
@@ -17,12 +17,13 @@ import {
   ItemMedia,
   ItemTitle,
 } from '@replo/ui'
-import { Check, CircleAlert, KeyRound } from 'lucide-react'
+import { Check, KeyRound } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
+import { InlineError } from '@/components/inline-error'
 import { authNotice } from '@/features/session/auth-notices'
 import { ProviderIcon } from '@/features/session/provider-icons'
 import { ProviderLinkButton } from '@/features/session/provider-link-button'
-import { OAUTH_PROVIDERS, PROVIDER_LABELS } from '@/features/session/sign-in-links'
+import { OAUTH_PROVIDER_LABELS } from '@/features/session/sign-in-links'
 
 function ConnectedBadge() {
   return (
@@ -45,16 +46,11 @@ export function SignInMethodsCard({ methods }: { methods: SignInMethodsDto }) {
         <CardDescription>Connect GitHub to import private repositories.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {notice ? (
-          <Alert variant="destructive" role="alert">
-            <CircleAlert />
-            <AlertDescription>{notice}</AlertDescription>
-          </Alert>
-        ) : null}
+        {notice ? <InlineError>{notice}</InlineError> : null}
         {linked && !notice ? (
           <Alert variant="observed" role="status">
             <Check />
-            <AlertDescription>{`${PROVIDER_LABELS[linked]} is connected.`}</AlertDescription>
+            <AlertDescription>{`${OAUTH_PROVIDER_LABELS[linked]} is connected.`}</AlertDescription>
           </Alert>
         ) : null}
         <ItemGroup>
@@ -75,14 +71,14 @@ export function SignInMethodsCard({ methods }: { methods: SignInMethodsDto }) {
                 <ProviderIcon provider={provider} className="size-4" />
               </ItemMedia>
               <ItemContent>
-                <ItemTitle>{PROVIDER_LABELS[provider]}</ItemTitle>
+                <ItemTitle>{OAUTH_PROVIDER_LABELS[provider]}</ItemTitle>
               </ItemContent>
               <ItemActions>
                 {methods[provider] ? (
                   <ConnectedBadge />
                 ) : (
                   <ProviderLinkButton provider={provider} intent="link" variant="outline" size="sm">
-                    Connect {PROVIDER_LABELS[provider]}
+                    Connect {OAUTH_PROVIDER_LABELS[provider]}
                   </ProviderLinkButton>
                 )}
               </ItemActions>

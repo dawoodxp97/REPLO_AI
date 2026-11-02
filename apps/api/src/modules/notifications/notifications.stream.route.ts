@@ -1,9 +1,7 @@
-import { parseCookies } from '../../platform/cookies'
 import type { App } from '../../platform/http'
 import type { AuthService } from '../identity/auth.service'
-import { SESSION_COOKIE } from '../identity/session'
-import { sessionFromRequest } from '../identity/session-request'
-import { KEEP_ALIVE_FRAME, openEventStream, sseFrame } from '../../platform/sse'
+import { sessionFromRequest, sessionTokenOf } from '../identity/session-request'
+import { openEventStream, runPollingStream, sseFrame } from '../../platform/sse'
 import type { NotificationsService } from './notifications.service'
 
 export const UNREAD_POLL_MS = 5000
@@ -19,15 +17,6 @@ export interface NotificationsStreamDeps {
   sessionRecheckMs?: number
   maxStreamsPerUser?: number
 }
-
-const waitUnless = (ms: number, closed: Promise<void>) =>
-  new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, ms)
-    void closed.then(() => {
-      clearTimeout(timer)
-      resolve()
-    })
-  })
 
 export function registerNotificationsStream(app: App, deps: NotificationsStreamDeps) {
   const pollMs = deps.pollMs ?? UNREAD_POLL_MS
@@ -52,38 +41,29 @@ export function registerNotificationsStream(app: App, deps: NotificationsStreamD
       else streamsByUser.delete(userId)
     }
 
-    const token = parseCookies(request.headers.cookie).get(SESSION_COOKIE)
-    const closed = reply.raw.destroyed
-      ? Promise.resolve()
-      : new Promise<void>((resolve) => reply.raw.once('close', resolve))
+    const token = sessionTokenOf(request)
     const stream = openEventStream(request, reply, deps.productOrigin)
     let lastCount: number | undefined
-    let lastWrite = Date.now()
-    let lastSessionCheck = Date.now()
     try {
-      while (stream.isOpen() && !reply.raw.destroyed) {
-        if (Date.now() - lastSessionCheck >= sessionRecheckMs) {
-          if (!(await deps.auth.currentSession(token))) {
-            stream.send(sseFrame({ event: 'unauthorized', data: {} }))
-            break
+      await runPollingStream({
+        stream,
+        reply,
+        pollMs,
+        heartbeatMs,
+        sessionRecheckMs,
+        sessionStillValid: async () => Boolean(await deps.auth.currentSession(token)),
+        unauthorizedFrame: sseFrame({ event: 'unauthorized', data: {} }),
+        tick: async (send) => {
+          const { count } = await deps.notifications.unreadCount(userId)
+          if (count !== lastCount) {
+            send(sseFrame({ event: 'unread', data: { count } }))
+            lastCount = count
           }
-          lastSessionCheck = Date.now()
-        }
-        const { count } = await deps.notifications.unreadCount(userId)
-        if (count !== lastCount) {
-          stream.send(sseFrame({ event: 'unread', data: { count } }))
-          lastCount = count
-          lastWrite = Date.now()
-        }
-        if (Date.now() - lastWrite > heartbeatMs) {
-          stream.send(KEEP_ALIVE_FRAME)
-          lastWrite = Date.now()
-        }
-        await waitUnless(pollMs, closed)
-      }
+          return 'continue'
+        },
+      })
     } finally {
       release()
-      stream.close()
     }
   })
 }

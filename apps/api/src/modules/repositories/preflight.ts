@@ -8,11 +8,7 @@ import { inventory, limitBreach, type Inventory, type RepoLimits } from '@replo/
 import type { z } from 'zod'
 import { notFound } from '../../platform/errors'
 import { ok, refused, type Outcome } from '../../platform/outcome'
-import {
-  GithubApiError,
-  GithubTokenRejectedError,
-  type GithubRest,
-} from '../../platform/github/client'
+import { classifyGithubFailure, repoApiPath, type GithubRest } from '../../platform/github/client'
 import { CommitRef, GitBlob, GitTree, GithubRepository } from '../../platform/github/schemas'
 import { frameworkFromManifest } from './framework-manifest'
 import type { InstallationDirectory } from './repositories.ports'
@@ -52,15 +48,19 @@ interface Access {
 
 type TreeEntries = z.output<typeof GitTree>['tree']
 
-const ownerAndName = (url: string): [owner: string, name: string] => {
+const OWNER_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/
+const NAME_PATTERN = /^(?!\.{1,2}$)[A-Za-z0-9._-]{1,100}$/
+
+const ownerAndName = (url: string): [owner: string, name: string] | undefined => {
   const [owner = '', name = ''] = new URL(url).pathname.split('/').filter(Boolean)
-  return [owner, name.replace(/\.git$/, '')]
+  const trimmed = name.replace(/\.git$/, '')
+  return OWNER_PATTERN.test(owner) && NAME_PATTERN.test(trimmed) ? [owner, trimmed] : undefined
 }
 
 export function createPreflight(deps: PreflightDeps): Preflight {
   const { rest, installations, limits } = deps
 
-  const repoPath = (access: Access) => `/repos/${access.repo.owner.login}/${access.repo.name}`
+  const repoPath = (access: Access) => repoApiPath(access.repo.owner.login, access.repo.name)
 
   const fetchFromRepo = <S extends z.ZodType>(access: Access, path: string, schema: S) =>
     rest.request(`${repoPath(access)}${path}`, schema, { token: access.token })
@@ -75,8 +75,7 @@ export function createPreflight(deps: PreflightDeps): Preflight {
         name: repo.name,
       })
     } catch (error) {
-      if (error instanceof GithubTokenRejectedError) return false
-      if (error instanceof GithubApiError && error.status === 403) return false
+      if (classifyGithubFailure(error) !== 'other') return false
       throw error
     }
   }
@@ -86,8 +85,9 @@ export function createPreflight(deps: PreflightDeps): Preflight {
     source: RepositorySource,
   ): Promise<Access | undefined> => {
     if (source.kind === 'public_url') {
-      const [owner, name] = ownerAndName(source.url)
-      const repo = await rest.request(`/repos/${owner}/${name}`, GithubRepository)
+      const parsed = ownerAndName(source.url)
+      if (!parsed) return undefined
+      const repo = await rest.request(repoApiPath(...parsed), GithubRepository)
       return repo ? { token: undefined, installationId: null, repo } : undefined
     }
     for (const installation of await installations.activeInstallations(userId)) {

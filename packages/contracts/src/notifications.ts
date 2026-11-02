@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { OkResult, pageInput, pageOutput } from './common'
+import { NonNegativeInt, OkResult, pageInput, pageOutput } from './common'
 
 export const NotificationKind = z.enum(['job_succeeded', 'job_failed', 'job_canceled'])
 export type NotificationKind = z.infer<typeof NotificationKind>
@@ -25,7 +25,7 @@ export const NotificationCursor = z
 export const NotificationPage = pageOutput(NotificationDto, NotificationCursor)
 export type NotificationPage = z.infer<typeof NotificationPage>
 
-export const UnreadCount = z.object({ count: z.number().int().nonnegative() })
+export const UnreadCount = z.object({ count: NonNegativeInt })
 export type UnreadCount = z.infer<typeof UnreadCount>
 
 const NotificationRef = z.object({ id: z.uuid() })
@@ -42,7 +42,7 @@ export const notificationsContract = {
     .output(NotificationDto),
   markAllRead: oc
     .route({ method: 'POST', path: '/notifications/read-all' })
-    .output(z.object({ updated: z.number().int().nonnegative() })),
+    .output(z.object({ updated: NonNegativeInt })),
   delete: oc
     .route({ method: 'DELETE', path: '/notifications/{id}' })
     .input(NotificationRef)

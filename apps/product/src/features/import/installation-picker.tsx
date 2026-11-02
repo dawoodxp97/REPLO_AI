@@ -2,6 +2,7 @@ import { FormField, NativeSelect, Skeleton } from '@replo/ui'
 import { LinkButton } from '@/components/link-button'
 import { QueryBoundary } from '@/components/query-boundary'
 import { fieldInvalid } from '@/lib/field-a11y'
+import { formatRepoName } from '@/lib/format'
 import { MISSING_SOURCE_ERROR, type SourcePickerProps } from './source-modes'
 import { useInstallationRepos } from './use-installation-repos'
 
@@ -52,7 +53,7 @@ export function InstallationPicker({ value, onChange, missing }: SourcePickerPro
               </option>
               {items.map((repository) => (
                 <option key={repository.githubRepoId} value={repository.githubRepoId}>
-                  {repository.owner}/{repository.name}
+                  {formatRepoName(repository.owner, repository.name)}
                   {repository.isPrivate ? ' (private)' : ''}
                 </option>
               ))}

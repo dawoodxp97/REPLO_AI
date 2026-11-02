@@ -3,8 +3,6 @@
 import type { Preferences } from '@replo/contracts'
 import { Audience } from '@replo/contracts'
 import {
-  Alert,
-  AlertDescription,
   Card,
   CardContent,
   CardDescription,
@@ -16,10 +14,10 @@ import {
   Skeleton,
 } from '@replo/ui'
 import { useQuery } from '@tanstack/react-query'
-import { CircleAlert } from 'lucide-react'
+import { InlineError } from '@/components/inline-error'
 import { QueryBoundary } from '@/components/query-boundary'
 import { orpc } from '@/lib/orpc'
-import { AUDIENCE_LABELS } from './preference-labels'
+import { AUDIENCE_LABELS } from '@/features/preferences/audience'
 import { PreferenceSwitch } from './preference-switch'
 import { ThemeField } from './theme-field'
 import { usePreferenceUpdate } from './use-preference-update'
@@ -104,10 +102,7 @@ function PreferencesForm({ preferences }: { preferences: Preferences }) {
       </Card>
 
       {update.isError ? (
-        <Alert variant="destructive" role="alert">
-          <CircleAlert />
-          <AlertDescription>The preference could not be saved. Try again.</AlertDescription>
-        </Alert>
+        <InlineError>The preference could not be saved. Try again.</InlineError>
       ) : null}
     </div>
   )

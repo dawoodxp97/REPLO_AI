@@ -1,7 +1,19 @@
 import type { OperatorJobDetail } from '@replo/contracts'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@replo/ui'
+import { DataTable, type DataColumn } from '@/components/data-table'
 import { SectionHeader } from '@/components/page-header'
-import { formatDateTime } from './operator-format'
+import { formatDateTime } from '@/lib/format'
+
+type StageRow = OperatorJobDetail['stages'][number]
+
+const COLUMNS: readonly DataColumn<StageRow>[] = [
+  { header: 'Stage', cell: (row) => row.stage, className: 'font-mono text-xs' },
+  { header: 'Attempt', cell: (row) => row.attempt, className: 'tabular font-mono text-xs' },
+  {
+    header: 'Finished',
+    cell: (row) => (row.finishedAt ? formatDateTime(row.finishedAt) : '—'),
+    className: 'text-xs whitespace-nowrap text-muted-foreground',
+  },
+]
 
 export function OperatorStagesTable({ stages }: { stages: OperatorJobDetail['stages'] }) {
   return (
@@ -14,28 +26,12 @@ export function OperatorStagesTable({ stages }: { stages: OperatorJobDetail['sta
       {stages.length === 0 ? (
         <p className="text-sm text-muted-foreground">No stage has completed yet.</p>
       ) : (
-        <div className="rounded-lg border bg-card shadow-xs">
-          <Table className="min-w-[28rem]">
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead scope="col">Stage</TableHead>
-                <TableHead scope="col">Attempt</TableHead>
-                <TableHead scope="col">Finished</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stages.map((stage) => (
-                <TableRow key={`${stage.stage}-${stage.attempt}`}>
-                  <TableCell className="font-mono text-xs">{stage.stage}</TableCell>
-                  <TableCell className="tabular font-mono text-xs">{stage.attempt}</TableCell>
-                  <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
-                    {stage.finishedAt ? formatDateTime(stage.finishedAt) : '—'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          columns={COLUMNS}
+          rows={stages}
+          getKey={(row) => `${row.stage}-${row.attempt}`}
+          minWidth="min-w-lg"
+        />
       )}
     </section>
   )

@@ -15,10 +15,6 @@ export function withQuery(href: string, params: Record<string, QueryValue>): str
   return search ? `${path}?${search}` : (path ?? href)
 }
 
-export function withShare(href: string, shareToken: string | undefined): string {
-  return withQuery(href, { share: shareToken })
-}
-
 export interface TutorialLinkContext {
   version?: number | undefined
   shareToken?: string | undefined

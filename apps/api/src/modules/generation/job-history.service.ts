@@ -44,7 +44,7 @@ export interface JobHistory {
     eventsBefore: Date
     succeededBefore: Date
     closedBefore: Date
-  }): Promise<string[]>
+  }): Promise<number>
 }
 
 export function createJobHistory(db: Db): JobHistory {
@@ -56,9 +56,7 @@ export function createJobHistory(db: Db): JobHistory {
       )
     },
 
-    async inFlightFor(userId, limit) {
-      return readModelRepo(db).inFlightFor(userId, limit)
-    },
+    inFlightFor: (userId, limit) => readModelRepo(db).inFlightFor(userId, limit),
 
     async recentFor(userId, input) {
       if (input.repositoryIds.length === 0) return []
@@ -110,7 +108,7 @@ export function createJobHistory(db: Db): JobHistory {
     async purgeHistory(input) {
       const repo = retentionRepo(db)
       await repo.deleteHistoryBefore(input.eventsBefore)
-      return repo.finishedJobsBefore(input.succeededBefore, input.closedBefore)
+      return repo.deleteStageOutputsOfFinishedJobs(input.succeededBefore, input.closedBefore)
     },
   }
 }

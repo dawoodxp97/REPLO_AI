@@ -1,34 +1,22 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { OffsetCursor, pageInput, pageOutput } from './common'
-import { JobStatus, Stage } from './jobs'
-
-export const TimeZone = z.string().refine((zone) => {
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: zone })
-    return true
-  } catch {
-    return false
-  }
-}, 'unknown IANA time zone')
+import { NonNegativeInt, OffsetCursor, pageInput, pageOutput, TimeZone } from './common'
+import { JobProgressFields } from './jobs'
 
 export const DashboardSummary = z.object({
   counts: z.object({
-    total: z.number().int().nonnegative(),
-    draft: z.number().int().nonnegative(),
-    private: z.number().int().nonnegative(),
-    link: z.number().int().nonnegative(),
-    public: z.number().int().nonnegative(),
+    total: NonNegativeInt,
+    draft: NonNegativeInt,
+    private: NonNegativeInt,
+    link: NonNegativeInt,
+    public: NonNegativeInt,
   }),
   jobsInFlight: z.array(
     z.object({
-      jobId: z.uuid(),
+      ...JobProgressFields,
       repositoryId: z.uuid(),
       owner: z.string(),
       repo: z.string(),
-      status: JobStatus,
-      stage: Stage.nullable(),
-      progress: z.number().int().min(0).max(100),
     }),
   ),
   resume: z

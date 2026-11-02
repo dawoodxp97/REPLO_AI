@@ -1,7 +1,7 @@
 import type { GenerationJobDto } from '@replo/contracts'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { orpc } from '@/lib/orpc'
-import { invalidateGenerationQueries } from './invalidate-generation-queries'
+import { invalidateGenerationQueries } from '@/lib/generation-cache'
 
 function useSettleJob(jobId: string) {
   const queryClient = useQueryClient()

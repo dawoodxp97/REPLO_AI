@@ -10,7 +10,7 @@ export interface KeyValidationStatusProps {
 export function KeyValidationStatus({ result, error, isError }: KeyValidationStatusProps) {
   if (isError) {
     return (
-      <p role="alert" className="flex items-center gap-1.5 text-[0.8125rem] text-destructive">
+      <p role="alert" className="flex items-center gap-1.5 text-compact text-destructive">
         <CircleAlert className="size-3.5" />
         {describeKeyError(error)}
       </p>
@@ -19,14 +19,14 @@ export function KeyValidationStatus({ result, error, isError }: KeyValidationSta
   if (!result) return null
   if (result.valid) {
     return (
-      <p role="status" className="flex items-center gap-1.5 text-[0.8125rem] text-observed-text">
+      <p role="status" className="flex items-center gap-1.5 text-compact text-observed-text">
         <CircleCheck className="size-3.5" />
         The provider accepted this key.
       </p>
     )
   }
   return (
-    <p role="status" className="flex items-center gap-1.5 text-[0.8125rem] text-destructive">
+    <p role="status" className="flex items-center gap-1.5 text-compact text-destructive">
       <CircleAlert className="size-3.5" />
       The provider rejected this key.
     </p>

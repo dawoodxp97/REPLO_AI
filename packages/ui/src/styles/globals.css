@@ -50,6 +50,14 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  --text-micro: 0.625rem;
+  --text-meta: 0.6875rem;
+  --text-compact: 0.8125rem;
+  --text-brand: 0.9375rem;
+  --text-lesson-sm: 1.0625rem;
+  --text-inline-code: 0.875em;
+  --tracking-display: -0.025em;
+
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -118,4 +126,21 @@
 @utility scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
+}
+
+@utility heading-display {
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+  text-wrap: balance;
+}
+
+@utility link-inline {
+  color: var(--link);
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in oklab, var(--link) 40%, transparent);
+  text-underline-offset: 4px;
+  transition: text-decoration-color 150ms;
+  &:hover {
+    text-decoration-color: var(--link);
+  }
 }

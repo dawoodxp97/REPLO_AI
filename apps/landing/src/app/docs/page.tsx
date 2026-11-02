@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Article, bulletListClass, linkClass, Section } from '@/components/article'
-import { DOCS_PAGES, KEY_GUIDE, POLICY_PAGES } from '@/lib/routes'
+import { Article, bulletListClass, Section } from '@/components/article'
+import { GUIDES, POLICY_PAGES } from '@/lib/routes'
 
 export const metadata: Metadata = {
   title: 'Docs',
@@ -17,22 +17,14 @@ export default function DocsPage() {
     >
       <Section title="Guides">
         <ul className="divide-y rounded-lg border bg-card">
-          {DOCS_PAGES.map((page) => (
+          {GUIDES.map((page) => (
             <li key={page.href} className="px-4 py-3">
-              <Link href={page.href} className={linkClass}>
+              <Link href={page.href} className="link-inline">
                 {page.title}
               </Link>
               <p className="mt-1 text-sm text-muted-foreground">{page.summary}</p>
             </li>
           ))}
-          <li className="px-4 py-3">
-            <Link href={KEY_GUIDE.href} className={linkClass}>
-              {KEY_GUIDE.title}
-            </Link>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Choosing a provider, OpenRouter’s :free limits and how keys are handled.
-            </p>
-          </li>
         </ul>
       </Section>
 
@@ -40,7 +32,7 @@ export default function DocsPage() {
         <ul className={bulletListClass}>
           {POLICY_PAGES.map((page) => (
             <li key={page.href}>
-              <Link href={page.href} className={linkClass}>
+              <Link href={page.href} className="link-inline">
                 {page.title}
               </Link>
             </li>

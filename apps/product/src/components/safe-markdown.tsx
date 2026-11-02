@@ -1,3 +1,4 @@
+import { CodePanel } from '@replo/ui'
 import Markdown, { type Components } from 'react-markdown'
 import { isAllowedLink } from '@/lib/safe-link'
 
@@ -32,12 +33,15 @@ const COMPONENTS: Components = {
       <>{children}</>
     ),
   code: ({ children }) => (
-    <code className="rounded-sm bg-muted px-1 py-0.5 font-mono text-[0.85em]">{children}</code>
+    <code className="rounded-sm bg-muted px-1 py-0.5 font-mono text-inline-code">{children}</code>
   ),
   pre: ({ children }) => (
-    <pre className="overflow-x-auto rounded-lg border bg-code-bg p-4 font-mono text-[13px] leading-6 [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-[inherit]">
+    <CodePanel
+      as="pre"
+      className="overflow-x-auto p-4 [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-[inherit]"
+    >
       {children}
-    </pre>
+    </CodePanel>
   ),
   ul: ({ children }) => <ul className="list-disc space-y-1 pl-6">{children}</ul>,
   ol: ({ children }) => <ol className="list-decimal space-y-1 pl-6">{children}</ol>,

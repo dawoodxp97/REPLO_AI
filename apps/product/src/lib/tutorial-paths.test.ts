@@ -6,7 +6,6 @@ import {
   parseVersion,
   tutorialPath,
   withQuery,
-  withShare,
   withTutorialContext,
 } from './tutorial-paths'
 
@@ -35,16 +34,6 @@ describe('withQuery', () => {
 
   it('returns the bare path when nothing is left', () => {
     expect(withQuery('/a?x=1', { x: null })).toBe('/a')
-  })
-})
-
-describe('withShare', () => {
-  it('appends the share token to a path that already has a query', () => {
-    expect(withShare('/a?path=src%2Fx.ts', 'tok en')).toBe('/a?path=src%2Fx.ts&share=tok+en')
-  })
-
-  it('leaves the path alone without a token', () => {
-    expect(withShare('/a', undefined)).toBe('/a')
   })
 })
 

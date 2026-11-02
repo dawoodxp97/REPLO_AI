@@ -4,7 +4,7 @@ import type { Db } from '../../platform/db/client'
 import type { AuthService } from './auth.types'
 import { createPasswordAuth } from './password-auth.service'
 import { createProviderAuth } from './provider-auth.service'
-import { createSessionService } from './session.service'
+import type { SessionService } from './session.service'
 
 export type {
   AuthService,
@@ -17,10 +17,10 @@ export type {
 export function createAuthService(deps: {
   db: Db
   vault: Pick<KeyVault, 'seal'>
+  sessions: SessionService
   enabled: EnabledProvidersDto
 }): AuthService {
-  const { db, vault } = deps
-  const sessions = createSessionService(db)
+  const { db, vault, sessions } = deps
   return {
     enabledProviders: () => deps.enabled,
     ...createPasswordAuth({ db, sessions }),

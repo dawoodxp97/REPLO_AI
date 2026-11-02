@@ -1,7 +1,6 @@
-import { cn } from '@replo/ui'
+import { cn, CodePanel, CodePanelHeader, MonoLabel } from '@replo/ui'
 import { GitCommitHorizontal } from 'lucide-react'
 import { Fragment } from 'react'
-import { MonoLabel } from './page-section'
 
 const PINNED_SHA = '3b17b2e'
 
@@ -62,8 +61,8 @@ function SourceLine({ text }: { text: string }) {
 
 function SourceViewer() {
   return (
-    <div className="flex min-w-0 flex-col bg-code-bg">
-      <div className="flex h-10 items-center justify-between gap-3 border-b px-4">
+    <CodePanel embedded className="flex min-w-0 flex-col font-sans">
+      <CodePanelHeader>
         <p className="min-w-0 truncate font-mono text-xs">
           {SOURCE_PATH.map((segment, index) => (
             <Fragment key={segment}>
@@ -82,14 +81,14 @@ function SourceViewer() {
           <GitCommitHorizontal className="size-3.5" aria-hidden="true" />
           pinned @{PINNED_SHA}
         </MonoLabel>
-      </div>
+      </CodePanelHeader>
       <div
         tabIndex={0}
         role="region"
         aria-label={`${SOURCE_PATH.join('/')} at commit ${PINNED_SHA}`}
         className="scrollbar-thin overflow-x-auto"
       >
-        <pre className="w-max min-w-full py-3 font-mono text-[0.75rem] leading-6 sm:text-[0.8125rem]">
+        <pre className="w-max min-w-full py-3 font-mono text-xs leading-6 sm:text-compact">
           <code>
             {SOURCE_LINES.map((text, index) => {
               const lineNumber = index + 1
@@ -117,7 +116,7 @@ function SourceViewer() {
           </code>
         </pre>
       </div>
-    </div>
+    </CodePanel>
   )
 }
 
@@ -130,16 +129,14 @@ function CitationChip({ children, active }: { children: string; active?: boolean
       )}
     >
       <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-observed" />
-      <span className="truncate font-mono text-[0.6875rem] leading-4 text-foreground">
-        {children}
-      </span>
+      <span className="truncate font-mono text-meta leading-4 text-foreground">{children}</span>
     </span>
   )
 }
 
 function InlineCode({ children }: { children: string }) {
   return (
-    <code className="rounded-sm bg-muted px-1 py-px font-mono text-[0.8125em] text-foreground">
+    <code className="rounded-sm bg-muted px-1 py-px font-mono text-inline-code text-foreground">
       {children}
     </code>
   )
@@ -152,7 +149,7 @@ function LessonPane() {
         <MonoLabel>Chapter 3 · Lesson 2</MonoLabel>
         <p className="text-sm font-semibold tracking-tight">What happens on “Add to cart”</p>
       </div>
-      <div className="prose-lesson space-y-4 text-[1.0625rem] leading-[1.7]">
+      <div className="prose-lesson space-y-4 text-lesson-sm leading-[1.7]">
         <p>
           The button dispatches the <InlineCode>addItem</InlineCode> thunk instead of calling the
           API directly, so every cart change flows through the store.{' '}

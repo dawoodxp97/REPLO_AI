@@ -1,8 +1,6 @@
 import { cn } from '@replo/ui'
 import type { ComponentProps, ReactNode } from 'react'
 
-export const displayClass = 'font-semibold tracking-[-0.025em] text-balance'
-
 export function Container({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div className={cn('mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8', className)} {...props} />
@@ -30,7 +28,7 @@ export function PageSection({
       className={cn('scroll-mt-20 border-t py-16 sm:py-24', className)}
     >
       <Container>
-        <h2 id={headingId} className={cn(displayClass, 'max-w-2xl text-2xl sm:text-3xl')}>
+        <h2 id={headingId} className={'heading-display max-w-2xl text-2xl sm:text-3xl'}>
           {title}
         </h2>
         {lede ? (
@@ -41,14 +39,5 @@ export function PageSection({
         <div className="mt-10 sm:mt-12">{children}</div>
       </Container>
     </section>
-  )
-}
-
-export function MonoLabel({ className, ...props }: ComponentProps<'span'>) {
-  return (
-    <span
-      className={cn('font-mono text-[0.6875rem] tracking-wide text-muted-foreground', className)}
-      {...props}
-    />
   )
 }

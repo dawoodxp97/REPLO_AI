@@ -22,7 +22,7 @@ export function NotificationBell() {
         {unread > 0 ? (
           <span
             aria-hidden
-            className="tabular absolute top-0.5 right-0.5 min-w-4 rounded-full bg-primary px-1 text-[0.625rem] leading-4 font-medium text-primary-foreground"
+            className="tabular absolute top-0.5 right-0.5 min-w-4 rounded-full bg-primary px-1 text-micro leading-4 font-medium text-primary-foreground"
           >
             {unread > MAX_SHOWN ? `${MAX_SHOWN}+` : unread}
           </span>

@@ -4,6 +4,7 @@ import { refIdFor, resolveEvidence } from './evidence'
 import { checkDiagram } from './mermaid'
 import { sanitizeMarkdown, unknownIdentifiers } from './markdown'
 import type { SourceIndex } from './source-index'
+import { lessonRefIds } from '../../tutorials/lesson-content'
 
 export type FailureCode =
   | 'UNSUPPORTED_CLAIM'
@@ -200,22 +201,11 @@ export function groundLesson(
   const title = sanitizeMarkdown(draft.title)
   recordFabricated([title], 'title')
 
-  const usedRefIds = new Set([
-    ...blocks.flatMap((block) =>
-      block.type === 'prose' ? block.evidence.map((item) => item.refId) : [],
-    ),
-    ...blocks.flatMap((block) => (block.type === 'code' ? [block.refId] : [])),
-    ...quiz.flatMap((item) => item.evidence.map((evidence) => evidence.refId)),
-  ])
+  const lesson: Lesson = { key: draft.key, title, minutes: draft.minutes, blocks, quiz }
+  const usedRefIds = new Set(lessonRefIds(lesson))
 
   return {
-    lesson: {
-      key: draft.key,
-      title,
-      minutes: draft.minutes,
-      blocks,
-      quiz,
-    },
+    lesson,
     refs: Object.fromEntries(
       Object.entries(ledger.refs).filter(([refId]) => usedRefIds.has(refId)),
     ),

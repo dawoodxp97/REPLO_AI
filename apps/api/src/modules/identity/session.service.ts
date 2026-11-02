@@ -1,6 +1,5 @@
-import type { SessionUser } from '../../context'
 import type { Db, DbOrTx } from '../../platform/db/client'
-import type { SessionLifecycle } from './auth.types'
+import type { SessionLifecycle, SessionUser } from './auth.types'
 import { identityRepo, type UserRow } from './identity.repo'
 import { hashSessionToken, newSessionToken, SESSION_LIFETIME_MS } from './session'
 

@@ -1,7 +1,9 @@
 import type { DashboardService } from './modules/dashboard/dashboard.service'
 import type { JobService } from './modules/generation/jobs.service'
 import type { GithubService } from './modules/github/github.service'
+import type { AccountService } from './modules/account/account.service'
 import type { AuthService } from './modules/identity/auth.service'
+import type { SessionUser } from './modules/identity/auth.types'
 import type { IdentityService } from './modules/identity/identity.service'
 import type { KeysService } from './modules/keys/keys.service'
 import type { LearningService } from './modules/learning/learning.service'
@@ -15,15 +17,9 @@ import type { SettingsService } from './modules/settings/settings.service'
 import type { TutorialLibrary } from './modules/tutorials/library.service'
 import type { TutorialManager } from './modules/tutorials/manager.service'
 
-export interface SessionUser {
-  id: string
-  name: string | null
-  email: string | null
-  image: string | null
-}
-
 export interface Services {
   auth: AuthService
+  account: AccountService
   identity: IdentityService
   github: GithubService
   repositoryLibrary: RepositoryLibrary
@@ -40,6 +36,8 @@ export interface Services {
   search: SearchService
   operator: OperatorService
 }
+
+export type { SessionUser }
 
 export interface RequestContext {
   user: SessionUser | null

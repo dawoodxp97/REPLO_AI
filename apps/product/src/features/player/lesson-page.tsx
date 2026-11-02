@@ -1,9 +1,10 @@
 'use client'
 
-import { skipToken, useQuery } from '@tanstack/react-query'
-import { orpc } from '@/lib/orpc'
+import { skipToken } from '@tanstack/react-query'
+import { useTutorialProgress } from '@/features/progress/use-progress'
 import type { TutorialRef } from '@/lib/tutorial-paths'
 import { LessonScreen } from './lesson-screen'
+import { useChapter } from './use-chapter'
 import { PageSkeleton, UnavailablePanel } from './tutorial-states'
 import { useTutorialOverview } from './use-tutorial-overview'
 
@@ -16,18 +17,11 @@ export interface LessonPageProps {
 export function LessonPage({ tutorial, chapterKey, lessonKey }: LessonPageProps) {
   const { shareToken, versionNo, overview } = useTutorialOverview(tutorial)
   const versionId = overview.data?.versionId
-  const chapter = useQuery(
-    orpc.tutorials.getChapter.queryOptions({
-      input: versionId === undefined ? skipToken : { versionId, chapterKey, shareToken },
-    }),
-  )
-  const progress = useQuery(
-    orpc.learning.getProgress.queryOptions({
-      input:
-        overview.data === undefined
-          ? skipToken
-          : { tutorialId: overview.data.tutorial.id, versionId: overview.data.versionId },
-    }),
+  const chapter = useChapter(versionId, chapterKey, shareToken)
+  const progress = useTutorialProgress(
+    overview.data === undefined
+      ? skipToken
+      : { tutorialId: overview.data.tutorial.id, versionId: overview.data.versionId },
   )
 
   if (overview.isPending || (versionId !== undefined && chapter.isPending)) return <PageSkeleton />
@@ -46,7 +40,7 @@ export function LessonPage({ tutorial, chapterKey, lessonKey }: LessonPageProps)
     <LessonScreen
       tutorial={tutorial}
       overview={overview.data}
-      chapter={chapter.data}
+      chapterData={chapter.data}
       lesson={lesson}
       progress={progress.data}
       shareToken={shareToken}

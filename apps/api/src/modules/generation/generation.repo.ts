@@ -1,24 +1,24 @@
 import type { JobEventData, JobEventType, Stage } from '@replo/contracts'
-import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, lt, or, sql } from 'drizzle-orm'
 import type { DbOrTx } from '../../platform/db/client'
+import {
+  IDLE_STATUSES,
+  IN_FLIGHT_STATUSES,
+  RETRYABLE_STATUSES,
+  type TerminalStatus,
+} from '../../platform/job-status'
 import {
   generationJobs,
   type ErrorDetail,
   jobEvents,
   jobStages,
+  jobStageOutputs,
   llmCalls,
   repoSnapshots,
 } from '../../platform/db/schema'
 
-export const IDLE_STATUSES = ['queued', 'waiting_retry', 'stalled'] as const
-const IN_FLIGHT_STATUSES = [...IDLE_STATUSES, 'running', 'canceling'] as const
-export const RETRYABLE_STATUSES = ['failed', 'canceled'] as const
-export const TERMINAL_STATUSES = ['succeeded', 'failed', 'canceled'] as const
 export const KEY_REMOVED = 'KEY_REMOVED'
 const STALE_AFTER_SECONDS = 120
-
-export const isStatusIn = <T extends string>(statuses: readonly T[], status: string): status is T =>
-  statuses.some((candidate) => candidate === status)
 
 export type JobRow = typeof generationJobs.$inferSelect
 
@@ -133,7 +133,7 @@ export const jobsRepo = (db: DbOrTx) => ({
 
   async finish(
     jobId: string,
-    status: 'succeeded' | 'failed' | 'canceled',
+    status: TerminalStatus,
     error?: JobFailure,
     from: readonly JobRow['status'][] = IN_FLIGHT_STATUSES,
   ): Promise<{ userId: string } | undefined> {
@@ -173,12 +173,8 @@ export const jobsRepo = (db: DbOrTx) => ({
       )
   },
 
-  async stalledIds(): Promise<string[]> {
-    const rows = await db
-      .select({ id: generationJobs.id })
-      .from(generationJobs)
-      .where(eq(generationJobs.status, 'stalled'))
-    return rows.map((r) => r.id)
+  async stalledJobs(): Promise<JobRow[]> {
+    return db.select().from(generationJobs).where(eq(generationJobs.status, 'stalled'))
   },
 
   async isStageComplete(jobId: string, stage: Stage): Promise<boolean> {
@@ -281,20 +277,64 @@ export const jobsRepo = (db: DbOrTx) => ({
   },
 })
 
+const HISTORY_DELETE_BATCH = 5000
+
 export const retentionRepo = (db: DbOrTx) => ({
-  async finishedJobsBefore(succeededBefore: Date, closedBefore: Date): Promise<string[]> {
-    const rows = await db
+  async deleteStageOutputsOfFinishedJobs(succeededBefore: Date, closedBefore: Date): Promise<number> {
+    const finished = db
       .select({ id: generationJobs.id })
       .from(generationJobs)
       .where(
-        sql`(${generationJobs.status} = 'succeeded' and ${generationJobs.finishedAt} < ${succeededBefore}) or (${generationJobs.status} in ('failed', 'canceled') and ${generationJobs.finishedAt} < ${closedBefore})`,
+        or(
+          and(eq(generationJobs.status, 'succeeded'), lt(generationJobs.finishedAt, succeededBefore)),
+          and(
+            inArray(generationJobs.status, RETRYABLE_STATUSES),
+            lt(generationJobs.finishedAt, closedBefore),
+          ),
+        ),
       )
-    return rows.map((row) => row.id)
+    const deleted = await db
+      .delete(jobStageOutputs)
+      .where(inArray(jobStageOutputs.jobId, finished))
+      .returning({ jobId: jobStageOutputs.jobId })
+    return new Set(deleted.map((row) => row.jobId)).size
   },
 
   async deleteHistoryBefore(cutoff: Date): Promise<void> {
-    await db.delete(jobEvents).where(lt(jobEvents.at, cutoff))
-    await db.delete(llmCalls).where(lt(llmCalls.createdAt, cutoff))
+    let deleted = HISTORY_DELETE_BATCH
+    while (deleted === HISTORY_DELETE_BATCH) {
+      const rows = await db
+        .delete(jobEvents)
+        .where(
+          inArray(
+            jobEvents.id,
+            db
+              .select({ id: jobEvents.id })
+              .from(jobEvents)
+              .where(lt(jobEvents.at, cutoff))
+              .limit(HISTORY_DELETE_BATCH),
+          ),
+        )
+        .returning({ id: jobEvents.id })
+      deleted = rows.length
+    }
+    deleted = HISTORY_DELETE_BATCH
+    while (deleted === HISTORY_DELETE_BATCH) {
+      const rows = await db
+        .delete(llmCalls)
+        .where(
+          inArray(
+            llmCalls.id,
+            db
+              .select({ id: llmCalls.id })
+              .from(llmCalls)
+              .where(lt(llmCalls.createdAt, cutoff))
+              .limit(HISTORY_DELETE_BATCH),
+          ),
+        )
+        .returning({ id: llmCalls.id })
+      deleted = rows.length
+    }
   },
 })
 

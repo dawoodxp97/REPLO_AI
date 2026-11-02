@@ -21,7 +21,7 @@ import { usePlayerSettings } from './use-player-settings'
 export interface LessonScreenProps {
   tutorial: TutorialRef
   overview: TutorialOverviewDto
-  chapter: ChapterDto
+  chapterData: ChapterDto
   lesson: LearnerLesson
   progress: ProgressDto | undefined
   shareToken?: string
@@ -31,7 +31,7 @@ export interface LessonScreenProps {
 export function LessonScreen({
   tutorial,
   overview,
-  chapter,
+  chapterData,
   lesson,
   progress,
   shareToken,
@@ -41,7 +41,7 @@ export function LessonScreen({
   const reference = useActiveReference()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { quizzesEnabled, autoAdvance } = usePlayerSettings()
-  const navigation = useLessonNavigation({ overview, chapter, lesson, links })
+  const navigation = useLessonNavigation({ overview, chapterData, lesson, links })
   const completed = progress?.lessons[lesson.key] === 'completed'
   const completion = useLessonCompletion({
     versionId: overview.versionId,
@@ -71,7 +71,7 @@ export function LessonScreen({
         versionId={overview.versionId}
         lessonKey={lesson.key}
         questions={questions}
-        references={chapter.sourceRefs}
+        references={chapterData.sourceRefs}
         onOpenReference={reference.select}
       />
     ) : null
@@ -100,7 +100,7 @@ export function LessonScreen({
             chapterTitle={navigation.chapterTitle}
             lesson={lesson}
             quiz={quiz}
-            references={chapter.sourceRefs}
+            references={chapterData.sourceRefs}
             previous={navigation.previous}
             next={navigation.next}
             completed={completed}
@@ -113,7 +113,7 @@ export function LessonScreen({
           <ReferenceSource
             versionId={overview.versionId}
             refId={reference.refId}
-            references={chapter.sourceRefs}
+            references={chapterData.sourceRefs}
             shareToken={shareToken}
           />
         }

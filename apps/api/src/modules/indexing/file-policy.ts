@@ -24,3 +24,14 @@ const LFS_POINTER_PREFIX = 'version https://git-lfs.github.com/spec/v1'
 export function isLfsPointer(content: Buffer): boolean {
   return content.subarray(0, LFS_POINTER_PREFIX.length).toString('utf8') === LFS_POINTER_PREFIX
 }
+
+export function isAnalyzedFile(file: { path: string; language: Language | null }): boolean {
+  if (file.language === null) return false
+  const isManifest = file.path === 'package.json' || file.path.endsWith('/package.json')
+  return (
+    isManifest ||
+    file.language === 'typescript' ||
+    file.language === 'javascript' ||
+    file.language === 'html'
+  )
+}

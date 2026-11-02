@@ -1,11 +1,7 @@
 import {
   TutorialContent,
   ValidationReport,
-  type Chapter,
   type ChapterDto,
-  type LearnerChapter,
-  type LearnerQuestion,
-  type Question,
   type SourceFileDto,
   type SourceTreeDto,
   type TutorialOverviewDto,
@@ -14,9 +10,10 @@ import type { Db } from '../../platform/db/client'
 import { notFound } from '../../platform/errors'
 import type { IndexingService } from '../indexing/indexing.service'
 import type { LearningService } from '../learning/learning.service'
-import { canRead, ownershipOf, type Viewer } from './access'
+import { readableTutorial, type Viewer } from './access'
 import { lessonRefIds } from './lesson-content'
 import { toSourceTree } from './source-tree'
+import { learnerChapter, permalinkOf } from './tutorial-views'
 import type { TutorialReader } from './reader.service'
 import { toTutorialSummary } from './tutorial-summary'
 import { tutorialsRepo } from './tutorials.repo'
@@ -32,7 +29,7 @@ export interface TutorialRef {
 export interface TutorialViewerDeps {
   db: Db
   indexing: Pick<IndexingService, 'listFiles' | 'readFile' | 'readText' | 'snapshotRef'>
-  reader: Pick<TutorialReader, 'readableVersion'>
+  reader: Pick<TutorialReader, 'readableHead' | 'readableVersion'>
   learning: Pick<LearningService, 'completionRatio'>
 }
 
@@ -49,11 +46,13 @@ export function createTutorialViewer(deps: TutorialViewerDeps): TutorialViewer {
 
   return {
     async overview(viewer, ref) {
-      const row = await repo.findBySlug(ref.owner, ref.repo, ref.slug)
-      const access = { userId: viewer.userId, shareToken: ref.shareToken ?? viewer.shareToken }
-      if (!row || !canRead(ownershipOf(row.tutorial), access)) notFound('Tutorial')
+      const row = readableTutorial(
+        await repo.findBySlug(ref.owner, ref.repo, ref.slug),
+        { userId: viewer.userId, shareToken: ref.shareToken ?? viewer.shareToken },
+        'Tutorial',
+      )
 
-      const versions = await repo.versionsOf(row.tutorial.id)
+      const versions = await repo.versionHeadsOf(row.tutorial.id)
       const current = versions.find((item) => item.id === row.tutorial.currentVersionId)
       const selected =
         ref.versionNo === undefined
@@ -61,25 +60,26 @@ export function createTutorialViewer(deps: TutorialViewerDeps): TutorialViewer {
           : versions.find((item) => item.versionNo === ref.versionNo)
       if (!selected || !current) notFound('Tutorial version')
 
-      const content = TutorialContent.parse(selected.content)
-      const report = ValidationReport.parse(selected.validationReport)
-      const snapshot = await indexing.snapshotRef(selected.snapshotId)
+      const [full, snapshot, progress] = await Promise.all([
+        repo.findVersion(selected.id),
+        indexing.snapshotRef(selected.snapshotId),
+        viewer.userId !== undefined && row.tutorial.currentVersionId
+          ? learning.completionRatio(viewer, row.tutorial.currentVersionId)
+          : null,
+      ])
+      if (!full) notFound('Tutorial version')
+      const content = TutorialContent.parse(full.content)
+      const report = ValidationReport.parse(full.validationReport)
       const stale =
         snapshot !== undefined &&
         (await repo.isStale({
+          versionId: selected.id,
           repositoryId: row.tutorial.repositoryId,
           snapshotCreatedAt: snapshot.createdAt,
-          paths: await repo.sourceRefPaths(selected.id),
         }))
 
       return {
-        tutorial: toTutorialSummary(
-          row,
-          current,
-          viewer.userId !== undefined && row.tutorial.currentVersionId
-            ? await learning.completionRatio(viewer, row.tutorial.currentVersionId)
-            : null,
-        ),
+        tutorial: toTutorialSummary(row, current, progress),
         versionId: selected.id,
         commitSha: content.meta.repo.commitSha,
         draft: selected.status === 'draft',
@@ -107,7 +107,7 @@ export function createTutorialViewer(deps: TutorialViewerDeps): TutorialViewer {
         versions: versions.map((item) => ({
           versionId: item.id,
           versionNo: item.versionNo,
-          publishedAt: (item.publishedAt ?? new Date(0)).toISOString(),
+          publishedAt: item.publishedAt.toISOString(),
         })),
         validation: { confidence: report.confidence, draft: report.draft },
         openQuestions: content.openQuestions,
@@ -130,11 +130,14 @@ export function createTutorialViewer(deps: TutorialViewerDeps): TutorialViewer {
     },
 
     async source(viewer, input) {
-      const version = await reader.readableVersion(viewer, input.versionId)
-      const file = await indexing.readFile(version.snapshotId, input.path)
-      const text = file && (await indexing.readText(version.snapshotId, input.path))
-      if (!file || text === undefined) notFound('File')
-      const { commitSha } = version.content.meta.repo
+      const version = await reader.readableHead(viewer, input.versionId)
+      const [snapshot, file, text] = await Promise.all([
+        indexing.snapshotRef(version.snapshotId),
+        indexing.readFile(version.snapshotId, input.path),
+        indexing.readText(version.snapshotId, input.path),
+      ])
+      if (!snapshot || !file || text === undefined) notFound('File')
+      const { commitSha } = snapshot
       return {
         path: file.path,
         language: file.language,
@@ -146,41 +149,14 @@ export function createTutorialViewer(deps: TutorialViewerDeps): TutorialViewer {
     },
 
     async sourceTree(viewer, input) {
-      const version = await reader.readableVersion(viewer, input.versionId)
-      const files = await indexing.listFiles(version.snapshotId)
-      return toSourceTree(version.content.meta.repo.commitSha, files)
+      const version = await reader.readableHead(viewer, input.versionId)
+      const [snapshot, files, citedPaths] = await Promise.all([
+        indexing.snapshotRef(version.snapshotId),
+        indexing.listFiles(version.snapshotId),
+        repo.citedPathsOf(input.versionId),
+      ])
+      if (!snapshot) notFound('Tutorial version')
+      return toSourceTree(snapshot.commitSha, files, citedPaths)
     },
   }
-}
-
-function learnerChapter(chapter: Chapter): LearnerChapter {
-  return {
-    key: chapter.key,
-    title: chapter.title,
-    summary: chapter.summary,
-    objectives: chapter.objectives,
-    prerequisites: chapter.prerequisites,
-    lessons: chapter.lessons.map((lesson) => ({
-      key: lesson.key,
-      title: lesson.title,
-      minutes: lesson.minutes,
-      blocks: lesson.blocks,
-      quiz: lesson.quiz?.map(learnerQuestion),
-    })),
-  }
-}
-
-function learnerQuestion(question: Question): LearnerQuestion {
-  return {
-    key: question.key,
-    kind: question.kind,
-    prompt: question.prompt,
-    options: question.options,
-    evidence: question.evidence,
-  }
-}
-
-function permalinkOf(owner: string, repo: string, commitSha: string, path: string): string {
-  const encoded = path.split('/').map(encodeURIComponent).join('/')
-  return `https://github.com/${owner}/${repo}/blob/${commitSha}/${encoded}`
 }

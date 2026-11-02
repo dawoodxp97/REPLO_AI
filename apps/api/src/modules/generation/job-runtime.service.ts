@@ -10,7 +10,8 @@ import {
   type JobFailure,
   type JobRow,
 } from './generation.repo'
-import { closeJob, type ClosedStatus } from './job-closure'
+import type { TerminalStatus } from '../../platform/job-status'
+import { closeJob } from './job-closure'
 import { enqueueTutorial } from './job-payload'
 
 export interface JobStore {
@@ -20,7 +21,7 @@ export interface JobStore {
   isStageComplete(jobId: string, stage: Stage): Promise<boolean>
   completeStage(jobId: string, stage: Stage): Promise<void>
   emit(jobId: string, event: JobEventInput): Promise<number | undefined>
-  finish(jobId: string, status: ClosedStatus, error?: JobFailure): Promise<boolean>
+  finish(jobId: string, status: TerminalStatus, error?: JobFailure): Promise<boolean>
   markWaitingRetry(jobId: string, error: JobFailure): Promise<boolean>
 }
 
@@ -38,15 +39,11 @@ export interface JobRuntime {
 
 export function createJobRuntime(deps: JobRuntimeDeps): JobRuntime {
   const { db, queue, notifications } = deps
+  const repo = jobsRepo(db)
 
   return {
     jobStore: {
-      claim: (jobId) => jobsRepo(db).claim(jobId),
-      heartbeat: (jobId) => jobsRepo(db).heartbeat(jobId),
-      setStage: (jobId, stage, progress) => jobsRepo(db).setStage(jobId, stage, progress),
-      isStageComplete: (jobId, stage) => jobsRepo(db).isStageComplete(jobId, stage),
-      completeStage: (jobId, stage) => jobsRepo(db).completeStage(jobId, stage),
-      emit: (jobId, event) => jobsRepo(db).emit(jobId, event),
+      ...repo,
       finish: (jobId, status, error) =>
         db.transaction((tx) => closeJob(tx, notifications, jobId, status, error)),
       markWaitingRetry: (jobId, error) =>
@@ -75,12 +72,8 @@ export function createJobRuntime(deps: JobRuntimeDeps): JobRuntime {
     },
 
     async requeueStalled() {
-      const repo = jobsRepo(db)
       await repo.stallStale()
-      for (const id of await repo.stalledIds()) {
-        const job = await repo.findById(id)
-        if (job) await enqueueTutorial(queue, job)
-      }
+      for (const job of await repo.stalledJobs()) await enqueueTutorial(queue, job)
     },
   }
 }

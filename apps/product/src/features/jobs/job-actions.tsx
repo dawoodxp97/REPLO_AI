@@ -1,6 +1,6 @@
 import type { GenerationJobDto } from '@replo/contracts'
-import { Alert, AlertDescription, Button } from '@replo/ui'
-import { CircleAlert } from 'lucide-react'
+import { Button } from '@replo/ui'
+import { InlineError } from '@/components/inline-error'
 import { describeJobActionError } from './job-errors'
 import { canCancelJob, canRetryJob } from './job-status'
 import { useCancelJob, useRetryJob } from './use-job-actions'
@@ -32,14 +32,7 @@ export function JobActions({ job, onRetried }: { job: GenerationJobDto; onRetrie
           </Button>
         ) : null}
       </div>
-      {failure ? (
-        <Alert variant="destructive" role="alert">
-          <CircleAlert />
-          <AlertDescription>
-            <p>{describeJobActionError(failure)}</p>
-          </AlertDescription>
-        </Alert>
-      ) : null}
+      {failure ? <InlineError>{describeJobActionError(failure)}</InlineError> : null}
     </div>
   )
 }

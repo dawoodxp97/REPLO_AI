@@ -1,27 +1,26 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { BudgetUsd, ModelPreset, ModelRole, Provider } from './common'
+import { BudgetUsd, ModelPreset, ModelRole, NonNegativeInt, Provider } from './common'
 
 export const Pipeline = z.enum(['full', 'lite'])
 export type Pipeline = z.infer<typeof Pipeline>
+
+export const RoleModels = z.object({
+  planner: z.string(),
+  author: z.string(),
+  summarizer: z.string().nullable(),
+})
 
 export const ModelPlan = z.object({
   provider: Provider,
   preset: ModelPreset,
   pipeline: Pipeline,
-  models: z.object({
-    planner: z.string(),
-    author: z.string(),
-    summarizer: z.string().nullable(),
-    judge: z.string().nullable(),
-  }),
-  budgetMicros: z.number().int().nonnegative(),
+  models: RoleModels.extend({ judge: z.string().nullable() }),
+  budgetMicros: NonNegativeInt,
 })
 export type ModelPlan = z.infer<typeof ModelPlan>
 
-export const CustomModels = z
-  .object({ planner: z.string(), author: z.string(), summarizer: z.string() })
-  .partial()
+export const CustomModels = RoleModels.extend({ summarizer: z.string() }).partial()
 export type CustomModels = z.infer<typeof CustomModels>
 
 export const CustomModelRefusal = z.object({

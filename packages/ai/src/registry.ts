@@ -1,6 +1,7 @@
-import type { ProviderId } from './catalog'
+import type { CatalogRole, ProviderId } from './catalog'
+import { BYTES_PER_TOKEN, DEFAULT_MAX_OUTPUT_TOKENS } from './constants'
 
-export type ModelRole = 'planner' | 'author' | 'summarizer' | 'judge'
+export type ModelRole = CatalogRole | 'judge'
 
 export interface ModelSpec {
   provider: ProviderId
@@ -10,11 +11,6 @@ export interface ModelSpec {
   structuredOutput: boolean
   free: boolean
 }
-
-export type Registry = Record<ModelRole, ModelSpec[]>
-
-export const BYTES_PER_TOKEN = 3.5
-export const DEFAULT_MAX_OUTPUT_TOKENS = 4096
 
 export function microsFor(
   inputTokens: number,

@@ -45,11 +45,16 @@ Semantic rule: **green = verified fact, amber = judgment/uncertainty, red = fail
 | Lesson prose   | **Newsreader** (serif) | Only inside the reading column (`prose-lesson` utility): `1.125rem/1.75`, ≤ 68ch        |
 | Machine data   | **Geist Mono**         | Paths, SHAs, line ranges, repo slugs, money, counts; `tabular` utility for live numbers |
 
+Named type scale (theme tokens, no arbitrary `text-[...]` sizes): `text-micro` 10px, `text-meta` 11px, `text-compact` 13px, `text-brand` 15px, `text-lesson-sm` 17px, `text-inline-code` 0.875em. Utilities: `heading-display` (`tracking-display` -0.025em, semibold, balance) and `link-inline` for inline anchors.
+
 Loaded with `next/font/google`. Page title `text-2xl` (`PageHeader`), section title `text-base` (`SectionHeader`), body `text-sm`, meta `text-xs`/`0.8125rem`. Landing display sizes use `-0.025em` tracking.
 
 ## 4. Spacing, radius, elevation, motion
 
 - **Spacing:** 4px base. Page gutter 16px mobile / 24px tablet / 40px desktop. Content max-width 72rem; reading column 68ch. Page sections `space-y-8`.
+- **Panels:** bordered surfaces use `rounded-lg`; `rounded-xl` only for the landing hero frame and dialogs.
+- **Shared components:** `BrandMark`/`Brand` (takes a `linkComponent`), `MonoLabel`, `CodePanel` and `CodePanelHeader` live in `@replo/ui`; each app keeps a thin `Brand` wrapper binding `next/link`.
+- **Focus:** the global `:focus-visible` outline is the focus style and `Button` adds no ring. Switch, checkbox, radio-group, tabs and the shared input control (`packages/ui/src/lib/control.ts`) still use `ring-[3px]` and are not migrated.
 - **Radius:** `--radius: 0.5rem`; `sm` −4px, `md` −2px (buttons, inputs), `lg` (cards, panels), `xl` +4px (dialogs).
 - **Elevation:** borders over shadows. Cards `shadow-xs`; popovers, menus and dialogs one soft shadow.
 - **Motion:** 120–200ms ease-out; overlays fade and scale from 98% using Base UI's `data-starting-style`/`data-ending-style`; `prefers-reduced-motion` disables non-essential animation.

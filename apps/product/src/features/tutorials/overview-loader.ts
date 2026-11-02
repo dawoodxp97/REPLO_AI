@@ -2,13 +2,14 @@ import type { TutorialOverviewDto } from '@replo/contracts'
 import { cache } from 'react'
 import { nullOnNotFound } from '@/lib/api-error'
 import { serverApi } from '@/lib/server-client'
+import { resolveLessonHref } from '@/features/player/lesson-navigation'
 import {
-  lessonPath,
-  withTutorialContext,
+  createTutorialLinks,
+  latestVersionNo,
+  parseVersion,
   type TutorialLinkContext,
   type TutorialRef,
 } from '@/lib/tutorial-paths'
-import { createTutorialLinks, latestVersionNo, parseVersion } from '@/lib/tutorial-paths'
 
 export interface OverviewQuery {
   version?: string
@@ -56,10 +57,7 @@ export async function resumeTarget(
     .catch(() => null)
   const nextLessonKey = progress?.nextLessonKey
   if (!nextLessonKey) return null
-  const chapter = overview.outline.find((item) =>
-    item.lessons.some((lesson) => lesson.key === nextLessonKey),
-  )
-  return chapter ? withTutorialContext(lessonPath(ref, chapter.key, nextLessonKey), context) : null
+  return resolveLessonHref(overview.outline, createTutorialLinks(ref, context), nextLessonKey)
 }
 
 export function latestVersionHref(

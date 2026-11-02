@@ -1,7 +1,8 @@
 import type { SearchResults } from '@replo/contracts'
-import { BookOpen, FileText, FolderGit2 } from 'lucide-react'
+import { BookOpen, FileText, FolderGit2, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { formatRepoName } from '@/lib/format'
 import { lessonPath, tutorialPath } from '@/lib/tutorial-paths'
 
 const HIT_CLASS =
@@ -27,6 +28,25 @@ function HitText({ title, meta }: { title: string; meta?: string }) {
   )
 }
 
+function Hit({
+  icon: Icon,
+  href,
+  onPick,
+  children,
+}: {
+  icon: LucideIcon
+  href: string
+  onPick: () => void
+  children: ReactNode
+}) {
+  return (
+    <Link href={href} onClick={onPick} className={HIT_CLASS}>
+      <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      {children}
+    </Link>
+  )
+}
+
 export function SearchGroups({ results, onPick }: { results: SearchResults; onPick: () => void }) {
   const empty =
     results.tutorials.length + results.lessons.length + results.repositories.length === 0
@@ -37,47 +57,47 @@ export function SearchGroups({ results, onPick }: { results: SearchResults; onPi
       {results.tutorials.length > 0 ? (
         <Group label="Tutorials">
           {results.tutorials.map((tutorial) => (
-            <Link
+            <Hit
               key={tutorial.tutorialId}
+              icon={BookOpen}
               href={tutorialPath(tutorial)}
-              onClick={onPick}
-              className={HIT_CLASS}
+              onPick={onPick}
             >
-              <BookOpen aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <HitText title={tutorial.title} meta={`${tutorial.owner}/${tutorial.repo}`} />
-            </Link>
+              <HitText
+                title={tutorial.title}
+                meta={formatRepoName(tutorial.owner, tutorial.repo)}
+              />
+            </Hit>
           ))}
         </Group>
       ) : null}
       {results.lessons.length > 0 ? (
         <Group label="Lessons">
           {results.lessons.map((lesson) => (
-            <Link
-              key={lesson.versionId + lesson.lessonKey}
+            <Hit
+              key={`${lesson.versionId}/${lesson.chapterKey}/${lesson.lessonKey}`}
+              icon={FileText}
               href={lessonPath(lesson, lesson.chapterKey, lesson.lessonKey)}
-              onClick={onPick}
-              className={HIT_CLASS}
+              onPick={onPick}
             >
-              <FileText aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <HitText title={lesson.title} meta={lesson.tutorialTitle} />
-            </Link>
+            </Hit>
           ))}
         </Group>
       ) : null}
       {results.repositories.length > 0 ? (
         <Group label="Repositories">
           {results.repositories.map((repository) => (
-            <Link
+            <Hit
               key={repository.repositoryId}
+              icon={FolderGit2}
               href="/repositories"
-              onClick={onPick}
-              className={HIT_CLASS}
+              onPick={onPick}
             >
-              <FolderGit2 aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 truncate font-mono">
-                {repository.owner}/{repository.name}
+                {formatRepoName(repository.owner, repository.name)}
               </span>
-            </Link>
+            </Hit>
           ))}
         </Group>
       ) : null}

@@ -1,12 +1,6 @@
 import { ORPCError } from '@orpc/client'
 import { describe, expect, it } from 'vitest'
-import {
-  apiErrorDetails,
-  isApiErrorCode,
-  nullOnApiError,
-  nullOnNotFound,
-  shouldRetryQuery,
-} from './api-error'
+import { apiErrorDetails, isApiErrorCode, nullOnNotFound, shouldRetryQuery } from './api-error'
 
 describe('apiErrorDetails', () => {
   it('reads the code and data of an oRPC error', () => {
@@ -41,25 +35,6 @@ describe('shouldRetryQuery', () => {
 
   it('retries a server error once', () => {
     expect(shouldRetryQuery(0, new ORPCError('INTERNAL_SERVER_ERROR', { status: 500 }))).toBe(true)
-  })
-})
-
-describe('nullOnApiError', () => {
-  it('passes the value through', async () => {
-    await expect(nullOnApiError(Promise.resolve(7), 'NOT_FOUND')).resolves.toBe(7)
-  })
-
-  it('turns the requested code into null', async () => {
-    const failure = Promise.reject(new ORPCError('UNAUTHORIZED', { status: 401 }))
-    await expect(nullOnApiError(failure, 'UNAUTHORIZED')).resolves.toBeNull()
-  })
-
-  it('rethrows every other failure', async () => {
-    const failure = Promise.reject(new ORPCError('INTERNAL_SERVER_ERROR', { status: 500 }))
-    await expect(nullOnApiError(failure, 'NOT_FOUND')).rejects.toBeInstanceOf(ORPCError)
-    await expect(nullOnApiError(Promise.reject(new TypeError('x')), 'NOT_FOUND')).rejects.toThrow(
-      'x',
-    )
   })
 })
 

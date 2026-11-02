@@ -1,5 +1,5 @@
 import type { Stage } from '@replo/contracts'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { DbOrTx } from '../../platform/db/client'
 import { jobStageOutputs } from '../../platform/db/schema'
 
@@ -29,8 +29,7 @@ export const stageOutputsRepo = (db: DbOrTx) => ({
       })
   },
 
-  async deleteForJobs(jobIds: readonly string[]): Promise<void> {
-    if (jobIds.length === 0) return
-    await db.delete(jobStageOutputs).where(inArray(jobStageOutputs.jobId, [...jobIds]))
+  async deleteForJob(jobId: string): Promise<void> {
+    await db.delete(jobStageOutputs).where(eq(jobStageOutputs.jobId, jobId))
   },
 })

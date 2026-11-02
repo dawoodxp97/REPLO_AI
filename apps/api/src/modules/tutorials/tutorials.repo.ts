@@ -1,10 +1,11 @@
-import { and, desc, eq, gt, ilike, inArray, isNotNull, lt, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gt, ilike, inArray, lt, notExists, sql, type SQL } from 'drizzle-orm'
 import type { Visibility } from '@replo/contracts'
 import type { DbOrTx } from '../../platform/db/client'
 import {
   lessonIndex,
   repositories,
   repoPushEvents,
+  repoSnapshots,
   tutorialReports,
   tutorialSourceRefs,
   tutorialVersions,
@@ -19,6 +20,10 @@ export interface TutorialWithRepo {
   owner: string
   name: string
   license: string | null
+}
+
+export interface VersionHead extends TutorialWithRepo {
+  version: Pick<TutorialVersionRow, 'id' | 'snapshotId' | 'versionNo' | 'audience'>
 }
 
 const withRepo = (db: DbOrTx) =>
@@ -149,12 +154,41 @@ export const tutorialsRepo = (db: DbOrTx) => {
       return row?.versionNo ?? 0
     },
 
-    versionsOf(tutorialId: string): Promise<TutorialVersionRow[]> {
+    versionHeadsOf(tutorialId: string) {
       return db
-        .select()
+        .select({
+          id: tutorialVersions.id,
+          versionNo: tutorialVersions.versionNo,
+          publishedAt: tutorialVersions.publishedAt,
+          status: tutorialVersions.status,
+          snapshotId: tutorialVersions.snapshotId,
+          audience: tutorialVersions.audience,
+        })
         .from(tutorialVersions)
         .where(eq(tutorialVersions.tutorialId, tutorialId))
         .orderBy(desc(tutorialVersions.versionNo))
+    },
+
+    async findVersionHead(versionId: string): Promise<VersionHead | undefined> {
+      const [row] = await db
+        .select({
+          tutorial: tutorials,
+          owner: repositories.owner,
+          name: repositories.name,
+          license: repositories.license,
+          version: {
+            id: tutorialVersions.id,
+            snapshotId: tutorialVersions.snapshotId,
+            versionNo: tutorialVersions.versionNo,
+            audience: tutorialVersions.audience,
+          },
+        })
+        .from(tutorialVersions)
+        .innerJoin(tutorials, eq(tutorials.id, tutorialVersions.tutorialId))
+        .innerJoin(repositories, eq(repositories.id, tutorials.repositoryId))
+        .where(eq(tutorialVersions.id, versionId))
+        .limit(1)
+      return row
     },
 
     async findVersion(versionId: string): Promise<TutorialVersionRow | undefined> {
@@ -190,12 +224,12 @@ export const tutorialsRepo = (db: DbOrTx) => {
       if (values.length > 0) await db.insert(tutorialSourceRefs).values(values)
     },
 
-    async sourceRefPaths(versionId: string): Promise<string[]> {
+    async citedPathsOf(versionId: string): Promise<ReadonlySet<string>> {
       const rows = await db
         .selectDistinct({ path: tutorialSourceRefs.path })
         .from(tutorialSourceRefs)
         .where(eq(tutorialSourceRefs.versionId, versionId))
-      return rows.map((row) => row.path)
+      return new Set(rows.map((row) => row.path))
     },
 
     async insertLessons(values: (typeof lessonIndex.$inferInsert)[]): Promise<void> {
@@ -221,15 +255,10 @@ export const tutorialsRepo = (db: DbOrTx) => {
     },
 
     async isStale(input: {
+      versionId: string
       repositoryId: string
       snapshotCreatedAt: Date
-      paths: readonly string[]
     }): Promise<boolean> {
-      if (input.paths.length === 0) return false
-      const pathArray = sql`ARRAY[${sql.join(
-        input.paths.map((path) => sql`${path}`),
-        sql`, `,
-      )}]::text[]`
       const [row] = await db
         .select({ hit: sql<number>`1` })
         .from(repoPushEvents)
@@ -237,7 +266,7 @@ export const tutorialsRepo = (db: DbOrTx) => {
           and(
             eq(repoPushEvents.repositoryId, input.repositoryId),
             gt(repoPushEvents.pushedAt, input.snapshotCreatedAt),
-            sql`${repoPushEvents.paths} && ${pathArray}`,
+            sql`${repoPushEvents.paths} && (select array_agg(distinct ${tutorialSourceRefs.path}) from ${tutorialSourceRefs} where ${tutorialSourceRefs.versionId} = ${input.versionId})`,
           ),
         )
         .limit(1)
@@ -251,6 +280,26 @@ export const tutorialsRepo = (db: DbOrTx) => {
       pushedAt: Date
     }): Promise<void> {
       await db.insert(repoPushEvents).values(input)
+    },
+
+    async deleteObsoletePushEvents(): Promise<number> {
+      const deleted = await db
+        .delete(repoPushEvents)
+        .where(
+          notExists(
+            db
+              .select({ one: sql`1` })
+              .from(repoSnapshots)
+              .where(
+                and(
+                  eq(repoSnapshots.repositoryId, repoPushEvents.repositoryId),
+                  lt(repoSnapshots.createdAt, repoPushEvents.pushedAt),
+                ),
+              ),
+          ),
+        )
+        .returning({ id: repoPushEvents.id })
+      return deleted.length
     },
 
     async insertReport(values: {
@@ -324,7 +373,6 @@ export const tutorialsRepo = (db: DbOrTx) => {
         .where(
           and(
             eq(tutorials.userId, userId),
-            isNotNull(tutorialVersions.publishedAt),
             eq(tutorialVersions.status, 'published'),
           ),
         )

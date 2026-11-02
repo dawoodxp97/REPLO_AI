@@ -11,6 +11,7 @@ import {
 import { SectionHeader } from '@/components/page-header'
 import { JobStatusLink } from '@/features/jobs/job-status-link'
 import { STAGE_LABELS } from '@/features/jobs/job-status'
+import { formatRepoName } from '@/lib/format'
 
 type JobInFlight = DashboardSummary['jobsInFlight'][number]
 
@@ -24,16 +25,14 @@ export function JobsInFlight({ jobs }: { jobs: readonly JobInFlight[] }) {
         {jobs.map((job) => (
           <Item key={job.jobId}>
             <ItemContent>
-              <ItemTitle className="font-mono">
-                {job.owner}/{job.repo}
-              </ItemTitle>
+              <ItemTitle className="font-mono">{formatRepoName(job.owner, job.repo)}</ItemTitle>
               <ItemDescription className="text-xs">
                 {job.stage ? STAGE_LABELS[job.stage] : 'Waiting to start'}
                 <span className="tabular font-mono"> · {job.progress}%</span>
               </ItemDescription>
               <Progress
                 value={job.progress}
-                aria-label={`Progress for ${job.owner}/${job.repo}`}
+                aria-label={`Progress for ${formatRepoName(job.owner, job.repo)}`}
                 className="h-1 max-w-xs"
               />
             </ItemContent>

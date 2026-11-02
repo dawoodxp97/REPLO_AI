@@ -2,8 +2,6 @@
 
 import type { CustomModels, ModelCatalog, ModelPreferences } from '@replo/contracts'
 import {
-  Alert,
-  AlertDescription,
   Button,
   Card,
   CardContent,
@@ -13,11 +11,11 @@ import {
   CardTitle,
   FieldGroup,
   FormField,
-  Input,
   NativeSelect,
 } from '@replo/ui'
-import { CircleAlert } from 'lucide-react'
-import { PROVIDER_LABELS } from '@/features/keys/providers'
+import { BudgetInput } from '@/components/budget-input'
+import { InlineError } from '@/components/inline-error'
+import { LLM_PROVIDER_LABELS } from '@/features/keys/providers'
 import { describeModelError } from './model-errors'
 import { useModelsForm } from './use-models-form'
 
@@ -80,7 +78,7 @@ export function ModelsForm({
                     <option value="">Use the preset&apos;s choice</option>
                     {verified.map((model) => (
                       <option key={model.id} value={model.id}>
-                        {model.label} · {PROVIDER_LABELS[model.provider]}
+                        {model.label} · {LLM_PROVIDER_LABELS[model.provider]}
                       </option>
                     ))}
                   </NativeSelect>
@@ -93,26 +91,18 @@ export function ModelsForm({
             id="budget"
             label="Default budget ceiling (USD)"
             hint="Each job stops at this amount. Leave it empty to use the default."
+            error={form.budgetError}
           >
-            <Input
+            <BudgetInput
               id="budget"
-              type="number"
-              inputMode="decimal"
-              min={0.01}
-              max={50}
-              step={0.01}
+              error={form.budgetError}
               value={form.budget}
               onChange={(event) => form.setBudget(event.target.value)}
               className="max-w-40 font-mono tabular"
             />
           </FormField>
 
-          {save.isError ? (
-            <Alert variant="destructive" role="alert">
-              <CircleAlert />
-              <AlertDescription>{describeModelError(save.error)}</AlertDescription>
-            </Alert>
-          ) : null}
+          {save.isError ? <InlineError>{describeModelError(save.error)}</InlineError> : null}
         </FieldGroup>
       </CardContent>
       <CardFooter className="gap-3">

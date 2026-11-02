@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { createKeyChecker, loadCatalog, MODEL_CATALOG } from '@replo/ai'
 import { DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
 import type { Services } from './context'
+import { createAccountService, type AccountService } from './modules/account/account.service'
 import { KeyVault } from './platform/crypto/key-vault'
 import type { Config } from './platform/config'
 import type { Db } from './platform/db/client'
@@ -20,7 +21,7 @@ import { githubAppFrom } from './modules/github/github.app'
 import { createAuthService, type AuthService } from './modules/identity/auth.service'
 import { createIdentityService, type IdentityService } from './modules/identity/identity.service'
 import type { OAuthClients } from './modules/identity/oauth'
-import { createSessionService } from './modules/identity/session.service'
+import { createSessionService, type SessionService } from './modules/identity/session.service'
 import { createIndexingService, type IndexingService } from './modules/indexing/indexing.service'
 import { createKeysService, type KeysService } from './modules/keys/keys.service'
 import { createLearningService, type LearningService } from './modules/learning/learning.service'
@@ -61,6 +62,8 @@ import { createTutorialReader } from './modules/tutorials/reader.service'
 
 export interface DomainServices {
   identity: IdentityService
+  account: AccountService
+  sessions: SessionService
   github: GithubService
   indexing: IndexingService
   repositoryLibrary: RepositoryLibrary
@@ -91,17 +94,13 @@ export function createDomainServices(deps: {
   config: Config
   db: Db
   queue: JobQueue
-  vault?: KeyVault
+  vault: KeyVault
 }): DomainServices {
-  const { config, db, queue } = deps
-  const vault = deps.vault ?? vaultFrom(config)
+  const { config, db, queue, vault } = deps
   const rest = createGithubRest()
   const limits = { maxFiles: config.MAX_REPO_FILES, maxBytes: config.MAX_REPO_BYTES }
-  const identity = createIdentityService({
-    db,
-    vault,
-    tutorials: { settleOwnerDeletion: (...args) => tutorialManager.settleOwnerDeletion(...args) },
-  })
+  const identity = createIdentityService({ db, vault })
+  const sessions = createSessionService(db)
   const github = createGithubService({
     db,
     rest,
@@ -142,6 +141,7 @@ export function createDomainServices(deps: {
     library: tutorialLibrary,
     productOrigin: config.PRODUCT_ORIGIN,
   })
+  const account = createAccountService({ db, identity, tutorials: tutorialManager })
   const tutorialPublisher = createTutorialPublisher(db)
   const repositoryLibrary = createRepositoryLibrary({
     db,
@@ -171,6 +171,8 @@ export function createDomainServices(deps: {
 
   return {
     identity,
+    account,
+    sessions,
     github,
     indexing,
     repositoryLibrary,
@@ -198,10 +200,10 @@ export function createDomainServices(deps: {
     operator: createOperatorService({ db, jobs: jobHistory }),
     retention: createRetentionService({
       jobs: jobHistory,
-      pipeline,
       indexing,
+      tutorials: tutorialManager,
       notifications,
-      sessions: createSessionService(db),
+      sessions,
     }),
   }
 }
@@ -211,31 +213,14 @@ export function createServices(deps: {
   db: Db
   domain: DomainServices
   oauth: OAuthClients
-  vault?: KeyVault
+  vault: KeyVault
 }): Services {
-  const { config, db, domain, oauth } = deps
-  const vault = deps.vault ?? vaultFrom(config)
+  const { db, domain, oauth, vault } = deps
   const auth: AuthService = createAuthService({
     db,
     vault,
+    sessions: domain.sessions,
     enabled: { google: oauth.google !== undefined, github: oauth.github !== undefined },
   })
-  return {
-    auth,
-    identity: domain.identity,
-    github: domain.github,
-    repositoryLibrary: domain.repositoryLibrary,
-    repositoryImports: domain.repositoryImports,
-    jobs: domain.jobs,
-    keys: domain.keys,
-    models: domain.models,
-    tutorialLibrary: domain.tutorialLibrary,
-    tutorialManager: domain.tutorialManager,
-    learning: domain.learning,
-    settings: domain.settings,
-    notifications: domain.notifications,
-    dashboard: domain.dashboard,
-    search: domain.search,
-    operator: domain.operator,
-  }
+  return { ...domain, auth }
 }

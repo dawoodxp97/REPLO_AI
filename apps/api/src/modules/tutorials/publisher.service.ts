@@ -3,13 +3,11 @@ import type { Audience, TutorialContent, ValidationReport } from '@replo/contrac
 import { uuidv7 } from 'uuidv7'
 import type { Db, Tx } from '../../platform/db/client'
 import type { TutorialGenerator } from '../../platform/db/schema'
-import { allLessons, lessonRefIds } from './lesson-content'
+import { lessonRows, slugify, sourceRefRows } from './publish-rows'
 import { tutorialsRepo, type TutorialRow, type TutorialVersionRow } from './tutorials.repo'
 
-const SLUG_MAX_LENGTH = 60
 const SUFFIX_LENGTH = 8
 const SLUG_ATTEMPTS = 5
-const FALLBACK_SLUG = 'tutorial'
 
 export interface PublishInput {
   userId: string
@@ -101,50 +99,4 @@ async function createTutorial(tx: Tx, input: PublishInput): Promise<TutorialRow>
     if (existing) return existing
   }
   throw new Error('no free tutorial slug after repeated attempts')
-}
-
-export function slugify(name: string): string {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .slice(0, SLUG_MAX_LENGTH)
-    .replace(/^-+|-+$/g, '')
-  return slug.length > 0 ? slug : FALLBACK_SLUG
-}
-
-function lessonRows(versionId: string, content: TutorialContent) {
-  return allLessons(content).map(({ chapterKey, lesson }, position) => ({
-    versionId,
-    chapterKey,
-    lessonKey: lesson.key,
-    title: lesson.title,
-    position,
-  }))
-}
-
-function sourceRefRows(versionId: string, content: TutorialContent) {
-  const lessons = allLessons(content)
-  const lessonOfRef = new Map<string, string>()
-  for (const { lesson } of lessons) {
-    for (const refId of lessonRefIds(lesson)) {
-      if (!lessonOfRef.has(refId)) lessonOfRef.set(refId, lesson.key)
-    }
-  }
-  const fallbackLessonKey = lessons[0]?.lesson.key
-  return Object.entries(content.sourceRefs).flatMap(([refId, ref]) => {
-    const lessonKey = lessonOfRef.get(refId) ?? fallbackLessonKey
-    if (lessonKey === undefined) return []
-    return [
-      {
-        versionId,
-        lessonKey,
-        refId,
-        path: ref.path,
-        startLine: ref.startLine,
-        endLine: ref.endLine,
-        blobSha: ref.blobSha,
-        symbolKey: ref.symbolKey ?? null,
-      },
-    ]
-  })
 }

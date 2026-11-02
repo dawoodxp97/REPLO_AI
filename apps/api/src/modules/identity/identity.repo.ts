@@ -97,8 +97,12 @@ export const identityRepo = (db: DbOrTx) => ({
     return row
   },
 
-  async identitiesOf(userId: string): Promise<IdentityRow[]> {
-    return db.select().from(authIdentity).where(eq(authIdentity.userId, userId))
+  async providersOf(userId: string): Promise<string[]> {
+    const rows = await db
+      .select({ provider: authIdentity.provider })
+      .from(authIdentity)
+      .where(eq(authIdentity.userId, userId))
+    return rows.map((row) => row.provider)
   },
 
   async insertIdentity(values: NewIdentity): Promise<void> {
@@ -140,11 +144,8 @@ export const identityRepo = (db: DbOrTx) => ({
   },
 
   async deleteExpiredSessions(now: Date): Promise<number> {
-    const rows = await db
-      .delete(session)
-      .where(lte(session.expiresAt, now))
-      .returning({ id: session.id })
-    return rows.length
+    const result = await db.delete(session).where(lte(session.expiresAt, now))
+    return result.rowCount ?? 0
   },
 
   async deleteOtherSessions(userId: string, keepSessionId: string): Promise<void> {

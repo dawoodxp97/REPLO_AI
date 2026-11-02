@@ -1,37 +1,12 @@
 import type { ProviderId } from './catalog'
+import { PROVIDER_TABLE, type KeyCheckRequest } from './provider-table'
 
 export type KeyCheck = 'valid' | 'invalid' | 'unavailable'
-
-export interface KeyCheckRequest {
-  url: string
-  headers: Record<string, string>
-}
 
 const TIMEOUT_MS = 10_000
 
 export function keyCheckRequest(provider: ProviderId, apiKey: string): KeyCheckRequest {
-  switch (provider) {
-    case 'openrouter':
-      return {
-        url: 'https://openrouter.ai/api/v1/auth/key',
-        headers: { authorization: `Bearer ${apiKey}` },
-      }
-    case 'openai':
-      return {
-        url: 'https://api.openai.com/v1/models',
-        headers: { authorization: `Bearer ${apiKey}` },
-      }
-    case 'anthropic':
-      return {
-        url: 'https://api.anthropic.com/v1/models',
-        headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      }
-    case 'google':
-      return {
-        url: 'https://generativelanguage.googleapis.com/v1beta/models',
-        headers: { 'x-goog-api-key': apiKey },
-      }
-  }
+  return PROVIDER_TABLE[provider].keyCheck(apiKey)
 }
 
 export interface KeyChecker {

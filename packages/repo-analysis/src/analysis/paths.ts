@@ -16,3 +16,5 @@ export const dirOf = (path: string): string => {
 }
 
 export const joinPath = (...parts: string[]): string | undefined => normalizePath(parts.join('/'))
+
+export const compareText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)

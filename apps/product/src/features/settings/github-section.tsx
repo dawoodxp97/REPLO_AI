@@ -1,21 +1,14 @@
 'use client'
 
-import {
-  Alert,
-  AlertDescription,
-  Badge,
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemGroup,
-  ItemTitle,
-  Skeleton,
-} from '@replo/ui'
+import { Item, ItemActions, ItemContent, ItemGroup, ItemTitle, Skeleton } from '@replo/ui'
 import { useQuery } from '@tanstack/react-query'
-import { CircleAlert, GitBranch, Lock } from 'lucide-react'
+import { GitBranch } from 'lucide-react'
+import { InlineError } from '@/components/inline-error'
 import { LinkButton } from '@/components/link-button'
 import { QueryBoundary } from '@/components/query-boundary'
+import { RepoVisibilityBadge } from '@/components/repo-visibility-badge'
 import { SectionHeader } from '@/components/page-header'
+import { formatRepoName } from '@/lib/format'
 import { orpc } from '@/lib/orpc'
 
 function RepoList() {
@@ -37,17 +30,12 @@ function RepoList() {
             {items.map((repo) => (
               <Item key={repo.githubRepoId} size="sm">
                 <ItemContent>
-                  <ItemTitle className="font-mono text-[0.8125rem]">
-                    {repo.owner}/{repo.name}
+                  <ItemTitle className="font-mono text-compact">
+                    {formatRepoName(repo.owner, repo.name)}
                   </ItemTitle>
                 </ItemContent>
                 <ItemActions className="text-xs text-muted-foreground">
-                  {repo.isPrivate ? (
-                    <Badge variant="outline">
-                      <Lock />
-                      Private
-                    </Badge>
-                  ) : null}
+                  <RepoVisibilityBadge isPrivate={repo.isPrivate} />
                   <span className="inline-flex items-center gap-1 font-mono">
                     <GitBranch className="size-3.5" aria-hidden />
                     {repo.defaultBranch}
@@ -67,12 +55,7 @@ function InstallAccess() {
 
   if (install.isPending) return <Skeleton aria-busy="true" className="h-9 w-48" />
   if (install.isError) {
-    return (
-      <Alert variant="destructive" role="alert">
-        <CircleAlert />
-        <AlertDescription>The GitHub App install link could not be loaded.</AlertDescription>
-      </Alert>
-    )
+    return <InlineError>The GitHub App install link could not be loaded.</InlineError>
   }
   if (!install.data.url) {
     return (

@@ -26,7 +26,6 @@ export interface PipelineDeps {
 
 export interface PipelineService {
   stageHandlers: Record<Stage, StageHandler>
-  purgeOutputs(jobIds: readonly string[]): Promise<void>
 }
 
 export function createPipelineService(deps: PipelineDeps): PipelineService {
@@ -41,7 +40,6 @@ export function createPipelineService(deps: PipelineDeps): PipelineService {
   }
 
   return {
-    purgeOutputs: (jobIds) => outputs.clearForJobs(jobIds),
     stageHandlers: {
       ingest: ({ job, signal }) =>
         deps.indexing.ingest({ userId: job.userId, snapshotId: job.snapshotId, signal }),

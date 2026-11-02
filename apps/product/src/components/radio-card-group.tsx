@@ -41,7 +41,7 @@ export function RadioCardGroup<T extends string>({
             />
             <span className="flex flex-col gap-1">
               <span className="text-sm leading-none font-medium">{option.title}</span>
-              <span className="text-[0.8125rem] leading-snug text-muted-foreground">
+              <span className="text-compact leading-snug text-muted-foreground">
                 {option.description}
               </span>
             </span>

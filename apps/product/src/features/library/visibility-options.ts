@@ -2,12 +2,18 @@ import type { Visibility } from '@replo/contracts'
 import type { RadioCardOption } from '@/components/radio-card-group'
 import { apiErrorDetails } from '@/lib/api-error'
 
+export const VISIBILITY_LABEL: Record<Visibility, string> = {
+  private: 'Private',
+  link: 'Link',
+  public: 'Public',
+}
+
 export const VISIBILITY_OPTIONS: readonly RadioCardOption<Visibility>[] = [
-  { value: 'private', title: 'Private', description: 'Only you can read it.' },
-  { value: 'link', title: 'Link', description: 'Anyone with the link can read it.' },
+  { value: 'private', title: VISIBILITY_LABEL.private, description: 'Only you can read it.' },
+  { value: 'link', title: VISIBILITY_LABEL.link, description: 'Anyone with the link can read it.' },
   {
     value: 'public',
-    title: 'Public',
+    title: VISIBILITY_LABEL.public,
     description: 'Listed for everyone. Needs an open-source licence.',
   },
 ]

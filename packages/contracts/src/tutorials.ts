@@ -4,12 +4,21 @@ import {
   Audience,
   CommitSha,
   IdCursor,
+  NonNegativeInt,
   OkResult,
   Visibility,
   pageInput,
   pageOutput,
 } from './common'
-import { Chapter, Lesson, QuestionOption, SourceRef, ValidationReport } from './tutorial/content'
+import {
+  Chapter,
+  Evidence,
+  Lesson,
+  QuestionKind,
+  QuestionOption,
+  SourceRef,
+  ValidationReport,
+} from './tutorial/content'
 
 export const TutorialSummaryDto = z.object({
   id: z.uuid(),
@@ -43,11 +52,8 @@ export const TutorialOverviewDto = z.object({
   prerequisites: z.array(z.string()),
   architectureDiagram: z.object({ mermaid: z.string(), caption: z.string() }).nullable(),
   outline: z.array(
-    z.object({
-      key: z.string(),
-      title: z.string(),
-      summary: z.string(),
-      lessons: z.array(z.object({ key: z.string(), title: z.string(), minutes: z.number() })),
+    Chapter.pick({ key: true, title: true, summary: true }).extend({
+      lessons: z.array(Lesson.pick({ key: true, title: true, minutes: true })),
     }),
   ),
   versions: z.array(
@@ -60,10 +66,10 @@ export type TutorialOverviewDto = z.infer<typeof TutorialOverviewDto>
 
 export const LearnerQuestion = z.object({
   key: z.string(),
-  kind: z.enum(['multiple_choice', 'true_false']),
+  kind: QuestionKind,
   prompt: z.string(),
   options: z.array(QuestionOption),
-  evidence: z.array(z.object({ refId: z.string(), note: z.string().optional() })),
+  evidence: z.array(Evidence),
 })
 export type LearnerQuestion = z.infer<typeof LearnerQuestion>
 
@@ -100,10 +106,11 @@ export type FileRole = z.infer<typeof FileRole>
 
 export const SourceTreeEntry = z.object({
   path: z.string(),
-  sizeBytes: z.number().int().nonnegative(),
+  sizeBytes: NonNegativeInt,
   language: z.string().nullable(),
   role: FileRole,
   readable: z.boolean(),
+  cited: z.boolean(),
 })
 export type SourceTreeEntry = z.infer<typeof SourceTreeEntry>
 
