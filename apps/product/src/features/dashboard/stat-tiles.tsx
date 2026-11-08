@@ -12,13 +12,13 @@ export function StatTiles({ counts }: { counts: DashboardSummary['counts'] }) {
   ]
 
   return (
-    <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+    <dl className="grid grid-cols-2 overflow-hidden rounded-lg border bg-card sm:grid-cols-5">
       {parts.map((part) => (
-        <div key={part.label} className="flex items-baseline gap-1.5">
-          <dd className="tabular font-mono font-semibold text-foreground">
+        <div key={part.label} className="flex flex-col gap-2 px-5 py-4">
+          <dt className="text-xs text-muted-foreground">{part.label}</dt>
+          <dd className="tabular font-mono text-2xl font-medium tracking-tight text-foreground">
             {formatCount(part.count)}
           </dd>
-          <dt>{part.label}</dt>
         </div>
       ))}
     </dl>

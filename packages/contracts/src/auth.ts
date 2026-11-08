@@ -38,12 +38,12 @@ export const authContract = {
     .route({ method: 'POST', path: '/auth/sign-up' })
     .input(SignUpInput)
     .output(MeDto)
-    .errors({ EMAIL_TAKEN: {} }),
+    .errors({ EMAIL_TAKEN: { status: 409 } }),
   signIn: oc
     .route({ method: 'POST', path: '/auth/sign-in' })
     .input(SignInInput)
     .output(MeDto)
-    .errors({ INVALID_CREDENTIALS: {} }),
+    .errors({ INVALID_CREDENTIALS: { status: 401 } }),
   signOut: oc.route({ method: 'POST', path: '/auth/sign-out' }).output(OkResult),
   revokeOtherSessions: oc
     .route({ method: 'POST', path: '/auth/revoke-other-sessions' })

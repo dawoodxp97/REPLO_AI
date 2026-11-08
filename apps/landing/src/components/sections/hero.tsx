@@ -7,38 +7,40 @@ import { APP_URL } from '../site'
 
 export function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="pt-14 pb-16 sm:pt-20 sm:pb-24">
+    <section aria-labelledby="hero-title" className="pt-12 pb-16 sm:pt-20 sm:pb-24">
       <Container>
-        <div className="max-w-3xl">
-          <h1
-            id="hero-title"
-            className={'heading-display text-4xl leading-[1.05] sm:text-5xl lg:text-6xl'}
-          >
-            Learn an unfamiliar repo from a tutorial that cites its code
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground">
-            Paste a GitHub repository and get a chaptered tutorial. Every explanation links to the
-            exact file and lines at a pinned commit. A checker tests those references before you
-            read them, and removes or downgrades any it cannot find.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href={`${APP_URL}/import`} className={buttonVariants({ size: 'lg' })}>
-              Generate a tutorial
-              <ArrowRight aria-hidden="true" />
-            </a>
-            <Link
-              href="/docs/grounding/"
-              className={buttonVariants({ size: 'lg', variant: 'outline' })}
+        <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:gap-16">
+          <div>
+            <h1
+              id="hero-title"
+              className="heading-display max-w-2xl text-4xl leading-[1.05] sm:text-5xl lg:text-6xl"
             >
-              How references are checked
-            </Link>
+              A reading path through your code.
+            </h1>
+            <p className="mt-5 font-mono text-xs text-muted-foreground">
+              TypeScript & JavaScript · GitHub repositories
+            </p>
           </div>
-          <p className="mt-5 text-sm text-muted-foreground">
-            Free. Runs on your own model key. Read-only GitHub access, and your repo’s code is never
-            executed.
-          </p>
+          <div>
+            <p className="max-w-xl text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
+              Turn an unfamiliar repository into lessons you can follow. Read the explanation beside
+              the source, trace every reference to a pinned commit, and test what you’ve learned.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <a href={`${APP_URL}/import`} className={buttonVariants({ size: 'lg' })}>
+                Generate a tutorial
+                <ArrowRight aria-hidden="true" />
+              </a>
+              <Link href="#example" className={buttonVariants({ size: 'lg', variant: 'ghost' })}>
+                Explore an example
+              </Link>
+            </div>
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+              Free to use. Bring your own model key. Your code is never executed.
+            </p>
+          </div>
         </div>
-        <div className="mt-12 sm:mt-16">
+        <div id="example" className="mt-10 scroll-mt-24 sm:mt-14">
           <ProductFrame />
         </div>
       </Container>

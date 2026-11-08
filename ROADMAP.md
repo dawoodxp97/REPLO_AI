@@ -4,6 +4,10 @@ Release 1 plan. Sources: blueprint §16 and §20, [`PRD.md`](./PRD.md) v0.3 (req
 
 Assumption: **two engineers starting 2 Nov 2026**. One engineer: plan 1.6–2× these durations.
 
+## Product improvement pass — 5 November 2026
+
+The local stack is running alongside the legacy Docker stack, and the first presentation/reliability pass updates the landing example, sign-in, workspace navigation, dashboard setup, auth error statuses, and notification count races. The feature map, remaining improvements, verification, and current local addresses are recorded in [`docs/PRODUCT_IMPROVEMENTS.md`](./docs/PRODUCT_IMPROVEMENTS.md). This does not replace the release gates or mark live integrations verified.
+
 ## How the work is ordered
 
 Delivery is **sequenced by track** (MEM D-028):

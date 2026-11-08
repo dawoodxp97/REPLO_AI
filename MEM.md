@@ -431,6 +431,15 @@ An installation token can read every repository in an org installation, so listi
 - Tailwind v4 `--text-*` theme variables create `text-*` utilities, so the named sizes are theme tokens. Landing keeps copy and data in `apps/landing/src/lib/content.tsx` and `providers.tsx`; home sections are in `components/sections/*`. Landing copy: the two FAQ entries on cost and team plan are merged; the how-it-works title is "How it works" with no lede.
 - Open: the source explorer still issues one `getChapter` per chapter to learn cited paths (needs a `tutorials.citedPaths` endpoint or a cited flag on `sourceTree` entries; document it in `docs/API.md` when added); the operator jobs table has only a forward "Next page"; no backoff or jitter on polling; three alerts with titles still use `Alert` directly; no `parseOption` helper, generic `useInvalidatingMutation` or shared github hook; repository search hits link to `/repositories`; no `aria-current` on landing nav links; arbitrary-size `ring-[3px]` remains on switch, checkbox, radio-group, tabs and `packages/ui/src/lib/control.ts`.
 
+### D-101 · 2026-11-05 · active — First product improvement pass and local stack isolation
+
+- The requested direction is a restrained developer workspace. Landing, sign-in, shell navigation, and dashboard setup now use a clearer hierarchy and actual next actions within the existing graphite/token system. The example preview remains explicitly illustrative. Continue reading stays first on Home.
+- Login and profile connection actions use `auth.providers`; unavailable providers no longer produce dead OAuth links. Email remains usable if discovery fails. Auth refusals explicitly use 401 (`INVALID_CREDENTIALS`) and 409 (`EMAIL_TAKEN`), with router regression coverage.
+- Notification stream events cancel an older pending unread-count query before writing the cache. A delayed HTTP response can no longer replace the newer pushed value. The browser failure was a real cache race; the SSE fixture itself was valid. Unit coverage reproduces a late response and the browser stream check passes.
+- Accessibility checks now return preferences matching the requested theme; previously the dark runs could switch to a light fixture during analysis and report transient mixed-theme contrast failures.
+- Docker restored a separate older Replo stack using 3000 and 5432. This checkout uses ignored local config for landing 3002 and PostgreSQL 5433. Compose accepts `POSTGRES_PORT`, defaulting to 5432. Legacy MinIO is opt-in (`storage` profile): its image could not be pulled and no current API consumer needs it. Existing containers and data were left intact.
+- The feature inventory and subsequent experience work are in `docs/PRODUCT_IMPROVEMENTS.md`. Live OAuth/GitHub, real model keys, worker-kill verification, and deployment remain unverified.
+
 ## Assumptions to validate (from blueprint §20)
 
 1. Developers get oriented measurably faster than with DeepWiki/Code Wiki.
@@ -449,7 +458,7 @@ An installation token can read every repository in an org installation, so listi
 - **pg-boss 10.4:** `import PgBoss from 'pg-boss'` (default import); `createQueue(name, { name, … })` requires `name` in the options object; `work` handlers receive an array.
 - **Base UI `Button`** forces `role="button"` on non-native elements, so it must not render links (D-069). `packages/ui` `Button` no longer takes `render`.
 - **Fastify + pino typing:** pass `loggerInstance` typed as pino `Logger`; route modules take `app: App` from `platform/http.ts` (plain `FastifyInstance` is not assignable).
-- **Typed oRPC errors return HTTP 500 here.** The contracts declare them as `{}`, so the status defaults to 500 (`INVALID_CREDENTIALS`, `EMAIL_TAKEN`). The product reads the `code`, so the UI is right, but monitoring counts them as server errors. Set a `status` per error in the contract if that matters.
+- **Custom oRPC errors need an explicit HTTP status.** Auth now declares 401 for `INVALID_CREDENTIALS` and 409 for `EMAIL_TAKEN` (D-101). Other custom contract errors still declared as `{}` default to 500 and need a separate transport-status review.
 - **Auth cookies:** `replo_session` is host-only unless `AUTH_COOKIE_DOMAIN` is set. The OAuth attempt cookie (`replo_oauth`) is scoped to `/auth` and expires after 10 minutes. Sign-up and sign-in are rate limited to 20 per minute per IP on `/rpc/auth/signUp` and `/rpc/auth/signIn`.
 - **`tsdown`** inlines workspace packages (`noExternal: [/^@replo\//]`) and also pulls `@orpc/contract` into the bundle (harmless; hint only).
 - Next.js 16: `next lint` is gone (run ESLint directly); `middleware.ts` is now `proxy.ts`.

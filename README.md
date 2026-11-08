@@ -83,6 +83,8 @@ With Docker (starts Postgres 17 with pgvector on port 5432, user `app`, password
 pnpm infra:up
 ```
 
+This starts PostgreSQL only. The legacy MinIO service is opt-in through the `storage` Compose profile and is not used by the current release; Redis remains in the `later` profile. If another database already owns port 5432, set `POSTGRES_PORT=5433` in a git-ignored root `.env` and use port 5433 in `apps/api/.env` as well.
+
 Without Docker, create a database called `replo` on your local Postgres 17 and set `DATABASE_URL` in `apps/api/.env` to point at it.
 
 Then apply the migrations:

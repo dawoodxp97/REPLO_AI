@@ -15,6 +15,29 @@ test('home shows the library counts and resumes the last lesson', async ({ page 
   )
 })
 
+test('an empty workspace explains setup and offers direct next steps', async ({ page }) => {
+  await mockRpc(page, {
+    'dashboard.summary': () => ({
+      body: {
+        counts: { total: 0, draft: 0, private: 0, link: 0, public: 0 },
+        resume: null,
+        jobsInFlight: [],
+      },
+    }),
+    'dashboard.recent': () => ({ body: { items: [], nextCursor: null } }),
+  })
+  await page.goto('/')
+
+  const setup = page.getByRole('region', { name: 'Make an unfamiliar codebase feel familiar.' })
+  await expect(setup.getByRole('link', { name: 'New tutorial' })).toHaveAttribute('href', '/import')
+  await expect(setup.getByRole('link', { name: 'Manage keys' })).toHaveAttribute(
+    'href',
+    '/settings/keys',
+  )
+  await expect(setup.getByText('Review the pre-flight check and run estimate.')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
+})
+
 test('search finds a lesson in the library and opens it', async ({ page }) => {
   await mockRpc(page)
 

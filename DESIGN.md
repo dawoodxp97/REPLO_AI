@@ -77,14 +77,15 @@ shadcn `Resizable` panels, sizes persisted per user. **< 768px:** outline become
 
 ### Other screens
 
-| Screen                 | Layout notes                                                                                                                                                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dashboard `/`          | In-progress tutorials (resume), recent imports, prominent import CTA, key status with the OpenRouter recommendation                                                                                               |
-| Import `/import`       | Stepper: URL/repo → pre-flight result → audience + **key** + preset → **estimate card** (model, requests/tokens, cost, ceiling) → start                                                                           |
-| Job `/jobs/:id`        | Vertical stage list with live status, elapsed time, cancel, failure reason and error code                                                                                                                         |
-| Overview `/t/…`        | Architecture diagram hero, objectives, outline with durations, version picker, share, banners                                                                                                                     |
-| Settings `/settings/*` | Left sub-nav: profile · github · keys · models. Keys shown only as `…last4`                                                                                                                                       |
-| Landing `/`            | Headline + product frame (lesson beside pinned source, the signature), how it works (4-step sequence), how references are checked, your key / your bill, FAQ (native details), footer. Static, fast, SEO-complete |
+| Screen                 | Layout notes                                                                                                                                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard `/`          | Resume first, a shared statistics band, running jobs and recent activity. Empty workspaces show a short key → repository → reading setup sequence with direct actions and the OpenRouter recommendation.                   |
+| Sign-in `/login`       | Two-column desktop layout: repository learning context on the left, compact form on the right. Phones show the form. Only configured OAuth providers are offered; email remains usable during provider-discovery failures. |
+| Import `/import`       | Stepper: URL/repo → pre-flight result → audience + **key** + preset → **estimate card** (model, requests/tokens, cost, ceiling) → start                                                                                    |
+| Job `/jobs/:id`        | Vertical stage list with live status, elapsed time, cancel, failure reason and error code                                                                                                                                  |
+| Overview `/t/…`        | Architecture diagram hero, objectives, outline with durations, version picker, share, banners                                                                                                                              |
+| Settings `/settings/*` | Left sub-nav: profile · github · keys · models. Keys shown only as `…last4`                                                                                                                                                |
+| Landing `/`            | Headline + product frame (lesson beside pinned source, the signature), how it works (4-step sequence), how references are checked, your key / your bill, FAQ (native details), footer. Static, fast, SEO-complete          |
 
 ## 6. Component inventory
 

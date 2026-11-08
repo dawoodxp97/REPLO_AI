@@ -1,9 +1,11 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
+import { DEFAULT_PREFERENCES } from './fixtures/handlers'
 import { mockRpc } from './support/rpc-mock'
 
 const PAGES = [
   { name: 'sign-in', path: '/login' },
+  { name: 'dashboard', path: '/' },
   { name: 'tutorial overview', path: '/tutorials/acme/widgets/cart-flow' },
   { name: 'lesson', path: '/tutorials/acme/widgets/cart-flow/learn/ch1/l1' },
   { name: 'library', path: '/library' },
@@ -21,7 +23,9 @@ for (const scheme of ['light', 'dark'] as const) {
       test(`${target.name} has no serious or critical accessibility violations`, async ({
         page,
       }) => {
-        await mockRpc(page)
+        await mockRpc(page, {
+          'settings.get': () => ({ body: { ...DEFAULT_PREFERENCES, theme: scheme } }),
+        })
         await page.goto(target.path)
         await expect(page.locator('h1').first()).toBeVisible()
 

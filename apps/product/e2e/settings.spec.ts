@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { Preferences } from '@replo/contracts'
 import { DEFAULT_PREFERENCES } from './fixtures/handlers'
+import { USER } from './fixtures/recorded'
 import { mockRpc, type RpcCall } from './support/rpc-mock'
 
 test('a theme change is saved and applied to the page', async ({ page }) => {
@@ -44,4 +45,17 @@ test('the model preset is saved', async ({ page }) => {
   expect(calls.find((call) => call.path === 'models.setPreferences')?.input).toMatchObject({
     preset: 'quality',
   })
+})
+
+test('profile never offers connections to unconfigured sign-in providers', async ({ page }) => {
+  await mockRpc(page, {
+    'me.get': () => ({
+      body: { ...USER, signInMethods: { password: true, google: false, github: false } },
+    }),
+    'auth.providers': () => ({ body: { google: false, github: false } }),
+  })
+  await page.goto('/settings/profile')
+
+  await expect(page.getByText('Unavailable', { exact: true })).toHaveCount(2)
+  await expect(page.getByRole('link', { name: /Connect (Google|GitHub)/ })).toHaveCount(0)
 })

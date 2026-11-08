@@ -28,7 +28,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                   aria-current={active ? 'page' : undefined}
                   onClick={onNavigate}
                   className={cn(
-                    'flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground',
+                    'flex h-10 items-center gap-2.5 rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground',
                     active && 'bg-sidebar-accent font-medium text-foreground',
                   )}
                 >

@@ -4,6 +4,7 @@ The API is **contract-first**: [`packages/contracts`](../packages/contracts/src)
 
 - RPC base path: `/rpc` (oRPC RPC protocol; OpenAPI can be emitted from the same contract later).
 - Auth: opaque session token in the `replo_session` cookie (httpOnly, Secure in production, SameSite=Lax, 30 days). The database holds only its SHA-256. `UNAUTHORIZED` (401) when missing.
+- Password auth refusals: `auth.signIn` returns `INVALID_CREDENTIALS` (401); `auth.signUp` returns `EMAIL_TAKEN` (409). These expected refusals do not issue a session.
 - State-changing requests: `Origin` must equal `PRODUCT_ORIGIN` (else 403 `BAD_ORIGIN`).
 - Idempotency: clients send an `Idempotency-Key` header; unique `(user_id, idempotency_key)` returns the existing job.
 - Foreign IDs return **404**, never 403.

@@ -5,6 +5,7 @@ import {
   Alert,
   AlertDescription,
   Badge,
+  Button,
   Card,
   CardContent,
   CardDescription,
@@ -18,12 +19,14 @@ import {
   ItemTitle,
 } from '@replo/ui'
 import { Check, KeyRound } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { InlineError } from '@/components/inline-error'
 import { authNotice } from '@/features/session/auth-notices'
 import { ProviderIcon } from '@/features/session/provider-icons'
 import { ProviderLinkButton } from '@/features/session/provider-link-button'
 import { OAUTH_PROVIDER_LABELS } from '@/features/session/sign-in-links'
+import { orpc } from '@/lib/orpc'
 
 function ConnectedBadge() {
   return (
@@ -36,6 +39,7 @@ function ConnectedBadge() {
 
 export function SignInMethodsCard({ methods }: { methods: SignInMethodsDto }) {
   const params = useSearchParams()
+  const providers = useQuery(orpc.auth.providers.queryOptions())
   const notice = authNotice(params.get('error') ?? undefined)
   const linked = OAUTH_PROVIDERS.find((provider) => provider === params.get('linked'))
 
@@ -47,6 +51,14 @@ export function SignInMethodsCard({ methods }: { methods: SignInMethodsDto }) {
       </CardHeader>
       <CardContent className="space-y-4">
         {notice ? <InlineError>{notice}</InlineError> : null}
+        {providers.isError ? (
+          <div className="space-y-2">
+            <InlineError>Sign-in method availability could not be checked.</InlineError>
+            <Button variant="outline" size="sm" onClick={() => void providers.refetch()}>
+              Retry sign-in methods
+            </Button>
+          </div>
+        ) : null}
         {linked && !notice ? (
           <Alert variant="observed" role="status">
             <Check />
@@ -76,10 +88,18 @@ export function SignInMethodsCard({ methods }: { methods: SignInMethodsDto }) {
               <ItemActions>
                 {methods[provider] ? (
                   <ConnectedBadge />
-                ) : (
+                ) : providers.data?.[provider] ? (
                   <ProviderLinkButton provider={provider} intent="link" variant="outline" size="sm">
                     Connect {OAUTH_PROVIDER_LABELS[provider]}
                   </ProviderLinkButton>
+                ) : (
+                  <Badge variant="outline">
+                    {providers.isPending
+                      ? 'Checking…'
+                      : providers.isError
+                        ? 'Unknown'
+                        : 'Unavailable'}
+                  </Badge>
                 )}
               </ItemActions>
             </Item>

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { RepositoryListItem } from '@replo/contracts'
+import { NEW_TUTORIAL_LABEL } from '../src/lib/import-path'
 import { JOB_ID, USER } from './fixtures/recorded'
 import { mockRpc } from './support/rpc-mock'
 
@@ -49,8 +50,7 @@ test('my repositories with no imports offers the import action', async ({ page }
   await page.goto('/repositories')
 
   await expect(page.getByRole('heading', { name: 'No repositories yet' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Import a repository' }).first()).toHaveAttribute(
-    'href',
-    '/import',
-  )
+  await expect(
+    page.getByRole('main').getByRole('link', { name: NEW_TUTORIAL_LABEL }).last(),
+  ).toHaveAttribute('href', '/import')
 })

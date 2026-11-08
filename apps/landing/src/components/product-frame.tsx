@@ -1,5 +1,5 @@
 import { cn, CodePanel, CodePanelHeader, MonoLabel } from '@replo/ui'
-import { GitCommitHorizontal } from 'lucide-react'
+import { BookOpen, FileCode2, GitCommitHorizontal } from 'lucide-react'
 import { Fragment } from 'react'
 
 const PINNED_SHA = '3b17b2e'
@@ -86,7 +86,8 @@ function SourceViewer() {
         tabIndex={0}
         role="region"
         aria-label={`${SOURCE_PATH.join('/')} at commit ${PINNED_SHA}`}
-        className="scrollbar-thin overflow-x-auto"
+        id="example-source"
+        className="scrollbar-thin max-h-96 scroll-mt-24 overflow-auto"
       >
         <pre className="w-max min-w-full py-3 font-mono text-xs leading-6 sm:text-compact">
           <code>
@@ -121,16 +122,19 @@ function SourceViewer() {
 }
 
 function CitationChip({ children, active }: { children: string; active?: boolean }) {
+  const Tag = active ? 'a' : 'span'
   return (
-    <span
+    <Tag
+      href={active ? '#example-source' : undefined}
+      aria-label={active ? `View example source: ${children}` : undefined}
       className={cn(
-        'inline-flex max-w-full items-center gap-1.5 rounded-sm border bg-card px-1.5 py-0.5 align-middle font-sans',
+        'inline-flex max-w-full items-center gap-1.5 rounded-sm border bg-card px-1.5 py-0.5 align-middle font-sans transition-colors hover:bg-accent',
         active && 'border-observed/45',
       )}
     >
       <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-observed" />
       <span className="truncate font-mono text-meta leading-4 text-foreground">{children}</span>
-    </span>
+    </Tag>
   )
 }
 
@@ -195,10 +199,36 @@ export function ProductFrame() {
           </span>
         </span>
       </figcaption>
-      <div className="grid overflow-hidden rounded-xl border bg-card shadow-xs lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-        <LessonPane />
-        <div className="min-w-0 border-t lg:border-t-0 lg:border-l">
-          <SourceViewer />
+      <div className="overflow-hidden rounded-lg border bg-card shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-4 py-3 text-xs">
+          <span className="flex items-center gap-2 font-mono">
+            <BookOpen className="size-3.5 text-muted-foreground" aria-hidden="true" />
+            Example repository / shopping-cart
+          </span>
+          <span className="text-muted-foreground">Lesson & source</span>
+        </div>
+        <div className="grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+          <div className="flex min-w-0">
+            <div className="hidden w-36 shrink-0 border-r bg-muted/20 px-3 py-5 xl:block">
+              <p className="mb-4 text-xs font-medium text-muted-foreground">Learning path</p>
+              <ol className="space-y-4 text-xs leading-relaxed text-muted-foreground">
+                <li>01 · Project structure</li>
+                <li>02 · The data model</li>
+                <li aria-current="step" className="font-medium text-foreground">
+                  03 · Cart updates
+                </li>
+                <li>04 · Checkout</li>
+              </ol>
+              <p className="mt-8 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <FileCode2 className="size-3.5" aria-hidden="true" />
+                Source attached
+              </p>
+            </div>
+            <LessonPane />
+          </div>
+          <div className="min-w-0 border-t lg:border-t-0 lg:border-l">
+            <SourceViewer />
+          </div>
         </div>
       </div>
     </figure>

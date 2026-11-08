@@ -11,22 +11,45 @@ function seededClient() {
 }
 
 describe('applyUnreadEvent', () => {
-  it('stores the pushed count and marks the notification list stale', () => {
+  it('stores the pushed count and marks the notification list stale', async () => {
     const queryClient = seededClient()
-    applyUnreadEvent(queryClient, JSON.stringify({ count: 3 }))
+    await applyUnreadEvent(queryClient, JSON.stringify({ count: 3 }))
     expect(queryClient.getQueryData(orpc.notifications.unreadCount.queryKey())).toEqual({
       count: 3,
     })
     expect(queryClient.getQueryState(orpc.notifications.list.key())?.isInvalidated).toBe(true)
   })
 
-  it('ignores a malformed event', () => {
+  it('ignores a malformed event', async () => {
     const queryClient = seededClient()
-    applyUnreadEvent(queryClient, 'not json')
-    applyUnreadEvent(queryClient, JSON.stringify({ count: 'many' }))
+    await applyUnreadEvent(queryClient, 'not json')
+    await applyUnreadEvent(queryClient, JSON.stringify({ count: 'many' }))
     expect(queryClient.getQueryData(orpc.notifications.unreadCount.queryKey())).toEqual({
       count: 0,
     })
     expect(queryClient.getQueryState(orpc.notifications.list.key())?.isInvalidated).toBe(false)
+  })
+
+  it('prevents an older HTTP response from overwriting a pushed count', async () => {
+    const queryClient = seededClient()
+    let finishRequest: ((value: { count: number }) => void) | undefined
+    const pending = queryClient
+      .fetchQuery({
+        queryKey: orpc.notifications.unreadCount.queryKey(),
+        queryFn: () =>
+          new Promise<{ count: number }>((resolve) => {
+            finishRequest = resolve
+          }),
+      })
+      .catch(() => undefined)
+
+    await applyUnreadEvent(queryClient, JSON.stringify({ count: 7 }))
+    finishRequest?.({ count: 2 })
+    await pending
+
+    expect(queryClient.getQueryData(orpc.notifications.unreadCount.queryKey())).toEqual({
+      count: 7,
+    })
+    queryClient.clear()
   })
 })

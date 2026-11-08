@@ -16,9 +16,13 @@ import { parseJsonWith } from '@/lib/parse-json'
 const UNREAD_POLL_MS = 30_000
 const PAGE_SIZE = 20
 
-export function applyUnreadEvent(queryClient: QueryClient, raw: string): void {
+export async function applyUnreadEvent(queryClient: QueryClient, raw: string): Promise<void> {
   const unread = parseJsonWith(UnreadCount, raw)
   if (!unread) return
+  await queryClient.cancelQueries({
+    queryKey: orpc.notifications.unreadCount.queryKey(),
+    exact: true,
+  })
   queryClient.setQueryData(orpc.notifications.unreadCount.queryKey(), unread)
   void queryClient.invalidateQueries({ queryKey: orpc.notifications.list.key() })
 }
@@ -30,7 +34,7 @@ export function useUnreadCount() {
   useEventSource({
     url: `${env.apiUrl}/notifications/stream`,
     events: ['unread'],
-    onMessage: (raw) => applyUnreadEvent(queryClient, raw),
+    onMessage: (raw) => void applyUnreadEvent(queryClient, raw),
     onOpen: () => {
       setPushed(true)
       void queryClient.invalidateQueries({ queryKey: orpc.notifications.unreadCount.key() })
