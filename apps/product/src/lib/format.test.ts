@@ -32,6 +32,10 @@ describe('formatUsd', () => {
   it('keeps precision for sub-cent estimates', () => {
     expect(formatUsd(0.0042)).toBe('$0.0042')
   })
+
+  it('shows nothing spent as whole cents', () => {
+    expect(formatUsd(0)).toBe('$0.00')
+  })
 })
 
 describe('formatCount', () => {
@@ -71,7 +75,7 @@ describe('formatPercent', () => {
 describe('formatMicros', () => {
   it('converts micro-USD to dollars', () => {
     expect(formatMicros(1_500_000)).toBe('$1.50')
-    expect(formatMicros(0)).toBe('$0.0000')
+    expect(formatMicros(0)).toBe('$0.00')
   })
 
   it('keeps four decimals for sub-cent amounts', () => {

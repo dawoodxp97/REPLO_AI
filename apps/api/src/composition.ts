@@ -120,13 +120,6 @@ export function createDomainServices(deps: {
     snapshotRoot: config.SNAPSHOT_DIR ?? join(tmpdir(), 'replo-snapshots'),
   })
   const tutorialReader = createTutorialReader(db)
-  const jobs = createJobService({ db, queue, indexing, notifications, tutorials: tutorialReader })
-  const keys = createKeysService({
-    db,
-    vault,
-    checker: createKeyChecker(),
-    jobs,
-  })
   const catalog = loadCatalog(MODEL_CATALOG)
   const models = createModelsService({ db, catalog })
   const learning = createLearningService({ db, tutorials: tutorialReader })
@@ -147,6 +140,20 @@ export function createDomainServices(deps: {
     db,
     jobs: jobHistory,
     tutorials: tutorialManager,
+  })
+  const jobs = createJobService({
+    db,
+    queue,
+    indexing,
+    notifications,
+    tutorials: tutorialReader,
+    repositories: repositoryLibrary,
+  })
+  const keys = createKeysService({
+    db,
+    vault,
+    checker: createKeyChecker(),
+    jobs,
   })
   const pipeline = createPipelineService({
     db,

@@ -11,7 +11,8 @@ export interface FileTreeListProps {
   selectedPath: string | null
 }
 
-const ROW_CLASS = 'flex min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1.5'
+const ROW_CLASS =
+  'flex min-w-0 items-center justify-between gap-2 rounded-md px-2 py-1.5 pointer-coarse:min-h-10'
 
 export function FileTreeList(props: FileTreeListProps) {
   return (

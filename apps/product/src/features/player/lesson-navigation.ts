@@ -75,3 +75,10 @@ export function nextReference(
   const index = current === null ? -1 : references.indexOf(current)
   return references[(index + 1) % references.length] ?? null
 }
+
+export function firstResolvedReference(
+  references: readonly string[],
+  resolvable: Readonly<Record<string, unknown>>,
+): string | null {
+  return references.find((refId) => Object.hasOwn(resolvable, refId)) ?? null
+}

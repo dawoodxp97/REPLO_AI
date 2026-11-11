@@ -21,10 +21,13 @@ export function KeyProviders() {
           <TableBody>
             {PROVIDERS.map((provider) => (
               <TableRow key={provider.name}>
-                <TableCell className="px-4 py-3 align-top font-medium whitespace-nowrap">
-                  {provider.name}
+                <TableCell className="px-4 py-3 align-top font-medium">
+                  <span className="whitespace-nowrap">{provider.name}</span>
                   {provider.recommended ? (
-                    <Badge variant="secondary" className="ml-2">
+                    <Badge
+                      variant="secondary"
+                      className="mt-1 flex w-fit sm:mt-0 sm:ml-2 sm:inline-flex"
+                    >
                       Recommended
                     </Badge>
                   ) : null}

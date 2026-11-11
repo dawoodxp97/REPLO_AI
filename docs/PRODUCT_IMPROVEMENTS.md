@@ -6,10 +6,10 @@ This is the feature map and next-pass backlog from exploring the current checkou
 
 | Service       | Address                       | State                                                                                |
 | ------------- | ----------------------------- | ------------------------------------------------------------------------------------ |
-| Product       | http://localhost:3001/login   | Development server                                                                   |
-| Landing       | http://localhost:3002         | Development server                                                                   |
-| API           | http://localhost:4000         | `/healthz` and `/readyz` return `{ok:true}`                                          |
-| Worker        | http://localhost:4001/healthz | Returns `{ok:true}`                                                                  |
+| Product       | http://localhost:7101/login   | Development server                                                                   |
+| Landing       | http://localhost:7100         | Development server                                                                   |
+| API           | http://localhost:7200         | `/healthz` and `/readyz` return `{ok:true}`                                          |
+| Worker        | http://localhost:7201/healthz | Returns `{ok:true}`                                                                  |
 | PostgreSQL 17 | localhost:5433                | Migrations applied; separate `replo_test` database for destructive integration tests |
 
 Docker Desktop restored a separate, older Replo stack on ports 3000 and 5432. It was left intact. This checkout uses ignored environment files for its API connection, landing canonical URL, and Compose port override. No OAuth credentials or model-provider keys were added. Email/password authentication needs no external configuration.
@@ -20,11 +20,10 @@ To restart the current checkout after stopping the processes, run these from the
 
 ```sh
 pnpm infra:up
-pnpm exec turbo run dev dev:worker --filter=@replo/product --filter=@replo/api
-pnpm --filter @replo/landing exec next dev --port 3002
+pnpm dev
 ```
 
-`pnpm dev` retains its documented default landing port 3000. Use it when that port is free.
+Since 9 November 2026 every dev server runs in the 7100/7200 range (MEM.md D-102), so `pnpm dev` no longer collides with that stack.
 
 ## Implemented in this pass
 

@@ -16,7 +16,7 @@ export interface HighlightedCode {
 
 type HighlightedLanguage = Exclude<SourceLanguage, 'text'>
 
-const THEMES = { light: 'github-light', dark: 'github-dark' } as const
+const THEMES = { light: 'github-light-high-contrast', dark: 'github-dark-default' } as const
 const highlighters = new Map<HighlightedLanguage, Promise<Highlighter>>()
 
 export function useHighlightedLines(

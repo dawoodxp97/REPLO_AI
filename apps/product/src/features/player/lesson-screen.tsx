@@ -3,12 +3,14 @@
 import type { ChapterDto, LearnerLesson, ProgressDto, TutorialOverviewDto } from '@replo/contracts'
 import { useState } from 'react'
 import { QuizSection } from '@/features/quiz/quiz-section'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import type { TutorialRef } from '@/lib/tutorial-paths'
 import { CommandPalette } from './command-palette'
 import { LessonBody } from './lesson-body'
 import { OutlineNav } from './outline-nav'
-import { PlayerLayout } from './player-layout'
-import { nextReference } from './lesson-navigation'
+import { PlayerLayout, SOURCE_COLUMN_QUERY } from './player-layout'
+import { firstResolvedReference, nextReference } from './lesson-navigation'
+import { ShownReferenceContext } from './shown-reference-context'
 import { ReferenceSource } from './source-column'
 import { useTutorialLinks } from './use-tutorial-links'
 import { useActiveReference } from './use-active-reference'
@@ -49,6 +51,12 @@ export function LessonScreen({
     completed,
     advanceTo: autoAdvance ? navigation.nextHref : null,
   })
+  const sourceColumnVisible = useMediaQuery(SOURCE_COLUMN_QUERY)
+  const shownRefId =
+    reference.refId ??
+    (sourceColumnVisible
+      ? firstResolvedReference(navigation.referenceIds, chapterData.sourceRefs)
+      : null)
   const commands = useLessonCommands({
     navigation,
     links,
@@ -59,7 +67,7 @@ export function LessonScreen({
   useLessonShortcuts({
     next: navigation.goNext,
     previous: navigation.goPrevious,
-    nextReference: () => reference.select(nextReference(navigation.referenceIds, reference.refId)),
+    nextReference: () => reference.select(nextReference(navigation.referenceIds, shownRefId)),
     toggleComplete: completion.toggle,
     palette: () => setPaletteOpen((open) => !open),
   })
@@ -77,7 +85,7 @@ export function LessonScreen({
     ) : null
 
   return (
-    <>
+    <ShownReferenceContext value={shownRefId}>
       <PlayerLayout
         scrollKey={lesson.key}
         title={overview.tutorial.title}
@@ -112,7 +120,7 @@ export function LessonScreen({
         source={
           <ReferenceSource
             versionId={overview.versionId}
-            refId={reference.refId}
+            refId={shownRefId}
             references={chapterData.sourceRefs}
             shareToken={shareToken}
           />
@@ -121,6 +129,6 @@ export function LessonScreen({
         onCloseSource={() => reference.select(null)}
       />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} items={commands} />
-    </>
+    </ShownReferenceContext>
   )
 }

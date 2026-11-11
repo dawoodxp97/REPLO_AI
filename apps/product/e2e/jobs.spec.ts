@@ -39,7 +39,10 @@ test('a running job can be canceled from the job page', async ({ page }) => {
   )
 
   await page.goto(`/jobs/${JOB_ID}`)
+  await expect(page.getByRole('heading', { level: 1, name: 'acme/widgets' })).toBeVisible()
+  await expect(page.getByText('Balanced preset, written for intermediate readers.')).toBeVisible()
   await page.getByRole('button', { name: 'Cancel generation' }).click()
+  await page.getByRole('button', { name: 'Stop generation' }).click()
 
   await expect(page.getByText('Canceled', { exact: true })).toBeVisible()
   expect(calls.some((call) => call.path === 'jobs.cancel')).toBe(true)

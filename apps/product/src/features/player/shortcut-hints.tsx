@@ -5,7 +5,7 @@ export function ShortcutHints() {
   return (
     <ul
       aria-label="Keyboard shortcuts"
-      className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground"
+      className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground pointer-coarse:hidden"
     >
       {LESSON_SHORTCUT_HINTS.map((hint) => (
         <li key={hint.label} className="flex items-center gap-1.5">

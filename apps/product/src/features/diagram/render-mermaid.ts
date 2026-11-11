@@ -1,3 +1,4 @@
+import { DIAGRAM_THEME_CSS, diagramFontFamily } from './diagram-theme'
 import type { ColorScheme } from './use-color-scheme'
 
 export type DisposeDiagram = () => void
@@ -14,6 +15,9 @@ export async function renderMermaid(
     startOnLoad: false,
     securityLevel: 'strict',
     theme: scheme === 'dark' ? 'dark' : 'neutral',
+    look: 'classic',
+    fontFamily: diagramFontFamily(),
+    themeCSS: DIAGRAM_THEME_CSS,
   })
   const { svg: markup } = await mermaid.render(id, definition)
   if (isCancelled()) return () => undefined

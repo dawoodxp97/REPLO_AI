@@ -12,7 +12,7 @@ const server = spawn(process.execPath, [`${standaloneApp}/server.js`], {
   stdio: 'inherit',
   env: {
     ...process.env,
-    PORT: process.env.PORT ?? '3001',
+    PORT: process.env.PORT ?? '7101',
     HOSTNAME: process.env.HOSTNAME ?? '0.0.0.0',
   },
 })

@@ -94,8 +94,8 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
     const config = loadConfig({
       NODE_ENV: 'test',
       DATABASE_URL,
-      API_PUBLIC_URL: 'http://localhost:4000',
-      PRODUCT_ORIGIN: 'http://localhost:3001',
+      API_PUBLIC_URL: 'http://localhost:7200',
+      PRODUCT_ORIGIN: 'http://localhost:7101',
       KEY_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
     })
     const vault = vaultFrom(config)

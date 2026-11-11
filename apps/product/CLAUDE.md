@@ -22,7 +22,7 @@ src/lib/paging.ts                    FIRST_PAGE / nextCursorOf / pageItems for c
 src/lib/tutorial-paths.ts            tutorial, lesson, progress and code paths; createTutorialLinks / withTutorialContext keep ?version and ?share on every tutorial link
 scripts/start.ts                     runs the standalone server with static assets (use after `next build`)
 e2e/                                 Playwright journeys; fixtures/ and support/ hold the recorded responses and the mock API
-                                     (support/serve-mock-api.ts serves the fixtures on :4100 for UI work without a database)
+                                     (support/serve-mock-api.ts serves the fixtures on :7210 for UI work without a database)
 ```
 
 ## Do / don't
@@ -39,7 +39,7 @@ e2e/                                 Playwright journeys; fixtures/ and support/
 
 ## Status
 
-F0 to F6 are implemented and F7 is in progress. Verified locally: unit tests (68), typecheck, lint, the production build, and 98 Playwright tests on desktop and phone against the standalone production server with the mock API. Not verified: staging, the live API, the GitHub App and sign-in, real provider keys, Lighthouse.
+F0 to F6 are implemented and F7 is in progress. Verified locally (9 Nov 2026): unit tests (205), typecheck, lint, the production build, and 190 Playwright tests on desktop and phone against the standalone production server with the mock API (173 pass, 17 skip by design). `e2e/accessibility.spec.ts` fails on any axe violation on all 16 routes in both themes and on any control under 40 px on the phone project. Not verified: staging, the live API, the GitHub App and sign-in, real provider keys, Lighthouse.
 
 Open: notification counts pushed over SSE; the explorer renders the whole tree without virtualisation (MEM D-080). See `ROADMAP.md` (F2–F7) and `MEM.md` (D-074 to D-079).
 
@@ -47,6 +47,6 @@ Open: notification counts pushed over SSE; the explorer renders the whole tree w
 
 ```bash
 pnpm --filter @replo/product dev | build | typecheck | lint | test
-pnpm --filter @replo/product test:e2e   # builds the product, starts the standalone server on 3101 and the mock API on 4100
+pnpm --filter @replo/product test:e2e   # builds the product, starts the standalone server on 7110 and the mock API on 7210
 pnpm --filter @replo/product start      # after build: runs scripts/start.ts
 ```

@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { useWatch, type Control } from 'react-hook-form'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
 import type { ImportFormValues } from './import-form-values'
+import { importBlocker } from './import-blocker'
 
 const ESTIMATE_DEBOUNCE_MS = 400
 
@@ -18,6 +19,7 @@ export function useImportPlan(control: Control<ImportFormValues>) {
 
   return {
     canSubmit: plan.success,
+    blocker: importBlocker(values),
     source: source.success ? source.data : undefined,
     estimateInput: plan.success && settledPlan.success ? settledPlan.data : undefined,
     settling,

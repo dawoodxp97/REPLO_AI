@@ -45,9 +45,9 @@ Geist (UI), Newsreader (reading/display), Geist Mono (code). Requires network at
 
 `apps/landing` uses `output: 'export'`. MDX docs are planned (blueprint §4.2) but deferred until there is docs content; add `@next/mdx` then.
 
-### D-009 · 2026-10-18 · active — API/worker ports and process split
+### D-009 · 2026-10-18 · ports superseded by D-102 — API/worker ports and process split
 
-HTTP on `4000`, worker health on `4001`, landing `3000`, product `3001`. `pnpm dev` runs `dev` and `dev:worker` for all packages via Turborepo.
+HTTP on `7200`, worker health on `7201`, landing `7100`, product `7101` (originally 4000/4001/3000/3001; see D-102). `pnpm dev` runs `dev` and `dev:worker` for all packages via Turborepo.
 
 ### D-010 · 2026-10-18 · active — Supply-chain gate kept; version floors lowered instead
 
@@ -307,7 +307,7 @@ Playwright (`apps/product/e2e`) starts `next dev` on port 3101 and answers oRPC 
 
 ### D-074 · 2026-10-25 · active — Browser tests run the production build against a mock API
 
-Playwright (`apps/product/e2e`) builds the product, starts the standalone server through `scripts/start.ts` on port 3101, and starts a mock API on port 4100 from `globalSetup`. Server-rendered pages call the API from the Next server, which browser interception cannot see, so the mock serves the same recorded responses (`e2e/fixtures/handlers.ts`). Per-test behaviour is set with `page.route` overrides. **Why:** the production build is the only place the nonce CSP runs as shipped, and the public pages must be tested as the server renders them. **How to apply:** when a contract changes, change the fixtures in the same change; a test that passes against stale fixtures proves nothing.
+Playwright (`apps/product/e2e`) builds the product, starts the standalone server through `scripts/start.ts` on port 7110 (was 3101), and starts a mock API on port 7210 (was 4100) from `globalSetup`. Server-rendered pages call the API from the Next server, which browser interception cannot see, so the mock serves the same recorded responses (`e2e/fixtures/handlers.ts`). Per-test behaviour is set with `page.route` overrides. **Why:** the production build is the only place the nonce CSP runs as shipped, and the public pages must be tested as the server renders them. **How to apply:** when a contract changes, change the fixtures in the same change; a test that passes against stale fixtures proves nothing.
 
 ### D-075 · 2026-10-25 · active — Tutorial URLs are `/tutorials/{owner}/{repo}/{slug}`
 
@@ -440,6 +440,42 @@ An installation token can read every repository in an org installation, so listi
 - Docker restored a separate older Replo stack using 3000 and 5432. This checkout uses ignored local config for landing 3002 and PostgreSQL 5433. Compose accepts `POSTGRES_PORT`, defaulting to 5432. Legacy MinIO is opt-in (`storage` profile): its image could not be pulled and no current API consumer needs it. Existing containers and data were left intact.
 - The feature inventory and subsequent experience work are in `docs/PRODUCT_IMPROVEMENTS.md`. Live OAuth/GitHub, real model keys, worker-kill verification, and deployment remain unverified.
 
+### D-102 · 2026-11-09 · active — Dev ports moved to the 7100/7200 range
+
+Landing `7100`, product `7101`, API `7200`, worker health `7201`, Playwright product `7110`, mock API `7210`. **Why:** 3000/3001/4000/5000 collide with other local stacks on the dev Mac (a Python server holds 5000; an older Docker Replo stack used 3000). **How to apply:** defaults live in `apps/api/src/platform/config.ts`, `apps/product/src/lib/env.ts`, the landing `siteUrl`/`APP_URL` fallbacks, both Next `--port` flags, `apps/product/e2e/support/origins.ts` and `.claude/launch.json`; local `.env` files must match. OAuth callback URLs registered with GitHub/Google must use `http://localhost:7200/auth/<provider>/callback`. PostgreSQL stays on 5432.
+
+### D-103 · 2026-11-09 · active — Saved theme mirrored in a cookie and applied during SSR
+
+`applyTheme` writes `replo-theme=light|dark` (cleared for `system`; `Path=/`, one year, `SameSite=Lax`, `Secure` on https) and the root layout reads it with `cookies()` to set `data-theme` on `<html>`. **Why:** `ThemeSync` only runs in the signed-in shell, so the player, overview, explorer, progress and sign-in followed the OS instead of the saved choice, and every load flashed the OS theme before `settings.get` resolved (UI audit #2). A cookie needs no API call on public pages and no inline script, which the nonce CSP would block. **How to apply:** the preference in the database stays the source of truth; the cookie is refreshed whenever the shell loads it or the reader changes it. Parse it only through `parseThemeCookie`.
+
+### D-104 · 2026-11-09 · active — UI/UX refactor runs in slices from `docs/UI_AUDIT.md`
+
+The audit ranks 22 findings and groups them into five slices (foundations, player and source, workspace flows, public pages, guard rails). Each slice ships with its tests and a re-run of the audit sweep. Slice 1 (foundations) landed 2026-11-09.
+
+### D-105 · 2026-11-09 · active — Player shows code first; diagrams and code themed for contrast
+
+- The source column shows the lesson's first resolvable reference until the reader picks one (`firstResolvedReference`); the URL keeps `?ref` only for explicit picks, and the default applies only at ≥ 768 px so the phone sheet never opens unasked. `ShownReferenceContext` marks the matching evidence chip with `aria-current`, and `r` steps from the reference on screen.
+- `/code` opens the first cited readable file in tree order, else the root README (`defaultSourcePath`), and now sits in `TutorialShell wide` (top bar and `<main>`).
+- Mermaid keeps its `neutral`/`dark` base with `look: 'classic'` (Mermaid 12 defaults to `neo`, whose `[data-look="neo"].node rect` rule adds a drop shadow and gradient stroke and out-ranks plain `.node` selectors) and gets `themeCSS` from the tokens (no drop shadow, hairline outline, labels on the card colour) and the page's computed font, so labels are measured with the font they render in. `themeCSS` is compiled under the diagram's `#id`, so it wins over the theme without `!important` and stays CSP-safe through the adopted-stylesheet path.
+- **Why:** UI audit #4/#9/#10: the source column opened empty, Mermaid's default shadows broke the design rules, and `github-light` fails 4.5:1 for keywords, strings and comments even on the plain code background. Shiki now uses `github-light-high-contrast` and `github-dark-default`, and `code-highlight` moved to `oklch(0.965 0.03 158)` / `oklch(0.27 0.05 158)` so every token clears 4.5:1 on the cited range too.
+- **How to apply:** check new code or highlight colours against both `code-bg` and `code-highlight`; keep diagram styling in `diagram-theme.ts`, not in Mermaid `classDef`.
+
+### D-106 · 2026-11-09 · active — Job DTO names its repository; workspace flows tidied (UI audit slice 3)
+
+- `GenerationJobDto` gains `repository: { owner, name } | null`, `audience` and `preset` (all with defaults, so older payloads parse). `JobService.toDto` reads the name through `RepositoryLibrary.describeLinked` (user-scoped: a removed repository yields `null`) and the preset from the stored model plan via `ModelPreset.safeParse`. The job service is now built after the repository library in `composition.ts`.
+- `/jobs/:id` is filed under Library (sidebar and breadcrumb); breadcrumbs render only for nested routes (`breadcrumbsFor`).
+- `formatUsd(0)` is `$0.00`; four decimals are kept only for amounts strictly between zero and one cent.
+- `ConfirmDialog` triggers default to the new `destructive-outline` button variant.
+- **Why:** UI audit #11–#14, #17, #18: the job page never said what it was generating, `$0.0000` read as noise, jobs lit up "Repositories", two primary "New tutorial" buttons competed on every workspace page, the import button was disabled without a reason, and deletes looked like ordinary actions.
+- **How to apply:** new nested routes add a case to `breadcrumbsFor`; new destructive actions go through `ConfirmDialog` without overriding the trigger variant.
+
+### D-107 · 2026-11-09 · active — Accessibility and touch size are guarded in e2e (UI audit slices 4–5)
+
+- `e2e/accessibility.spec.ts` covers all 16 product routes in light and dark on both Playwright projects and fails on any axe violation (WCAG 2.0/2.1 A and AA plus best practice, every impact), not just serious and critical. On the phone project it also fails on any control under 40 px (`e2e/support/touch-targets.ts`); a native radio or switch counts as covered when its wrapping `<label>` is at least 40 px tall, and only links inside `p`, `dd` or `figcaption` count as inline text.
+- The mock API (`e2e/support/mock-api.ts`) holds `/notifications/stream` and `/jobs/:id/events` open as idle event streams, so mock mode no longer logs 404s or shows “Reconnecting”; teardown calls `closeAllConnections()` first.
+- The `link` visibility is labelled “Shared by link” everywhere; overview badges use `AUDIENCE_LABELS` and `VISIBILITY_LABEL` instead of raw enum values.
+- **How to apply:** a new route gets a row in `PAGES` in the accessibility spec; a new small control gets a `pointer-coarse:` size or a padded wrapping label (see `preference-switch.tsx`).
+
 ## Assumptions to validate (from blueprint §20)
 
 1. Developers get oriented measurably faster than with DeepWiki/Code Wiki.
@@ -493,7 +529,8 @@ An installation token can read every repository in an org installation, so listi
 - **GitHub 403 is retryable, 401 means re-link.** `userCanAccess` returns false only on 404; 401 becomes `GITHUB_RELINK_REQUIRED` (non-retryable) and 403 (rate limit, SSO) becomes retryable `GITHUB_FORBIDDEN`.
 - **Learning progress never downgrades a completion**: the upsert's conflict clause skips rows already `completed`, and resume candidates exclude lessons completed in any version in SQL before the limit.
 - **Query-string lookups use `Object.hasOwn`.** Maps keyed by `?github=` or `?error=` values must not resolve inherited keys like `__proto__`.
-- **Orphaned `tsx watch` children** can keep port 4000 after a dev server is stopped from the app; check `lsof -ti tcp:4000` before starting another API.
+- **`cn()` must know every custom theme token that shares a prefix with a colour.** tailwind-merge reads an unknown `text-*` as a colour, so `cn('text-compact', 'text-muted-foreground')` silently dropped the size and every field hint rendered at 16 px. Custom sizes and tracking are registered in `packages/ui/src/lib/cn.ts`; add new `--text-*`, `--tracking-*`, `--leading-*` or `--shadow-*` tokens there as well.
+- **Orphaned `tsx watch` children** can keep port 7200 after a dev server is stopped from the app; check `lsof -ti tcp:7200` before starting another API.
 
 ## Verification status of the scaffold (18 Oct 2026)
 

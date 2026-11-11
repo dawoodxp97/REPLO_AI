@@ -4,9 +4,9 @@
   "private": true,
   "description": "Replo marketing site: static export (Cloudflare Pages). Imports @replo/ui only.",
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 7100",
     "build": "next build",
-    "start": "npx --yes serve@14.2.6 out -l 3000",
+    "start": "npx --yes serve@14.2.6 out -l 7100",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests"

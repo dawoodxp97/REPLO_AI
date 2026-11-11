@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Newsreader } from 'next/font/google'
+import { cookies } from 'next/headers'
 import { connection } from 'next/server'
 import type { ReactNode } from 'react'
+import { parseThemeCookie, THEME_COOKIE } from '@/features/session/theme-cookie'
 import { Providers } from './providers'
 import './globals.css'
 
@@ -20,8 +22,14 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   await connection()
+  const theme = parseThemeCookie((await cookies()).get(THEME_COOKIE)?.value)
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable} ${serif.variable}`}>
+    <html
+      lang="en"
+      data-theme={theme}
+      suppressHydrationWarning
+      className={`${sans.variable} ${mono.variable} ${serif.variable}`}
+    >
       <body className="min-h-dvh antialiased">
         <Providers>{children}</Providers>
       </body>

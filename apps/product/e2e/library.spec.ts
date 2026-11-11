@@ -8,7 +8,7 @@ test('a developer shares a tutorial by link and makes it private again', async (
   await page.goto('/library')
   await expect(page.getByText('How the cart works')).toBeVisible()
   await page.getByText('Sharing', { exact: true }).click()
-  await page.getByRole('radio', { name: /Link/ }).check()
+  await page.getByRole('radio', { name: /Shared by link/ }).check()
 
   await expect(page.getByRole('textbox', { name: 'Share link' })).toHaveValue(
     /\?share=share-token-123$/,

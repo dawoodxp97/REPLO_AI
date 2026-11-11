@@ -38,6 +38,8 @@ import { keyAad, type KeyVault } from '../../platform/crypto/key-vault'
 import { createNotificationsService } from '../notifications/notifications.service'
 import { createPreflight } from '../repositories/preflight'
 import { createRepositoryImports } from '../repositories/imports.service'
+import { createRepositoryLibrary } from '../repositories/library.service'
+import { createJobHistory } from './job-history.service'
 import { createRepositorySources } from '../repositories/sources.service'
 import { createJobRuntime, type JobRuntime } from './job-runtime.service'
 import { createJobService, type JobService } from './jobs.service'
@@ -149,6 +151,11 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
       indexing,
       notifications,
       tutorials: { refOf: async () => undefined },
+      repositories: createRepositoryLibrary({
+        db,
+        jobs: createJobHistory(db),
+        tutorials: { removeForRepository: async () => undefined },
+      }),
     })
     runtime = createJobRuntime({ db, queue, notifications })
     imports = createRepositoryImports({
@@ -211,6 +218,9 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     if (outcome.kind !== 'ok') throw new Error(`expected ok, got ${outcome.refusal.code}`)
     expect(outcome.value.status).toBe('queued')
     expect(outcome.value.commitSha).toBe(SHA)
+    expect(outcome.value.repository).toEqual({ owner: 'acme', name: 'shop' })
+    expect(outcome.value.audience).toBe('intermediate')
+    expect(outcome.value.preset).toBe('balanced')
     expect(await boss.getQueueSize(GENERATE_TUTORIAL)).toBe(before + 1)
   })
 

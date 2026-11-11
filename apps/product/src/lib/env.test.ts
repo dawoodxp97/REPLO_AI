@@ -4,9 +4,9 @@ import { parsePublicEnv } from './env'
 describe('parsePublicEnv', () => {
   it('falls back to local development URLs', () => {
     expect(parsePublicEnv({})).toEqual({
-      apiUrl: 'http://localhost:4000',
-      apiOrigin: 'http://localhost:4000',
-      appUrl: 'http://localhost:3001',
+      apiUrl: 'http://localhost:7200',
+      apiOrigin: 'http://localhost:7200',
+      appUrl: 'http://localhost:7101',
     })
   })
 

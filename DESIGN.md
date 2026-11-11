@@ -19,21 +19,21 @@ No gradients, glows or blobs; no italic or coloured accent words in headings; no
 
 OKLCH, defined once in [`tokens.css`](./packages/ui/src/styles/tokens.css) with `light-dark()`, exposed to Tailwind v4 via `@theme inline`. The theme follows `color-scheme`: `:root` is `light dark` (follows the OS), and `data-theme="light" | "dark"` on `<html>` pins it. **Never hard-code colours in components.**
 
-| Token                        | Light                      | Dark                      | Use                                      |
-| ---------------------------- | -------------------------- | ------------------------- | ---------------------------------------- |
-| `background`                 | `oklch(0.992 0.002 250)`   | `oklch(0.165 0.008 260)`  | Page                                     |
-| `foreground`                 | `oklch(0.2 0.012 260)` ink | `oklch(0.95 0.004 250)`   | Text                                     |
-| `card` / `popover`           | white                      | `oklch(0.19…0.205 …)`     | Panels, overlays                         |
-| `muted` / `muted-foreground` | cool grey / `0.52` text    | `0.225` / `0.71` text     | Secondary surfaces / text                |
-| `border` / `input`           | hairlines                  | hairlines                 | Borders, control outlines                |
-| `primary`                    | graphite                   | near-white                | Primary buttons, selected states         |
-| `accent` / `sidebar-accent`  | faint grey                 | faint lift                | Hover and active rows                    |
-| `ring` / `link`              | blue `258°`                | lighter blue              | Focus ring; inline links only            |
-| `sidebar`                    | slightly darker than page  | slightly darker than page | App sidebar                              |
-| `observed`                   | green `158°`               | green                     | Verified claims, resolved refs, success  |
-| `interpretation`             | amber `72°`                | amber                     | Interpretation, draft, retrying, caution |
-| `destructive`                | red `27°`                  | red                       | Errors, delete                           |
-| `code-bg` / `code-highlight` | near-white / green tint    | darker / green tint       | Source panel, cited range                |
+| Token                        | Light                      | Dark                      | Use                                                                                                                 |
+| ---------------------------- | -------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `background`                 | `oklch(0.992 0.002 250)`   | `oklch(0.165 0.008 260)`  | Page                                                                                                                |
+| `foreground`                 | `oklch(0.2 0.012 260)` ink | `oklch(0.95 0.004 250)`   | Text                                                                                                                |
+| `card` / `popover`           | white                      | `oklch(0.19…0.205 …)`     | Panels, overlays                                                                                                    |
+| `muted` / `muted-foreground` | cool grey / `0.52` text    | `0.225` / `0.71` text     | Secondary surfaces / text                                                                                           |
+| `border` / `input`           | hairlines                  | hairlines                 | Borders, control outlines                                                                                           |
+| `primary`                    | graphite                   | near-white                | Primary buttons, selected states                                                                                    |
+| `accent` / `sidebar-accent`  | faint grey                 | faint lift                | Hover and active rows                                                                                               |
+| `ring` / `link`              | blue `258°`                | lighter blue              | Focus ring; inline links only                                                                                       |
+| `sidebar`                    | slightly darker than page  | slightly darker than page | App sidebar                                                                                                         |
+| `observed`                   | green `158°`               | green                     | Verified claims, resolved refs, success                                                                             |
+| `interpretation`             | amber `72°`                | amber                     | Interpretation, draft, retrying, caution                                                                            |
+| `destructive`                | red `27°`                  | red                       | Errors, delete                                                                                                      |
+| `code-bg` / `code-highlight` | near-white / green tint    | darker / green tint       | Source panel, cited range (Shiki `github-light-high-contrast` / `github-dark-default`; every token ≥ 4.5:1 on both) |
 
 Semantic rule: **green = verified fact, amber = judgment/uncertainty, red = failure, blue = link or focus.** Never use them for decoration. The cited range is tinted green because a citation is evidence.
 
@@ -45,7 +45,7 @@ Semantic rule: **green = verified fact, amber = judgment/uncertainty, red = fail
 | Lesson prose   | **Newsreader** (serif) | Only inside the reading column (`prose-lesson` utility): `1.125rem/1.75`, ≤ 68ch        |
 | Machine data   | **Geist Mono**         | Paths, SHAs, line ranges, repo slugs, money, counts; `tabular` utility for live numbers |
 
-Named type scale (theme tokens, no arbitrary `text-[...]` sizes): `text-micro` 10px, `text-meta` 11px, `text-compact` 13px, `text-brand` 15px, `text-lesson-sm` 17px, `text-inline-code` 0.875em. Utilities: `heading-display` (`tracking-display` -0.025em, semibold, balance) and `link-inline` for inline anchors.
+Named type scale (theme tokens, no arbitrary `text-[...]` sizes): `text-micro` 10px, `text-meta` 11px, `text-compact` 13px, `text-brand` 15px, `text-lesson-sm` 17px, `text-inline-code` 0.875em. Utilities: `heading-display` (`tracking-display` -0.025em, semibold, balance) and `link-inline` for inline anchors. The scale is registered with tailwind-merge in `packages/ui/src/lib/cn.ts` (`TYPE_SCALE`); a new size token must be added there too, or `cn()` treats it as a colour and drops it.
 
 Loaded with `next/font/google`. Page title `text-2xl` (`PageHeader`), section title `text-base` (`SectionHeader`), body `text-sm`, meta `text-xs`/`0.8125rem`. Landing display sizes use `-0.025em` tracking.
 
@@ -54,7 +54,8 @@ Loaded with `next/font/google`. Page title `text-2xl` (`PageHeader`), section ti
 - **Spacing:** 4px base. Page gutter 16px mobile / 24px tablet / 40px desktop. Content max-width 72rem; reading column 68ch. Page sections `space-y-8`.
 - **Panels:** bordered surfaces use `rounded-lg`; `rounded-xl` only for the landing hero frame and dialogs.
 - **Shared components:** `BrandMark`/`Brand` (takes a `linkComponent`), `MonoLabel`, `CodePanel` and `CodePanelHeader` live in `@replo/ui`; each app keeps a thin `Brand` wrapper binding `next/link`.
-- **Focus:** the global `:focus-visible` outline is the focus style and `Button` adds no ring. Switch, checkbox, radio-group, tabs and the shared input control (`packages/ui/src/lib/control.ts`) still use `ring-[3px]` and are not migrated.
+- **Focus:** the global `:focus-visible` outline is the focus style and `Button` adds no ring. Switch, checkbox, radio-group, tabs and the shared input control (`packages/ui/src/lib/control.ts`) still use `ring-[3px]` and are not migrated. Rows inside bordered lists and popovers keep the outline and draw it inset (`focus-visible:-outline-offset-2`); never pair `outline-none` with a background-only focus state.
+- **Touch:** on coarse pointers controls grow to 40px (`pointer-coarse:` sizes in `Button`, `Input`, `NativeSelect`, `TabsList`, the brand link and nav rows) while desktop density stays the same. Control text is 16px below `md` so iOS does not zoom on focus.
 - **Radius:** `--radius: 0.5rem`; `sm` −4px, `md` −2px (buttons, inputs), `lg` (cards, panels), `xl` +4px (dialogs).
 - **Elevation:** borders over shadows. Cards `shadow-xs`; popovers, menus and dialogs one soft shadow.
 - **Motion:** 120–200ms ease-out; overlays fade and scale from 98% using Base UI's `data-starting-style`/`data-ending-style`; `prefers-reduced-motion` disables non-essential animation.
@@ -73,19 +74,19 @@ Loaded with `next/font/google`. Page title `text-2xl` (`PageHeader`), section ti
 └────────────┴─────────────────────────────┴──────────────────────────┘
 ```
 
-shadcn `Resizable` panels, sizes persisted per user. **< 768px:** outline becomes a sheet; source becomes a bottom `Drawer` opened from each code reference.
+shadcn `Resizable` panels, sizes persisted per user. The source column is an `<aside aria-label="Source">` and, until the reader picks a reference, shows the lesson's first resolvable one; the chip for whatever the column shows carries `aria-current`. **< 768px:** outline becomes a sheet; source becomes a bottom `Drawer` opened from each code reference (no default, so nothing opens unasked).
 
 ### Other screens
 
-| Screen                 | Layout notes                                                                                                                                                                                                               |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dashboard `/`          | Resume first, a shared statistics band, running jobs and recent activity. Empty workspaces show a short key → repository → reading setup sequence with direct actions and the OpenRouter recommendation.                   |
-| Sign-in `/login`       | Two-column desktop layout: repository learning context on the left, compact form on the right. Phones show the form. Only configured OAuth providers are offered; email remains usable during provider-discovery failures. |
-| Import `/import`       | Stepper: URL/repo → pre-flight result → audience + **key** + preset → **estimate card** (model, requests/tokens, cost, ceiling) → start                                                                                    |
-| Job `/jobs/:id`        | Vertical stage list with live status, elapsed time, cancel, failure reason and error code                                                                                                                                  |
-| Overview `/t/…`        | Architecture diagram hero, objectives, outline with durations, version picker, share, banners                                                                                                                              |
-| Settings `/settings/*` | Left sub-nav: profile · github · keys · models. Keys shown only as `…last4`                                                                                                                                                |
-| Landing `/`            | Headline + product frame (lesson beside pinned source, the signature), how it works (4-step sequence), how references are checked, your key / your bill, FAQ (native details), footer. Static, fast, SEO-complete          |
+| Screen                 | Layout notes                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard `/`          | Resume first, then a one-line count of tutorials (non-zero groups only), running jobs and recent activity. Empty workspaces show a short key → repository → reading setup sequence with direct actions and the OpenRouter recommendation. The header "New tutorial" shows only below `md`; the sidebar carries it on wider screens.                                   |
+| Sign-in `/login`       | Two-column desktop layout: repository learning context on the left, compact form on the right. Phones show the form. Only configured OAuth providers are offered; email remains usable during provider-discovery failures.                                                                                                                                            |
+| Import `/import`       | Sections: repository (URL or GitHub App repo, pre-flight) → model (**key** + preset, presets in a 2-column grid) → tutorial (audience, budget) → **estimate card**. A sticky bar keeps "Generate tutorial" in view and says the first missing step when it is disabled.                                                                                               |
+| Job `/jobs/:id`        | Title is the repository (`owner/name`) with the preset and audience; summary card holds status, commit, spend (cents; four decimals only below a cent), "Stage n of 8", progress and the actions. Cancel asks for confirmation. Vertical stage list with live status, elapsed time, failure reason and error code. Filed under Library in the sidebar and breadcrumb. |
+| Overview `/t/…`        | Architecture diagram hero, objectives, outline with durations, version picker, share, banners                                                                                                                                                                                                                                                                         |
+| Settings `/settings/*` | Left sub-nav: profile · github · keys · models. Keys shown only as `…last4`                                                                                                                                                                                                                                                                                           |
+| Landing `/`            | Headline + product frame (lesson beside pinned source, the signature), how it works (4-step sequence), how references are checked, your key / your bill, FAQ (native details), footer. Static, fast, SEO-complete                                                                                                                                                     |
 
 ## 6. Component inventory
 
@@ -117,6 +118,8 @@ Form controls (checkbox, radio, switch, select, progress) are **native elements 
 | Staleness | "Repo changed since this tutorial" banner with link to regenerate (V)                                                                                                           |
 | Success   | Quiet inline confirmation; avoid celebratory modals                                                                                                                             |
 
+Navigation: breadcrumbs appear only two levels down (Settings / API keys, Library / Generation); top-level pages rely on the sidebar and the page title. Destructive triggers use the `destructive-outline` button and always confirm through `ConfirmDialog`; the confirm button is the filled `destructive` variant.
+
 Voice: plain, specific, developer-to-developer. No hype, no emoji in product UI. Say "your key", "your model", "your bill". Never say "credits", "top-up" or "free pool".
 
 ## 8. Accessibility checklist (must pass before a screen ships)
@@ -124,11 +127,12 @@ Voice: plain, specific, developer-to-developer. No hype, no emoji in product UI.
 - [ ] Full keyboard path; visible `focus-visible` ring using `ring` token (3:1 against adjacent colours)
 - [ ] Text contrast ≥ 4.5:1 (3:1 large) in **both** themes
 - [ ] Code blocks focusable, announce file + line range; line numbers `aria-hidden`
-- [ ] Diagrams: caption + ordered text "steps" list alternative
+- [ ] Diagrams: caption + ordered text "steps" list alternative; Mermaid is themed from the tokens (`features/diagram/diagram-theme.ts`): hairline outlines, muted fill, no drop shadow, labels on the card colour
 - [ ] Quiz = real radio group with fieldset/legend; results announced via `aria-live`
 - [ ] Reduced motion honoured; no auto-playing animation
-- [ ] Touch targets ≥ 40px on mobile; layout works from 320px, no horizontal page scroll
-- [ ] Theme defaults to System (follows `prefers-color-scheme`); a Light or Dark choice is saved in preferences and applied as `data-theme`
+- [ ] Touch targets ≥ 40px on mobile; layout works from 320px, no horizontal page scroll (the touch size is enforced for every product route by `e2e/accessibility.spec.ts` on the phone project)
+- [ ] Theme defaults to System (follows `prefers-color-scheme`); a Light or Dark choice is saved in preferences, mirrored in the `replo-theme` cookie, and set as `data-theme` on `<html>` during SSR on every route
+- [ ] Headings never skip a level: `CardTitle` is an `<h2>`; pass `as="h3"` only when the card sits under a section `<h2>`
 
 ## 9. Third-party UI rules
 

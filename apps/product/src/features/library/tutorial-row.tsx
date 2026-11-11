@@ -41,7 +41,10 @@ export function TutorialRow({ tutorial }: { tutorial: TutorialSummaryDto }) {
     <Collapsible render={<Item />}>
       <ItemContent className="basis-full sm:basis-0">
         <ItemTitle>
-          <Link href={tutorialPath(tutorial)} className="break-words hover:underline">
+          <Link
+            href={tutorialPath(tutorial)}
+            className="break-words hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-10 pointer-coarse:items-center"
+          >
             {tutorial.title}
           </Link>
         </ItemTitle>

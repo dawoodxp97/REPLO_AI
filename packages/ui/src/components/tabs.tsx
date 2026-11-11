@@ -10,7 +10,7 @@ export function TabsList({ className, ...props }: BaseProps<typeof BaseTabs.List
   return (
     <BaseTabs.List
       className={cn(
-        'inline-flex h-9 w-fit items-center gap-1 rounded-lg bg-muted p-1 text-muted-foreground',
+        'inline-flex h-9 w-fit items-center pointer-coarse:h-12 gap-1 rounded-lg bg-muted p-1 text-muted-foreground',
         className,
       )}
       {...props}
@@ -31,5 +31,5 @@ export function TabsTrigger({ className, ...props }: BaseProps<typeof BaseTabs.T
 }
 
 export function TabsContent({ className, ...props }: BaseProps<typeof BaseTabs.Panel>) {
-  return <BaseTabs.Panel className={cn('outline-none', className)} {...props} />
+  return <BaseTabs.Panel className={cn('rounded-md', className)} {...props} />
 }

@@ -76,9 +76,9 @@ Each process validates its variables with Zod at boot (`apps/api/src/platform/co
 
 | Service             | Port        |
 | ------------------- | ----------- |
-| landing             | 3000        |
-| product             | 3001        |
-| api (HTTP)          | 4000        |
-| api worker health   | 4001        |
+| landing             | 7100        |
+| product             | 7101        |
+| api (HTTP)          | 7200        |
+| api worker health   | 7201        |
 | Postgres            | 5432        |
 | MinIO API / console | 9000 / 9001 |

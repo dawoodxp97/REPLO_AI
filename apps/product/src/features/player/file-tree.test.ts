@@ -1,9 +1,9 @@
 import type { SourceTreeEntry } from '@replo/contracts'
 import { describe, expect, it } from 'vitest'
-import { buildFileTree, type FolderNode, type TreeNode } from './file-tree'
+import { buildFileTree, defaultSourcePath, type FolderNode, type TreeNode } from './file-tree'
 
-function entry(path: string, readable = true): SourceTreeEntry {
-  return { path, sizeBytes: 100, language: 'typescript', role: 'source', readable, cited: false }
+function entry(path: string, readable = true, cited = false): SourceTreeEntry {
+  return { path, sizeBytes: 100, language: 'typescript', role: 'source', readable, cited }
 }
 
 function folder(nodes: TreeNode[], name: string): FolderNode {
@@ -41,5 +41,30 @@ describe('buildFileTree', () => {
 
   it('returns no nodes for an empty repository', () => {
     expect(buildFileTree([])).toEqual([])
+  })
+})
+
+describe('defaultSourcePath', () => {
+  it('opens the first cited file in tree order', () => {
+    const tree = buildFileTree([
+      entry('zeta.ts', true, true),
+      entry('src/ui/card.tsx', true, true),
+      entry('src/cart/thunks.ts', true, true),
+    ])
+    expect(defaultSourcePath(tree)).toBe('src/cart/thunks.ts')
+  })
+
+  it('skips cited files that cannot be read', () => {
+    const tree = buildFileTree([entry('a/big.bin', false, true), entry('b/ok.ts', true, true)])
+    expect(defaultSourcePath(tree)).toBe('b/ok.ts')
+  })
+
+  it('falls back to the root README', () => {
+    const tree = buildFileTree([entry('docs/README.md'), entry('src/a.ts'), entry('README.md')])
+    expect(defaultSourcePath(tree)).toBe('README.md')
+  })
+
+  it('returns null when nothing qualifies', () => {
+    expect(defaultSourcePath(buildFileTree([entry('src/a.ts')]))).toBeNull()
   })
 })

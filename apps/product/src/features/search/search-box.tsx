@@ -1,6 +1,6 @@
 'use client'
 
-import { Input, Kbd, Spinner } from '@replo/ui'
+import { cn, Input, Kbd, Spinner } from '@replo/ui'
 import { Search } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { moveFocus } from './result-focus'
@@ -10,7 +10,13 @@ import { useSearchShortcut } from './use-search-shortcut'
 
 const RESULTS_ID = 'library-search-results'
 
-export function SearchBox() {
+export function SearchBox({
+  autoFocus = false,
+  className,
+}: {
+  autoFocus?: boolean
+  className?: string
+}) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const input = useRef<HTMLInputElement>(null)
@@ -21,7 +27,7 @@ export function SearchBox() {
 
   return (
     <div
-      className="relative w-full sm:w-64"
+      className={cn('relative w-full sm:w-64', className)}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
       }}
@@ -41,6 +47,7 @@ export function SearchBox() {
       />
       <Input
         ref={input}
+        autoFocus={autoFocus}
         type="search"
         role="combobox"
         aria-label="Search your library"
@@ -57,7 +64,10 @@ export function SearchBox() {
         className="h-9 pr-14 pl-8 [&::-webkit-search-cancel-button]:hidden"
       />
       {query === '' ? (
-        <Kbd aria-hidden className="absolute top-1/2 right-2 -translate-y-1/2">
+        <Kbd
+          aria-hidden
+          className="absolute top-1/2 right-2 -translate-y-1/2 pointer-coarse:hidden"
+        >
           {modifierLabel === '⌘' ? '⌘K' : 'Ctrl K'}
         </Kbd>
       ) : null}

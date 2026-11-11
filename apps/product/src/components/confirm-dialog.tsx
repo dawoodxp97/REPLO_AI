@@ -35,7 +35,7 @@ export function ConfirmDialog({
   run,
   describeError,
   confirmDisabled = false,
-  triggerVariant = 'outline',
+  triggerVariant = 'destructive-outline',
   triggerSize = 'sm',
   onOpenChange,
   children,

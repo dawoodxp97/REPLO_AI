@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { CommitSha, JobRef, Progress, TutorialRef } from './common'
+import { Audience, CommitSha, JobRef, ModelPreset, Progress, TutorialRef } from './common'
 
 export const JOB_STATUSES = [
   'queued',
@@ -35,10 +35,16 @@ export const JobProgressFields = {
   progress: Progress,
 }
 
+export const JobRepository = z.object({ owner: z.string(), name: z.string() })
+export type JobRepository = z.infer<typeof JobRepository>
+
 export const GenerationJobDto = z.object({
   ...JobProgressFields,
   repositoryId: z.uuid(),
+  repository: JobRepository.nullable().default(null),
   commitSha: CommitSha,
+  audience: Audience.default('intermediate'),
+  preset: ModelPreset.nullable().default(null),
   progress: Progress.default(0),
   budgetUsd: z.number(),
   spentUsd: z.number(),

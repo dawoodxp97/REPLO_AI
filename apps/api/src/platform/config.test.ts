@@ -5,8 +5,8 @@ import { loadConfig } from './config'
 const base = () => ({
   NODE_ENV: 'development',
   DATABASE_URL: 'postgres://app:app@localhost:5432/replo',
-  API_PUBLIC_URL: 'http://localhost:4000',
-  PRODUCT_ORIGIN: 'http://localhost:3001',
+  API_PUBLIC_URL: 'http://localhost:7200',
+  PRODUCT_ORIGIN: 'http://localhost:7101',
   KEY_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
 })
 

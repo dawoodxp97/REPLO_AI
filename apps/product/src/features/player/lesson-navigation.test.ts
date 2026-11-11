@@ -1,6 +1,12 @@
 import type { LearnerLesson, TutorialOverviewDto } from '@replo/contracts'
 import { describe, expect, it } from 'vitest'
-import { collectReferenceIds, flattenLessons, neighbours, nextReference } from './lesson-navigation'
+import {
+  collectReferenceIds,
+  firstResolvedReference,
+  flattenLessons,
+  neighbours,
+  nextReference,
+} from './lesson-navigation'
 
 const outline: TutorialOverviewDto['outline'] = [
   {
@@ -93,5 +99,20 @@ describe('nextReference', () => {
 
   it('returns null when the lesson cites nothing', () => {
     expect(nextReference([], null)).toBeNull()
+  })
+})
+
+describe('firstResolvedReference', () => {
+  it('returns the first reference the chapter can resolve', () => {
+    expect(firstResolvedReference(['gone', 'r2', 'r1'], { r1: {}, r2: {} })).toBe('r2')
+  })
+
+  it('returns null when nothing resolves', () => {
+    expect(firstResolvedReference([], { r1: {} })).toBeNull()
+    expect(firstResolvedReference(['gone'], {})).toBeNull()
+  })
+
+  it('ignores inherited keys', () => {
+    expect(firstResolvedReference(['__proto__', 'toString'], {})).toBeNull()
   })
 })

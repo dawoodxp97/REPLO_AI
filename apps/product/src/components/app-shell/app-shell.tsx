@@ -1,20 +1,29 @@
 'use client'
 
 import { Button, Sheet, SheetContent, SheetTitle } from '@replo/ui'
-import { Menu } from 'lucide-react'
+import { Menu, Search } from 'lucide-react'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Brand } from '@/components/brand'
 import { NotificationBell } from '@/features/notifications/notification-bell'
 import { SearchBox } from '@/features/search/search-box'
+import { breadcrumbsFor } from './breadcrumbs'
 import { SidebarNav } from './sidebar-nav'
 import { UserMenu } from './user-menu'
-import { PRIMARY_NAV } from './nav-items'
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const pathname = usePathname()
-  const location = PRIMARY_NAV.find((item) => item.isActive(pathname))?.label ?? 'New tutorial'
+  const [searchPath, setSearchPath] = useState<string | null>(null)
+  const searchOpen = searchPath === pathname
+  const searchButton = useRef<HTMLButtonElement>(null)
+
+  function closeSearch() {
+    setSearchPath(null)
+    searchButton.current?.focus()
+  }
+  const crumbs = breadcrumbsFor(pathname)
 
   return (
     <div className="flex min-h-dvh">
@@ -65,15 +74,57 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu />
           </Button>
           <Brand className="md:hidden" />
-          <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
-            <span>Workspace</span>
-            <span aria-hidden="true">/</span>
-            <span className="font-medium text-foreground">{location}</span>
-          </div>
+          {crumbs ? (
+            <nav aria-label="Breadcrumb" className="hidden md:block">
+              <ol className="flex items-center gap-2 text-xs text-muted-foreground">
+                {crumbs.map((crumb, index) => (
+                  <li key={crumb.label} className="flex items-center gap-2">
+                    {index > 0 ? <span aria-hidden="true">/</span> : null}
+                    {crumb.href ? (
+                      <Link
+                        href={crumb.href}
+                        className="inline-flex min-h-6 items-center rounded-sm hover:text-foreground"
+                      >
+                        {crumb.label}
+                      </Link>
+                    ) : (
+                      <span aria-current="page" className="font-medium text-foreground">
+                        {crumb.label}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          ) : null}
           <div className="ml-auto flex items-center gap-1.5">
-            <SearchBox />
+            <SearchBox className="hidden sm:block" />
+            <Button
+              ref={searchButton}
+              variant="ghost"
+              size="icon"
+              className="sm:hidden"
+              aria-label="Search your library"
+              aria-expanded={searchOpen}
+              onClick={() => setSearchPath(pathname)}
+            >
+              <Search />
+            </Button>
             <NotificationBell />
           </div>
+          {searchOpen ? (
+            <div
+              className="absolute inset-0 flex items-center gap-2 bg-background px-4 sm:hidden"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') closeSearch()
+              }}
+            >
+              <SearchBox autoFocus className="flex-1" />
+              <Button variant="ghost" size="sm" onClick={closeSearch}>
+                Cancel
+              </Button>
+            </div>
+          ) : null}
         </header>
         <main
           id="workspace-content"

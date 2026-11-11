@@ -202,6 +202,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
       indexing: { snapshotRef: async () => undefined },
       notifications: createNotificationsService(db),
       tutorials: { refOf: async () => undefined },
+      repositories: { describeLinked: async () => new Map() },
     })
     history = createJobHistory(db)
     library = createTutorialLibrary({

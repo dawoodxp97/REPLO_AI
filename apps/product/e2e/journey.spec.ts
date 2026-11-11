@@ -50,7 +50,7 @@ test('the PRD journey: import, watch progress, read a lesson, answer its quiz an
 
   await page.goto('/library')
   await page.getByText('Sharing', { exact: true }).click()
-  await page.getByRole('radio', { name: /Link/ }).check()
+  await page.getByRole('radio', { name: /Shared by link/ }).check()
   await expect(page.getByRole('textbox', { name: 'Share link' })).toBeVisible()
   expect(calls.some((call) => call.path === 'tutorials.createShareLink')).toBe(true)
 })

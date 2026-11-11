@@ -12,12 +12,17 @@ const startsWith = (prefix: string) => (pathname: string) =>
 
 export const PRIMARY_NAV: readonly NavItem[] = [
   { href: '/', label: 'Home', icon: House, isActive: (pathname) => pathname === '/' },
-  { href: '/library', label: 'Library', icon: LibraryBig, isActive: startsWith('/library') },
+  {
+    href: '/library',
+    label: 'Library',
+    icon: LibraryBig,
+    isActive: (pathname) => startsWith('/library')(pathname) || startsWith('/jobs')(pathname),
+  },
   {
     href: '/repositories',
     label: 'Repositories',
     icon: FolderGit2,
-    isActive: (pathname) => startsWith('/repositories')(pathname) || startsWith('/jobs')(pathname),
+    isActive: startsWith('/repositories'),
   },
   {
     href: '/settings/profile',

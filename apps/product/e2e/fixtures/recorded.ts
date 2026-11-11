@@ -27,7 +27,7 @@ export const MODEL_CATALOG: ModelCatalog = {
     {
       preset: 'free',
       label: 'Free',
-      description: 'OpenRouter :free models. Costs you nothing, needs an OpenRouter key.',
+      description: 'Free OpenRouter models. Costs you nothing, needs an OpenRouter key.',
       routing: { planner: 'free', author: 'free', summarizer: 'free' },
     },
     {
@@ -94,7 +94,10 @@ export const JOB_ID = '7d2e9c10-5a1b-4f6e-8c3d-9a0b1c2d3e4f'
 export const JOB: GenerationJobDto = {
   jobId: JOB_ID,
   repositoryId: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
+  repository: { owner: 'acme', name: 'widgets' },
   commitSha: PREFLIGHT.commitSha,
+  audience: 'intermediate',
+  preset: 'balanced',
   status: 'queued',
   stage: null,
   progress: 0,

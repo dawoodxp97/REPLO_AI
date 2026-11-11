@@ -21,7 +21,9 @@ export function PreferenceSwitch({
         <FieldLabel htmlFor={id}>{label}</FieldLabel>
         <FieldDescription>{description}</FieldDescription>
       </FieldContent>
-      <Switch id={id} checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <label htmlFor={id} className="-m-2.5 flex shrink-0 cursor-pointer items-center p-2.5">
+        <Switch id={id} checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      </label>
     </Field>
   )
 }

@@ -61,7 +61,16 @@ function HistoryRow({
     <Item>
       <ItemContent>
         <ItemTitle>
-          {lessonHref ? <TextLink href={lessonHref}>{entry.title}</TextLink> : entry.title}
+          {lessonHref ? (
+            <TextLink
+              href={lessonHref}
+              className="pointer-coarse:inline-flex pointer-coarse:min-h-10 pointer-coarse:items-center"
+            >
+              {entry.title}
+            </TextLink>
+          ) : (
+            entry.title
+          )}
         </ItemTitle>
         <ItemDescription className="flex items-center gap-1.5">
           {completed ? <Check aria-hidden className="size-3.5 text-observed-text" /> : null}

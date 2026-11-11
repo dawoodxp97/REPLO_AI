@@ -1,5 +1,7 @@
 import type { TutorialOverviewDto } from '@replo/contracts'
 import { Badge } from '@replo/ui'
+import { VISIBILITY_LABEL } from '@/features/library/visibility-options'
+import { AUDIENCE_LABELS } from '@/features/preferences/audience'
 import { BulletList } from '@/components/bullet-list'
 import { LinkButton } from '@/components/link-button'
 import { SectionHeader, TitledSection } from '@/components/page-header'
@@ -46,8 +48,8 @@ export function TutorialOverview({
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-balance">{tutorial.title}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge>{tutorial.audience}</Badge>
-          <Badge variant="outline">{tutorial.visibility}</Badge>
+          <Badge>{AUDIENCE_LABELS[tutorial.audience]}</Badge>
+          <Badge variant="outline">{VISIBILITY_LABEL[tutorial.visibility]}</Badge>
           {viewing ? <Badge variant="outline">Version {viewing.versionNo}</Badge> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">

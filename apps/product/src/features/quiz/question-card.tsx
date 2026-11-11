@@ -53,7 +53,7 @@ export function QuestionCard({
   return (
     <Card className="gap-4">
       <CardHeader>
-        <CardTitle id={promptId} className="text-base">
+        <CardTitle as="h3" id={promptId} className="text-base">
           {question.prompt}
         </CardTitle>
       </CardHeader>

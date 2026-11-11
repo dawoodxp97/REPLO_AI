@@ -6,7 +6,7 @@ import { formatRepoName } from '@/lib/format'
 import { lessonPath, tutorialPath } from '@/lib/tutorial-paths'
 
 const HIT_CLASS =
-  'flex items-start gap-2.5 rounded-md px-2 py-1.5 outline-none hover:bg-accent focus-visible:bg-accent'
+  'flex items-start gap-2.5 rounded-md px-2 py-1.5 hover:bg-accent focus-visible:bg-accent focus-visible:-outline-offset-2'
 
 function Group({ label, children }: { label: string; children: ReactNode }) {
   return (

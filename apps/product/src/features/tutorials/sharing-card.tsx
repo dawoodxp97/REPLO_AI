@@ -22,8 +22,10 @@ export function SharingCard({ overview, shareUrl, shareToken }: SharingCardProps
           </DescriptionItem>
           {isPublic ? (
             <DescriptionItem label="Public link">
-              <div className="flex flex-wrap items-center gap-2">
-                <code className="min-w-0 font-mono text-xs break-all">{shareUrl}</code>
+              <div className="flex items-center gap-2">
+                <code className="block min-w-0 flex-1 truncate font-mono text-xs" title={shareUrl}>
+                  {shareUrl}
+                </code>
                 <CopyLinkButton url={shareUrl} />
               </div>
             </DescriptionItem>

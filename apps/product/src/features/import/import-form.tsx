@@ -25,7 +25,7 @@ export function ImportForm({ initialSource }: { initialSource?: RepositorySource
     defaultValues: { ...IMPORT_FORM_DEFAULTS, source: initialSource },
   })
   useImportDefaults(form)
-  const { canSubmit, source, estimateInput, settling } = useImportPlan(form.control)
+  const { canSubmit, blocker, source, estimateInput, settling } = useImportPlan(form.control)
   const startImport = useStartImport()
 
   return (
@@ -59,10 +59,13 @@ export function ImportForm({ initialSource }: { initialSource?: RepositorySource
       {startImport.isError ? (
         <InlineError>{describeImportError(startImport.error)}</InlineError>
       ) : null}
-      <div>
+      <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-t bg-background/95 py-3 backdrop-blur-sm">
         <Button type="submit" disabled={!canSubmit || startImport.isPending}>
           {startImport.isPending ? 'Starting…' : 'Generate tutorial'}
         </Button>
+        <p className="text-sm text-muted-foreground" aria-live="polite">
+          {blocker ?? 'Ready. Check the estimate above, then generate.'}
+        </p>
       </div>
     </form>
   )

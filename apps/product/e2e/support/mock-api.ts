@@ -10,6 +10,8 @@ const corsHeadersFor = (request: IncomingMessage) => ({
   'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
 })
 
+const IDLE_EVENT_STREAMS = [/^\/notifications\/stream$/, /^\/jobs\/[^/]+\/events$/]
+
 export function createMockApi(handlers: RpcHandlers): Server {
   return createServer(async (request, response) => {
     const cors = corsHeadersFor(request)
@@ -19,6 +21,18 @@ export function createMockApi(handlers: RpcHandlers): Server {
     }
 
     const url = new URL(request.url ?? '/', APP_ORIGIN)
+    if (
+      request.method === 'GET' &&
+      IDLE_EVENT_STREAMS.some((stream) => stream.test(url.pathname))
+    ) {
+      response.writeHead(200, {
+        'content-type': 'text/event-stream; charset=utf-8',
+        'cache-control': 'no-store',
+        ...cors,
+      })
+      response.write(': idle\n\n')
+      return
+    }
     if (!url.pathname.startsWith('/rpc/')) {
       response.writeHead(404, cors).end()
       return

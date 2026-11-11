@@ -2,7 +2,7 @@
 
 import type { TutorialOverviewDto } from '@replo/contracts'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Skeleton } from '@replo/ui'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { FileCode } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { LinkButton } from '@/components/link-button'
@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/page-header'
 import { QueryBoundary } from '@/components/query-boundary'
 import { orpc } from '@/lib/orpc'
 import type { TutorialRef } from '@/lib/tutorial-paths'
-import { buildFileTree } from './file-tree'
+import { buildFileTree, defaultSourcePath, type TreeNode } from './file-tree'
 import { FileTreeList } from './file-tree-list'
 import { shortSha } from '@/lib/format'
 import { SourceView } from './source-view'
@@ -24,7 +24,7 @@ export function SourceExplorer({ tutorial }: { tutorial: TutorialRef }) {
   const links = useTutorialLinks(tutorial, linkContext)
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 sm:px-6">
+    <div className="space-y-8">
       <QueryBoundary
         query={overview}
         errorTitle="This tutorial is not available"
@@ -52,6 +52,14 @@ interface ExplorerLayoutProps {
 }
 
 function ExplorerLayout({ overview, links, selectedPath, shareToken }: ExplorerLayoutProps) {
+  const tree = useQuery({
+    ...orpc.tutorials.sourceTree.queryOptions({
+      input: { versionId: overview.versionId, shareToken },
+    }),
+    select: (data) => buildFileTree(data.files),
+  })
+  const shownPath = selectedPath ?? (tree.data ? defaultSourcePath(tree.data) : null)
+
   return (
     <>
       <PageHeader
@@ -69,17 +77,12 @@ function ExplorerLayout({ overview, links, selectedPath, shareToken }: ExplorerL
         }
       />
       <div className="grid gap-6 md:grid-cols-[18rem_minmax(0,1fr)]">
-        <FileTreePanel
-          overview={overview}
-          links={links}
-          selectedPath={selectedPath}
-          shareToken={shareToken}
-        />
+        <FileTreePanel tree={tree} links={links} shownPath={shownPath} />
         <section aria-label="Selected file" className="min-w-0">
-          {selectedPath ? (
+          {shownPath ? (
             <SourceView
               versionId={overview.versionId}
-              path={selectedPath}
+              path={shownPath}
               range={null}
               shareToken={shareToken}
               windowed
@@ -101,13 +104,13 @@ function ExplorerLayout({ overview, links, selectedPath, shareToken }: ExplorerL
   )
 }
 
-function FileTreePanel({ overview, links, selectedPath, shareToken }: ExplorerLayoutProps) {
-  const tree = useQuery(
-    orpc.tutorials.sourceTree.queryOptions({
-      input: { versionId: overview.versionId, shareToken },
-    }),
-  )
+interface FileTreePanelProps {
+  tree: UseQueryResult<TreeNode[]>
+  links: TutorialLinks
+  shownPath: string | null
+}
 
+function FileTreePanel({ tree, links, shownPath }: FileTreePanelProps) {
   return (
     <aside className="min-w-0 space-y-2">
       <h2 className="text-sm font-semibold tracking-tight">Files</h2>
@@ -121,14 +124,10 @@ function FileTreePanel({ overview, links, selectedPath, shareToken }: ExplorerLa
           <p role="alert" className="p-2 text-destructive">
             The file tree could not be loaded. Reload the page to try again.
           </p>
-        ) : tree.data.files.length === 0 ? (
+        ) : tree.data.length === 0 ? (
           <p className="p-2 text-muted-foreground">The repository has no recorded files.</p>
         ) : (
-          <FileTreeList
-            links={links}
-            nodes={buildFileTree(tree.data.files)}
-            selectedPath={selectedPath}
-          />
+          <FileTreeList links={links} nodes={tree.data} selectedPath={shownPath} />
         )}
       </nav>
     </aside>

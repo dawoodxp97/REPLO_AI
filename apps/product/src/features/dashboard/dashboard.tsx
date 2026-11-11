@@ -1,8 +1,6 @@
 'use client'
 
 import { Skeleton } from '@replo/ui'
-import { LinkButton } from '@/components/link-button'
-import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
 import { PageHeader } from '@/components/page-header'
 import { QueryBoundary } from '@/components/query-boundary'
 import { GettingStarted } from './getting-started'
@@ -11,6 +9,7 @@ import { RecentActivity } from './recent-activity'
 import { ResumeCard } from './resume-card'
 import { StatTiles } from './stat-tiles'
 import { useDashboardSummary } from './use-dashboard'
+import { NewTutorialAction } from '@/components/new-tutorial-action'
 
 export function Dashboard() {
   const summary = useDashboardSummary()
@@ -20,7 +19,7 @@ export function Dashboard() {
       <PageHeader
         title="Home"
         description="Pick up where you left off, or start a tutorial for a new repository."
-        action={<LinkButton href={importPath()}>{NEW_TUTORIAL_LABEL}</LinkButton>}
+        action={<NewTutorialAction />}
       />
 
       <QueryBoundary
@@ -32,7 +31,7 @@ export function Dashboard() {
         {(data) => (
           <>
             {data.resume ? <ResumeCard resume={data.resume} /> : null}
-            <StatTiles counts={data.counts} />
+            {data.counts.total > 0 ? <StatTiles counts={data.counts} /> : null}
             <JobsInFlight jobs={data.jobsInFlight} />
             {data.counts.total === 0 ? <GettingStarted /> : null}
           </>

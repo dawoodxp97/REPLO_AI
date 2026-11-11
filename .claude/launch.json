@@ -5,25 +5,25 @@
       "name": "api",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@replo/api", "dev"],
-      "port": 4000
+      "port": 7200
     },
     {
       "name": "worker",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@replo/api", "dev:worker"],
-      "port": 4001
+      "port": 7201
     },
     {
       "name": "product",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@replo/product", "dev"],
-      "port": 3001
+      "port": 7101
     },
     {
       "name": "landing",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@replo/landing", "dev"],
-      "port": 3000
+      "port": 7100
     },
     {
       "name": "mock-api",
@@ -35,18 +35,19 @@
         "tsx",
         "../product/e2e/support/serve-mock-api.ts"
       ],
-      "port": 4100
+      "port": 7210
     },
     {
       "name": "product-mock",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@replo/product", "exec", "next", "dev", "--port", "3101"],
-      "port": 3101,
+      "runtimeArgs": ["--filter", "@replo/product", "exec", "next", "dev", "--port", "7110"],
+      "port": 7110,
       "env": {
-        "NEXT_PUBLIC_API_URL": "http://localhost:4100",
-        "NEXT_PUBLIC_APP_URL": "http://localhost:3101",
-        "API_INTERNAL_URL": "http://localhost:4100"
-      }
+        "NEXT_PUBLIC_API_URL": "http://localhost:7210",
+        "NEXT_PUBLIC_APP_URL": "http://localhost:7110",
+        "API_INTERNAL_URL": "http://localhost:7210"
+      },
+      "autoPort": false
     }
   ]
 }

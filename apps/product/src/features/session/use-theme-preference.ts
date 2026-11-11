@@ -4,11 +4,13 @@ import type { Theme } from '@replo/contracts'
 import { useQuery } from '@tanstack/react-query'
 import { usePreferenceUpdate } from '@/features/settings/use-preference-update'
 import { orpc } from '@/lib/orpc'
+import { themeCookie } from './theme-cookie'
 
 export function applyTheme(theme: Theme) {
   const root = document.documentElement
   if (theme === 'system') delete root.dataset.theme
   else root.dataset.theme = theme
+  document.cookie = themeCookie(theme, window.location.protocol === 'https:')
 }
 
 export function useThemePreference() {

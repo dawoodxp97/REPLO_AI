@@ -98,7 +98,7 @@ export function CommandPalette({ open, onOpenChange, items }: CommandPaletteProp
                       <button
                         type="button"
                         onClick={() => runItem(item)}
-                        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm outline-none hover:bg-accent focus-visible:bg-accent"
+                        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-accent focus-visible:-outline-offset-2 focus-visible:bg-accent"
                       >
                         <span className="min-w-0 truncate">{item.label}</span>
                         {item.shortcut ? (

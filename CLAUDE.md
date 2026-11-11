@@ -17,7 +17,7 @@ Monorepo (pnpm 11 + Turborepo, Node 24, TypeScript 6). Product: grounded, chapte
 
 ```bash
 pnpm install
-pnpm dev                       # landing :3000, product :3001, api :4000 (+worker)   (needs `pnpm infra:up` for DB)
+pnpm dev                       # landing :7100, product :7101, api :7200 (+worker)   (needs `pnpm infra:up` for DB)
 pnpm verify                    # lint + typecheck + test + build
 pnpm --filter @replo/<pkg> typecheck|lint|test|build
 pnpm db:generate | db:migrate | db:check-drift

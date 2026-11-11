@@ -66,6 +66,22 @@ test('a lesson opens its cited source range and the keyboard moves through the t
   await expect.poll(() => calls.some((call) => call.path === 'learning.markLesson')).toBe(true)
 })
 
+test('a lesson shows its first cited source before any reference is chosen', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'phones open the source in a sheet only when a reference is chosen')
+  await mockRpc(page)
+
+  await page.goto(LESSON_ONE)
+  const source = page.getByRole('complementary', { name: 'Source' })
+  await expect(source.getByLabel('src/ui/ProductCard.tsx, lines 18 to 22')).toBeVisible()
+  await expect(page).not.toHaveURL(/ref=/)
+  await expect(
+    page.getByRole('button', { name: 'Open src/ui/ProductCard.tsx:L18–22 in the source panel' }),
+  ).toHaveAttribute('aria-current', 'true')
+})
+
 test('a quiz answer is graded and explained with its source', async ({ page }) => {
   await mockRpc(page)
 
@@ -141,4 +157,17 @@ test('the source explorer lists the repository tree and opens a file at the pinn
 
   await expect(page).toHaveURL(/path=src%2Fcart%2Fthunks\.ts/)
   await expect(page.getByLabel('src/cart/thunks.ts')).toContainText('export function addItem')
+})
+
+test('the source explorer opens the first cited file when none is chosen', async ({ page }) => {
+  await mockRpc(page)
+
+  await page.goto(`${OVERVIEW}/code`)
+  await expect(page.getByRole('main')).toBeVisible()
+  await expect(page.getByLabel('src/cart/thunks.ts')).toContainText('export function addItem')
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Repository files' })
+      .getByRole('link', { name: /thunks\.ts/ }),
+  ).toHaveAttribute('aria-current', 'page')
 })

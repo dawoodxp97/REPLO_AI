@@ -4,7 +4,8 @@ import { PRESET_ROUTING, type Preset } from '@replo/ai'
 export const PRESET_COPY: Record<Preset, { label: string; description: string }> = {
   free: {
     label: 'Free',
-    description: 'OpenRouter :free models that have passed the eval gate. Lite pipeline.',
+    description:
+      'Free OpenRouter models that passed our quality checks. Needs an OpenRouter key. Lite pipeline.',
   },
   budget: { label: 'Budget', description: 'Cheapest tier for every role. Lite pipeline.' },
   balanced: {

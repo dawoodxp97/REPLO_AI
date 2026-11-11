@@ -35,7 +35,6 @@ export function RepositoryRow({ repository }: { repository: RepositoryListItem }
         )}
         <ConfirmDialog
           triggerLabel="Remove"
-          triggerVariant="ghost"
           title={`Remove ${name}?`}
           description={`Replo stops reading ${name} and deletes your tutorials and reading progress for it. Public and link URLs for those tutorials stop working.`}
           confirmLabel="Remove repository"

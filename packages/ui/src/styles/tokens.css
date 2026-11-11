@@ -35,7 +35,7 @@
   --destructive-foreground: light-dark(oklch(0.99 0.002 250), oklch(0.17 0.01 260));
 
   --code-bg: light-dark(oklch(0.978 0.003 250), oklch(0.15 0.008 260));
-  --code-highlight: light-dark(oklch(0.95 0.045 158), oklch(0.29 0.055 158));
+  --code-highlight: light-dark(oklch(0.965 0.03 158), oklch(0.27 0.05 158));
 
   --radius: 0.5rem;
 }

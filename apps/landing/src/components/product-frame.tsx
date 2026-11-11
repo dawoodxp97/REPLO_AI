@@ -104,7 +104,7 @@ function SourceViewer() {
                 >
                   <span
                     aria-hidden="true"
-                    className="tabular w-11 shrink-0 pr-4 text-right text-muted-foreground/70 select-none"
+                    className="tabular w-11 shrink-0 pr-4 text-right text-muted-foreground select-none"
                   >
                     {lineNumber}
                   </span>

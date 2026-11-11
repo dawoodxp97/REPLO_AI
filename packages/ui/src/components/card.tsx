@@ -25,8 +25,12 @@ export function CardHeader({ className, ...props }: ComponentProps<'div'>) {
   )
 }
 
-export function CardTitle({ className, ...props }: ComponentProps<'h3'>) {
-  return <h3 className={cn('text-sm leading-snug font-semibold', className)} {...props} />
+export interface CardTitleProps extends ComponentProps<'h2'> {
+  as?: 'h2' | 'h3' | 'h4'
+}
+
+export function CardTitle({ as: Heading = 'h2', className, ...props }: CardTitleProps) {
+  return <Heading className={cn('text-sm leading-snug font-semibold', className)} {...props} />
 }
 
 export function CardDescription({ className, ...props }: ComponentProps<'p'>) {

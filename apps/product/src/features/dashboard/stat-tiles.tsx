@@ -4,21 +4,19 @@ import { formatCount } from '@/lib/format'
 
 export function StatTiles({ counts }: { counts: DashboardSummary['counts'] }) {
   const parts = [
-    { label: 'Tutorials', count: counts.total },
-    { label: 'Drafts', count: counts.draft },
-    { label: VISIBILITY_LABEL.private, count: counts.private },
-    { label: VISIBILITY_LABEL.link, count: counts.link },
-    { label: VISIBILITY_LABEL.public, count: counts.public },
-  ]
+    { label: 'Tutorials', count: counts.total, always: true },
+    { label: 'Drafts', count: counts.draft, always: false },
+    { label: VISIBILITY_LABEL.public, count: counts.public, always: false },
+    { label: VISIBILITY_LABEL.link, count: counts.link, always: false },
+    { label: VISIBILITY_LABEL.private, count: counts.private, always: false },
+  ].filter((part) => part.always || part.count > 0)
 
   return (
-    <dl className="grid grid-cols-2 overflow-hidden rounded-lg border bg-card sm:grid-cols-5">
+    <dl aria-label="Your tutorials" className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
       {parts.map((part) => (
-        <div key={part.label} className="flex flex-col gap-2 px-5 py-4">
-          <dt className="text-xs text-muted-foreground">{part.label}</dt>
-          <dd className="tabular font-mono text-2xl font-medium tracking-tight text-foreground">
-            {formatCount(part.count)}
-          </dd>
+        <div key={part.label} className="flex items-baseline gap-2">
+          <dt className="text-muted-foreground">{part.label}</dt>
+          <dd className="tabular font-mono text-foreground">{formatCount(part.count)}</dd>
         </div>
       ))}
     </dl>

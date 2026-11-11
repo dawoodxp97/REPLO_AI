@@ -30,7 +30,7 @@ const USD_PRECISE_FORMAT = new Intl.NumberFormat('en-US', {
 const COUNT_FORMAT = new Intl.NumberFormat('en-US')
 
 export function formatUsd(usd: number): string {
-  return (usd < 0.01 ? USD_PRECISE_FORMAT : USD_FORMAT).format(usd)
+  return (usd > 0 && usd < 0.01 ? USD_PRECISE_FORMAT : USD_FORMAT).format(usd)
 }
 
 export function formatCount(value: number): string {

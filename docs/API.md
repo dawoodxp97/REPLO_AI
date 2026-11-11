@@ -78,6 +78,7 @@ Every state-changing request must carry an `Origin` equal to `PRODUCT_ORIGIN` wh
 - `tutorials.report` takes an optional `shareToken` (link-shared tutorials can be reported) and is idempotent per reporter and tutorial.
 - `jobs.cancel` settles atomically: running → canceling, idle → canceled, terminal or canceling returned as is; 409 if the state is still moving after two attempts.
 - `jobs.get`, `jobs.cancel`, `jobs.retry` and `repositories.import` return `tutorial: { owner, repo, slug } | null` next to `tutorialId`, so a finished job links to its tutorial without a library lookup; it is `null` until publish and after the tutorial is deleted.
+- The same job responses carry `repository: { owner, name } | null` (from the caller's linked repositories; `null` once the repository is removed from their library), `audience`, and `preset` (`null` if the stored model plan has none), so the job page can say what it is generating without another call.
 - `search.own` lesson hits carry their tutorial's `owner`, `repo`, `slug` and `tutorialTitle`, so every lesson hit links to its lesson even when the tutorial itself did not match.
 - Paged outputs share `pageOutput(item, cursor)`; `{ ok: true }` results share `OK_RESULT`; budget bounds share `BudgetUsd`.
 

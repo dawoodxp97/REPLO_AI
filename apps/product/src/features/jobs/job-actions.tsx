@@ -1,5 +1,6 @@
 import type { GenerationJobDto } from '@replo/contracts'
 import { Button } from '@replo/ui'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { InlineError } from '@/components/inline-error'
 import { describeJobActionError } from './job-errors'
 import { canCancelJob, canRetryJob } from './job-status'
@@ -10,29 +11,29 @@ export function JobActions({ job, onRetried }: { job: GenerationJobDto; onRetrie
   const retry = useRetryJob(job.jobId, onRetried)
   const canCancel = canCancelJob(job.status)
   const canRetry = canRetryJob(job.status)
-  const failure = cancel.error ?? retry.error
 
-  if (!canCancel && !canRetry && !failure) return null
+  if (!canCancel && !canRetry && !retry.error) return null
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 border-t pt-4">
       <div className="flex flex-wrap gap-2">
-        {canCancel ? (
-          <Button
-            variant="outline"
-            disabled={cancel.isPending}
-            onClick={() => cancel.mutate({ jobId: job.jobId })}
-          >
-            {cancel.isPending ? 'Canceling…' : 'Cancel generation'}
-          </Button>
-        ) : null}
         {canRetry ? (
           <Button disabled={retry.isPending} onClick={() => retry.mutate({ jobId: job.jobId })}>
             {retry.isPending ? 'Retrying…' : 'Retry from the last checkpoint'}
           </Button>
         ) : null}
+        {canCancel ? (
+          <ConfirmDialog
+            triggerLabel="Cancel generation"
+            title="Stop generating this tutorial?"
+            description="The run stops after the current step. What it has spent stays on your provider bill. You can retry later from the last finished stage."
+            confirmLabel="Stop generation"
+            run={() => cancel.mutateAsync({ jobId: job.jobId })}
+            describeError={describeJobActionError}
+          />
+        ) : null}
       </div>
-      {failure ? <InlineError>{describeJobActionError(failure)}</InlineError> : null}
+      {retry.error ? <InlineError>{describeJobActionError(retry.error)}</InlineError> : null}
     </div>
   )
 }

@@ -12,6 +12,7 @@ export interface RadioCardGroupProps<T extends string> {
   options: readonly RadioCardOption<T>[]
   value: T | undefined
   onChange: (value: T) => void
+  columns?: 'auto' | 2
   className?: string
 }
 
@@ -21,12 +22,20 @@ export function RadioCardGroup<T extends string>({
   options,
   value,
   onChange,
+  columns = 'auto',
   className,
 }: RadioCardGroupProps<T>) {
   return (
     <FieldSet className={cn('gap-2', className)}>
       <FieldLegend>{legend}</FieldLegend>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-2.5">
+      <div
+        className={cn(
+          'grid gap-2.5',
+          columns === 2
+            ? 'grid-cols-1 sm:grid-cols-2'
+            : 'grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]',
+        )}
+      >
         {options.map((option) => (
           <label
             key={option.value}

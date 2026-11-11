@@ -51,3 +51,28 @@ function sortNodes(nodes: TreeNode[]): TreeNode[] {
       return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
     })
 }
+
+const README = /^readme(\.[a-z]+)?$/i
+
+export function defaultSourcePath(nodes: readonly TreeNode[]): string | null {
+  return firstCitedPath(nodes) ?? rootReadmePath(nodes)
+}
+
+function firstCitedPath(nodes: readonly TreeNode[]): string | null {
+  for (const node of nodes) {
+    if (node.kind === 'folder') {
+      const found = firstCitedPath(node.children)
+      if (found) return found
+    } else if (node.entry.cited && node.entry.readable) {
+      return node.entry.path
+    }
+  }
+  return null
+}
+
+function rootReadmePath(nodes: readonly TreeNode[]): string | null {
+  const readme = nodes.find(
+    (node) => node.kind === 'file' && node.entry.readable && README.test(node.name),
+  )
+  return readme?.kind === 'file' ? readme.entry.path : null
+}

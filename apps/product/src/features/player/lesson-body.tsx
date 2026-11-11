@@ -73,7 +73,7 @@ export function LessonBody({
             onClick={onToggleComplete}
           >
             {completed ? <Check className="text-observed-text" /> : null}
-            {completed ? 'Mark as not complete' : 'Mark lesson complete'}
+            {completed ? 'Completed' : 'Mark lesson complete'}
           </Button>
           <LessonNeighbourLink direction="next" position={next} links={links} />
         </div>

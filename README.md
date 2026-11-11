@@ -67,7 +67,7 @@ Variables you will most likely change:
 | ------------------------- | ------------------------------------------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------- |
 | `apps/api/.env`           | `DATABASE_URL`                                                     | `postgres://app:app@localhost:5432/replo`        | Postgres connection                                                         |
 | `apps/api/.env`           | `KEY_ENCRYPTION_KEY`                                               | none, you must set it                            | AES-256-GCM key for stored provider keys (base64 of 32 bytes)               |
-| `apps/api/.env`           | `API_PUBLIC_URL`, `PRODUCT_ORIGIN`                                 | `http://localhost:4000`, `http://localhost:3001` | Where the API and the app are served (OAuth callbacks use `API_PUBLIC_URL`) |
+| `apps/api/.env`           | `API_PUBLIC_URL`, `PRODUCT_ORIGIN`                                 | `http://localhost:7200`, `http://localhost:7101` | Where the API and the app are served (OAuth callbacks use `API_PUBLIC_URL`) |
 | `apps/api/.env`           | `GOOGLE_CLIENT_*`, `GITHUB_APP_CLIENT_*`                           | empty                                            | Optional, for Google and GitHub sign-in (email and password needs nothing)  |
 | `apps/api/.env`           | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` | empty                                            | Optional, for GitHub App installs and repository webhooks                   |
 | `apps/product/.env.local` | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_URL`, `API_INTERNAL_URL`   | local ports                                      | Used at build time (`NEXT_PUBLIC_*`) and at runtime (`API_INTERNAL_URL`)    |
@@ -105,10 +105,10 @@ This starts every app through Turborepo:
 
 | Service               | URL                         | Health check                                                          |
 | --------------------- | --------------------------- | --------------------------------------------------------------------- |
-| Landing (static site) | http://localhost:3000       | —                                                                     |
-| Product (the app)     | http://localhost:3001/login | —                                                                     |
-| API                   | http://localhost:4000       | `curl http://127.0.0.1:4000/healthz` (liveness), `/readyz` (database) |
-| Worker                | health on port 4001         | `curl http://127.0.0.1:4001/healthz`                                  |
+| Landing (static site) | http://localhost:7100       | —                                                                     |
+| Product (the app)     | http://localhost:7101/login | —                                                                     |
+| API                   | http://localhost:7200       | `curl http://127.0.0.1:7200/healthz` (liveness), `/readyz` (database) |
+| Worker                | health on port 7201         | `curl http://127.0.0.1:7201/healthz`                                  |
 
 To start one part only:
 
@@ -158,20 +158,20 @@ Build first (see above), then start each part. Each command runs in the shell, s
 ```bash
 # API (from apps/api)
 cd apps/api
-node --env-file=.env dist/main.http.mjs      # listens on port 4000
+node --env-file=.env dist/main.http.mjs      # listens on port 7200
 
 # Worker (from apps/api, in a second terminal)
-node --env-file=.env dist/main.worker.mjs    # health on port 4001
+node --env-file=.env dist/main.worker.mjs    # health on port 7201
 
 # Product (from the repository root)
-pnpm --filter @replo/product start           # standalone server on port 3001
+pnpm --filter @replo/product start           # standalone server on port 7101
 ```
 
 The product's server-rendered pages call the API at `API_INTERNAL_URL`. Export it in the shell when you run the server. To change the port, set `PORT`.
 
 ```bash
 # Landing (from the repository root)
-pnpm --filter @replo/landing start           # serves apps/landing/out on port 3000
+pnpm --filter @replo/landing start           # serves apps/landing/out on port 7100
 ```
 
 The landing `start` script runs `npx serve@14.2.6`, which downloads that version the first time.
@@ -194,7 +194,7 @@ docker compose exec postgres createdb -U app replo_test    # if you use Docker
 TEST_DATABASE_URL=postgres://app:app@localhost:5432/replo_test pnpm test
 ```
 
-**Browser tests (Playwright).** They build the product and start it with a mock API on ports 3101 and 4100. Stop anything that uses those ports first. Install the browser once:
+**Browser tests (Playwright).** They build the product and start it with a mock API on ports 7110 and 7210. Stop anything that uses those ports first. Install the browser once:
 
 ```bash
 pnpm --filter @replo/product exec playwright install chromium
@@ -215,9 +215,9 @@ Read [`docs/DATABASE.md`](./docs/DATABASE.md) before you change the schema. Brea
 
 ```
 apps/
-  landing/        Next.js 16 static export (Cloudflare Pages)         :3000
-  product/        Next.js 16 app, learning player and public pages     :3001
-  api/            Fastify 5 + oRPC; own auth (sessions, email and password, Google, GitHub); HTTP API and worker  :4000 (worker health :4001)
+  landing/        Next.js 16 static export (Cloudflare Pages)         :7100
+  product/        Next.js 16 app, learning player and public pages     :7101
+  api/            Fastify 5 + oRPC; own auth (sessions, email and password, Google, GitHub); HTTP API and worker  :7200 (worker health :7201)
 packages/
   contracts/      Zod 4 + oRPC contract, the only code the frontends and API share
   ai/             Model roles, catalogue, budgets and BYOK model resolution
@@ -236,7 +236,7 @@ OLD_LEGACY_REPLO/ The legacy app, read only as a feature reference (MEM D-016)
 - **The API exits at startup with a configuration error.** Check `apps/api/.env`. `KEY_ENCRYPTION_KEY` must decode to exactly 32 bytes.
 - **`/readyz` returns 503.** The API cannot reach the database. Check `DATABASE_URL`, and that `pnpm infra:up` or your local Postgres is running.
 - **`localhost` does not reach the server, but `127.0.0.1` does.** Some macOS setups resolve `localhost` to IPv6 (`::1`), where another process may already listen. Use `127.0.0.1` or stop the other process.
-- **Port 3000, 3001, 4000 or 4001 is already in use.** Find the process with `lsof -iTCP:3001 -sTCP:LISTEN -n -P` and stop it, or change the port in the matching environment file.
+- **Port 7100, 7101, 7200 or 7201 is already in use.** Find the process with `lsof -iTCP:7101 -sTCP:LISTEN -n -P` and stop it, or change the port in the matching environment file.
 - **TypeScript reports errors about routes after you rename a folder.** Delete `apps/product/.next` and run the command again.
 - **Playwright reports a missing browser.** Run `pnpm --filter @replo/product exec playwright install chromium`.
 

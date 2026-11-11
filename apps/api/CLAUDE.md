@@ -6,7 +6,7 @@ Fastify 5 + oRPC + own auth (`modules/identity`) + Drizzle + pg-boss. Two proces
 
 ```
 src/main.http.ts     HTTP server: helmet, cors(PRODUCT_ORIGIN), rate-limit, /healthz /readyz, auth, webhook, SSE, /rpc/*
-src/main.worker.ts   pg-boss worker + reaper + :4001/healthz
+src/main.worker.ts   pg-boss worker + reaper + :7201/healthz
 src/orpc.ts          `os` (base) and `authed` builders — implement(contract)
 src/router.ts        composes module routers
 src/context.ts       RequestContext + Services

@@ -14,20 +14,27 @@ function CheckerReport() {
           <MonoLabel className="text-xs text-foreground">validation report</MonoLabel>
           <MonoLabel>snapshot @3b17b2e</MonoLabel>
         </CodePanelHeader>
-        <ul className="scrollbar-thin overflow-x-auto py-2 font-mono text-compact leading-6">
-          {REPORT.map((entry) => {
-            const style = REPORT_STATUS_STYLE[entry.status]
-            return (
-              <li key={entry.status} className="flex w-max min-w-full gap-3 px-4 py-1">
-                <span aria-hidden="true" className={cn('w-4 shrink-0 text-center', style.tone)}>
-                  {style.glyph}
-                </span>
-                <span className="w-[6.5rem] shrink-0 text-muted-foreground">{entry.status}</span>
-                <span className="whitespace-pre text-foreground">{entry.detail}</span>
-              </li>
-            )
-          })}
-        </ul>
+        <div
+          role="region"
+          aria-label="Validation report"
+          tabIndex={0}
+          className="scrollbar-thin overflow-x-auto py-2 font-mono text-compact leading-6"
+        >
+          <ul>
+            {REPORT.map((entry) => {
+              const style = REPORT_STATUS_STYLE[entry.status]
+              return (
+                <li key={entry.status} className="flex w-max min-w-full gap-3 px-4 py-1">
+                  <span aria-hidden="true" className={cn('w-4 shrink-0 text-center', style.tone)}>
+                    {style.glyph}
+                  </span>
+                  <span className="w-[6.5rem] shrink-0 text-muted-foreground">{entry.status}</span>
+                  <span className="whitespace-pre text-foreground">{entry.detail}</span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
         <p className="border-t px-4 py-2.5 font-mono text-meta text-muted-foreground">
           1 resolved · 1 downgraded · 1 dropped
         </p>

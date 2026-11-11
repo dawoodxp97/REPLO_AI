@@ -14,7 +14,7 @@ export function SettingsNav({ current }: { current: SettingsSection }) {
           href={`/settings/${item.key}`}
           aria-current={item.key === current ? 'page' : undefined}
           className={cn(
-            'rounded-md px-3 py-1.5 text-sm whitespace-nowrap text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            'rounded-md px-3 py-1.5 text-sm whitespace-nowrap pointer-coarse:py-2.5 text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40',
             item.key === current && 'bg-accent font-medium text-accent-foreground',
           )}
         >

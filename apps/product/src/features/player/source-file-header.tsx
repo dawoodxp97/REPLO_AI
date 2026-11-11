@@ -41,7 +41,7 @@ export function SourceFileHeader({ path, commitSha, githubHref }: SourceFileHead
           href={githubHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-link underline-offset-4 hover:underline"
+          className="inline-flex items-center gap-1 text-link underline-offset-4 hover:underline pointer-coarse:min-h-10"
         >
           Open on GitHub
           <ExternalLink className="size-3" />

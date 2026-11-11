@@ -23,8 +23,10 @@ export interface PlayerLayoutProps {
   onCloseSource: () => void
 }
 
+export const SOURCE_COLUMN_QUERY = '(min-width: 768px)'
+
 const SEPARATOR_CLASS =
-  'relative w-px bg-border outline-none transition-colors before:absolute before:inset-y-0 before:-inset-x-1 before:content-[""] hover:bg-ring/60 focus-visible:bg-ring'
+  'relative w-px bg-border outline-none transition-colors before:absolute before:inset-y-0 before:-inset-x-1 before:content-[""] hover:bg-ring/60 focus-visible:bg-ring focus-visible:before:bg-ring/30'
 
 export function PlayerLayout({
   scrollKey,
@@ -38,7 +40,7 @@ export function PlayerLayout({
   sourceOpen,
   onCloseSource,
 }: PlayerLayoutProps) {
-  const wide = useMediaQuery('(min-width: 768px)')
+  const wide = useMediaQuery(SOURCE_COLUMN_QUERY)
   const [outlineKey, setOutlineKey] = useState<string | null>(null)
   const outlineOpen = outlineKey === scrollKey
   const [defaultLayout] = useState(readPanelLayout)
@@ -76,7 +78,7 @@ export function PlayerLayout({
           </Panel>
           <Separator className={SEPARATOR_CLASS} />
           <Panel id="source" defaultSize="34%" minSize="22%" className="overflow-y-auto p-4">
-            {source}
+            <aside aria-label="Source">{source}</aside>
           </Panel>
         </Group>
       ) : (

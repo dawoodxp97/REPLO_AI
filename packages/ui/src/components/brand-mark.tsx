@@ -37,7 +37,7 @@ export function Brand({
     <LinkComponent
       href={href}
       aria-label="Replo home"
-      className={cn('inline-flex items-center gap-2 rounded-sm', className)}
+      className={cn('inline-flex items-center gap-2 rounded-sm pointer-coarse:min-h-10', className)}
     >
       <BrandMark />
       <span className="text-brand font-semibold tracking-display">Replo</span>

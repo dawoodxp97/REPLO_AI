@@ -4,7 +4,7 @@ import { DOCS_INDEX, HOME_ANCHORS, KEY_GUIDE, POLICY_PAGES } from '@/lib/routes'
 import { Brand } from './brand'
 import { Container } from './page-section'
 
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001'
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:7101'
 
 export const LOGIN_URL = `${APP_URL}/login`
 

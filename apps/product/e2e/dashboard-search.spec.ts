@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { SEARCH_RESULTS } from './fixtures/handlers'
 import { mockRpc } from './support/rpc-mock'
 
@@ -38,26 +38,34 @@ test('an empty workspace explains setup and offers direct next steps', async ({ 
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
 })
 
-test('search finds a lesson in the library and opens it', async ({ page }) => {
+test('search finds a lesson in the library and opens it', async ({ page, isMobile }) => {
   await mockRpc(page)
 
   await page.goto('/')
-  await page.getByRole('combobox', { name: 'Search your library' }).fill('thunk')
+  await searchFor(page, 'thunk', isMobile)
 
   await page.getByRole('link', { name: 'The button dispatches a thunk' }).click()
   await expect(page).toHaveURL(/\/learn\/ch1\/l1$/)
 })
 
-test('a lesson hit links to its lesson without a matching tutorial hit', async ({ page }) => {
+test('a lesson hit links to its lesson without a matching tutorial hit', async ({
+  page,
+  isMobile,
+}) => {
   await mockRpc(page, {
     'search.own': () => ({ body: { ...SEARCH_RESULTS, tutorials: [] } }),
   })
 
   await page.goto('/')
-  await page.getByRole('combobox', { name: 'Search your library' }).fill('thunk')
+  await searchFor(page, 'thunk', isMobile)
 
   await expect(page.getByRole('link', { name: /The button dispatches a thunk/ })).toHaveAttribute(
     'href',
     '/tutorials/acme/widgets/cart-flow/learn/ch1/l1',
   )
 })
+
+async function searchFor(page: Page, text: string, isMobile: boolean) {
+  if (isMobile) await page.getByRole('button', { name: 'Search your library' }).click()
+  await page.getByRole('combobox', { name: 'Search your library' }).fill(text)
+}

@@ -27,7 +27,7 @@ export function VersionList({
                 shareToken,
               }).overview()}
               aria-current={current ? 'page' : undefined}
-              className="flex w-full items-center justify-between gap-4 px-4 py-3 text-sm transition-colors outline-none hover:bg-accent focus-visible:bg-accent"
+              className="flex w-full items-center justify-between gap-4 px-4 py-3 text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:-outline-offset-2"
             >
               <span className="flex items-center gap-2">
                 <span className={current ? 'font-medium' : undefined}>

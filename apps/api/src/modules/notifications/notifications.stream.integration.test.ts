@@ -34,7 +34,7 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
     registerNotificationsStream(app, {
       auth: stubAuth,
       notifications: createNotificationsService(db),
-      productOrigin: 'http://localhost:3001',
+      productOrigin: 'http://localhost:7101',
       pollMs: 20,
       heartbeatMs: 60_000,
       maxStreamsPerUser: 1,
@@ -152,7 +152,7 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
       registerNotificationsStream(slowApp, {
         auth: revocableAuth,
         notifications: createNotificationsService(db),
-        productOrigin: 'http://localhost:3001',
+        productOrigin: 'http://localhost:7101',
         pollMs: 20,
         heartbeatMs: 60_000,
         sessionRecheckMs: 40,
@@ -188,7 +188,7 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
       registerNotificationsStream(longApp, {
         auth: stubAuth,
         notifications: createNotificationsService(db),
-        productOrigin: 'http://localhost:3001',
+        productOrigin: 'http://localhost:7101',
         pollMs: 60_000,
         heartbeatMs: 60_000,
         maxStreamsPerUser: 1,

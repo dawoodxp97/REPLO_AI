@@ -4,7 +4,7 @@ import { apiErrorDetails } from '@/lib/api-error'
 
 export const VISIBILITY_LABEL: Record<Visibility, string> = {
   private: 'Private',
-  link: 'Link',
+  link: 'Shared by link',
   public: 'Public',
 }
 

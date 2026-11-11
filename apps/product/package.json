@@ -4,7 +4,7 @@
   "private": true,
   "description": "The Replo app: import flow, job progress, learning player, public tutorial pages (SSR). No business logic — talks to apps/api through the shared contract.",
   "scripts": {
-    "dev": "next dev --port 3001",
+    "dev": "next dev --port 7101",
     "build": "next build",
     "start": "node scripts/start.ts",
     "typecheck": "tsc --noEmit",

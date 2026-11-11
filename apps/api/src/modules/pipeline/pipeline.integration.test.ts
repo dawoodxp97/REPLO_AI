@@ -297,6 +297,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
       indexing,
       notifications,
       tutorials: createTutorialReader(db),
+      repositories: { describeLinked: async () => new Map() },
     })
     runtime = createJobRuntime({ db, queue, notifications })
     keys = createKeysService({ db, vault, checker: fakeKeyChecker('valid'), jobs })

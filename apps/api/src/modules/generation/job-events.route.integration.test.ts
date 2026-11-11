@@ -21,7 +21,7 @@ import {
 import { registerJobEventsRoute } from './job-events.route'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
-const ORIGIN = 'http://localhost:3001'
+const ORIGIN = 'http://localhost:7101'
 
 const models: ModelPlan = {
   provider: 'anthropic',

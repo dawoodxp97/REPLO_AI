@@ -24,6 +24,7 @@ export function PresetField({ control }: { control: Control<ImportFormValues> })
       {({ presets }) => (
         <RadioCardGroup
           name="preset"
+          columns={2}
           legend="Model preset"
           options={toPresetOptions(presets, allowCustom)}
           value={field.value}

@@ -7,7 +7,11 @@ export function NativeSelect({ className, ...props }: ComponentProps<'select'>) 
   return (
     <div className="relative w-full">
       <select
-        className={cn(controlClass, 'h-9 cursor-pointer appearance-none pr-9 pl-3', className)}
+        className={cn(
+          controlClass,
+          'h-9 cursor-pointer appearance-none pr-9 pl-3 pointer-coarse:h-10',
+          className,
+        )}
         {...props}
       />
       <ChevronDown

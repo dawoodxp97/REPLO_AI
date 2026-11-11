@@ -1,5 +1,6 @@
 import {
   MICROS_PER_USD,
+  ModelPreset,
   type Audience,
   type GenerationJobDto,
   type ModelPlan,
@@ -11,6 +12,7 @@ import type { JobQueue } from '../../platform/queue/job-queue'
 import type { IndexingService } from '../indexing/indexing.service'
 import type { KeyJobs } from '../keys/keys.service'
 import type { NotificationsService } from '../notifications/notifications.service'
+import type { RepositoryLibrary } from '../repositories/library.service'
 import type { TutorialReader } from '../tutorials/reader.service'
 import {
   KEY_REMOVED,
@@ -40,6 +42,7 @@ export interface JobServiceDeps {
   indexing: Pick<IndexingService, 'snapshotRef'>
   notifications: NotificationsService
   tutorials: Pick<TutorialReader, 'refOf'>
+  repositories: Pick<RepositoryLibrary, 'describeLinked'>
 }
 
 export interface JobService extends KeyJobs {
@@ -54,7 +57,7 @@ export interface JobService extends KeyJobs {
 }
 
 export function createJobService(deps: JobServiceDeps): JobService {
-  const { db, queue, indexing, notifications, tutorials } = deps
+  const { db, queue, indexing, notifications, tutorials, repositories } = deps
 
   const getOwnedJob: JobService['getOwnedJob'] = async (userId, jobId) => {
     const job = await jobsRepo(db).findOwned(jobId, userId)
@@ -63,13 +66,17 @@ export function createJobService(deps: JobServiceDeps): JobService {
 
   const toDto: JobService['toDto'] = async (job) => {
     const snapshot = requireFound(await indexing.snapshotRef(job.snapshotId), 'Snapshot')
-    const tutorial = job.tutorialId
-      ? await tutorials.refOf({ userId: job.userId }, job.tutorialId)
-      : undefined
+    const [tutorial, names] = await Promise.all([
+      job.tutorialId ? tutorials.refOf({ userId: job.userId }, job.tutorialId) : undefined,
+      repositories.describeLinked(job.userId, [snapshot.repositoryId]),
+    ])
     return {
       jobId: job.id,
       repositoryId: snapshot.repositoryId,
+      repository: names.get(snapshot.repositoryId) ?? null,
       commitSha: snapshot.commitSha,
+      audience: job.audience,
+      preset: ModelPreset.safeParse(job.models.preset).data ?? null,
       status: job.status,
       stage: job.stage,
       progress: job.progress,

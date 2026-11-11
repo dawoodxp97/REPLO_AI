@@ -13,28 +13,28 @@ cp apps/product/.env.example apps/product/.env.local
 cp apps/landing/.env.example apps/landing/.env.local
 ```
 
-Edit `apps/api/.env`: set `KEY_ENCRYPTION_KEY` (`openssl rand -base64 32`; it must be base64 of exactly 32 bytes) and `API_PUBLIC_URL=http://localhost:4000`. Everything else has dev defaults, and email and password sign-in works with no extra setup.
+Edit `apps/api/.env`: set `KEY_ENCRYPTION_KEY` (`openssl rand -base64 32`; it must be base64 of exactly 32 bytes) and `API_PUBLIC_URL=http://localhost:7200`. Everything else has dev defaults, and email and password sign-in works with no extra setup.
 
 ```bash
 pnpm infra:up        # Postgres :5432 (user/pass/db = app/app/replo) + MinIO :9000
 pnpm db:migrate      # applies apps/api/drizzle/*.sql (pg-boss creates its own `pgboss` schema on first worker start)
-pnpm dev             # landing :3000 · product :3001 · api :4000 · worker (health :4001)
+pnpm dev             # landing :7100 · product :7101 · api :7200 · worker (health :7201)
 ```
 
 Run one thing: `pnpm dev:landing`, `pnpm dev:product`, `pnpm dev:api` (api + worker). Quality gate: `pnpm verify`.
 
-**Health checks:** `curl localhost:4000/healthz` (liveness), `/readyz` (DB), `curl localhost:4001/healthz` (worker).
+**Health checks:** `curl localhost:7200/healthz` (liveness), `/readyz` (DB), `curl localhost:7201/healthz` (worker).
 
 ### Sign-in providers
 
-Email and password works out of the box: open `http://localhost:3001/login` and choose **Create account**. Passwords are hashed with scrypt, and sessions are opaque tokens stored hashed in `session`.
+Email and password works out of the box: open `http://localhost:7101/login` and choose **Create account**. Passwords are hashed with scrypt, and sessions are opaque tokens stored hashed in `session`.
 
 GitHub and Google buttons are always on the login page. Set credentials in `apps/api/.env` before a live round trip; without them, **Continue with GitHub** or **Continue with Google** sends you back to `/login?error=OAUTH_NOT_CONFIGURED`.
 
-- **GitHub:** create a GitHub App (Settings → Developer settings → GitHub Apps). Set the callback URL to `http://localhost:4000/auth/github/callback`. Under account permissions, grant **Email addresses: read**, because sign-in reads the verified email from `/user/emails`. Put the client ID and client secret in `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET`.
-- **Google:** create an OAuth client (Google Cloud → APIs & Services → Credentials, type Web application). Add `http://localhost:4000/auth/google/callback` as an authorised redirect URI, then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+- **GitHub:** create a GitHub App (Settings → Developer settings → GitHub Apps). Set the callback URL to `http://localhost:7200/auth/github/callback`. Under account permissions, grant **Email addresses: read**, because sign-in reads the verified email from `/user/emails`. Put the client ID and client secret in `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET`.
+- **Google:** create an OAuth client (Google Cloud → APIs & Services → Credentials, type Web application). Add `http://localhost:7200/auth/google/callback` as an authorised redirect URI, then set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 
-Restart `pnpm dev:api` after changing `apps/api/.env`. The session cookie is set by the API (`localhost:4000`) and sent with `credentials: 'include'`; CORS is locked to `PRODUCT_ORIGIN`.
+Restart `pnpm dev:api` after changing `apps/api/.env`. The session cookie is set by the API (`localhost:7200`) and sent with `credentials: 'include'`; CORS is locked to `PRODUCT_ORIGIN`.
 
 A GitHub or Google login only signs in to an account whose email the provider has verified. If an email/password account already uses that email, sign in with the password first and connect the provider from **Settings → Profile**.
 
@@ -42,7 +42,7 @@ For the GitHub App installs and private repositories, see the GitHub notes in `M
 
 ### Public import (dev)
 
-1. Sign in at `http://localhost:3001/login`.
+1. Sign in at `http://localhost:7101/login`.
 2. Open **Import**, choose **Public URL**, paste `https://github.com/owner/repo` (no trailing path).
 3. Click **Check repository**. The API calls GitHub’s REST API **without** a token (60 requests/hour per IP on GitHub’s side).
 4. Add a provider key under **Settings → API keys** before **Generate tutorial** (import refuses without a valid key).

@@ -1,9 +1,8 @@
 'use client'
 
 import { PageHeader } from '@/components/page-header'
-import { LinkButton } from '@/components/link-button'
-import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
 import { RepositoryList } from './repository-list'
+import { NewTutorialAction } from '@/components/new-tutorial-action'
 
 export function MyRepositories() {
   return (
@@ -11,7 +10,7 @@ export function MyRepositories() {
       <PageHeader
         title="Repositories"
         description="Repositories you have imported, with the state of their latest tutorial job."
-        action={<LinkButton href={importPath()}>{NEW_TUTORIAL_LABEL}</LinkButton>}
+        action={<NewTutorialAction />}
       />
       <RepositoryList />
     </div>

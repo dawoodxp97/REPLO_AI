@@ -46,7 +46,7 @@ export function TutorialOutline({
                     lessonPath(tutorial, chapter.key, lesson.key),
                     linkContext,
                   )}
-                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-sm transition-colors outline-none hover:bg-accent focus-visible:bg-accent"
+                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:-outline-offset-2"
                 >
                   <span className="min-w-0">{lesson.title}</span>
                   <span className="tabular shrink-0 font-mono text-xs text-muted-foreground">
