@@ -1,10 +1,11 @@
 import { FormField, NativeSelect, Skeleton } from '@replo/ui'
+import { useQuery } from '@tanstack/react-query'
 import { LinkButton } from '@/components/link-button'
 import { QueryBoundary } from '@/components/query-boundary'
 import { fieldInvalid } from '@/lib/field-a11y'
 import { formatRepoName } from '@/lib/format'
+import { orpc } from '@/lib/orpc'
 import { MISSING_SOURCE_ERROR, type SourcePickerProps } from './source-modes'
-import { useInstallationRepos } from './use-installation-repos'
 
 export function InstallationPicker({ value, onChange, missing }: SourcePickerProps) {
   const { repositories, installHref } = useInstallationRepos()
@@ -63,4 +64,15 @@ export function InstallationPicker({ value, onChange, missing }: SourcePickerPro
       }
     </QueryBoundary>
   )
+}
+
+function useInstallationRepos() {
+  const repositories = useQuery(orpc.github.listRepos.queryOptions())
+  const installUrl = useQuery(
+    orpc.github.installUrl.queryOptions({
+      enabled: repositories.data?.length === 0,
+    }),
+  )
+
+  return { repositories, installHref: installUrl.data?.url ?? null }
 }

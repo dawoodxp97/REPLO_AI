@@ -30,6 +30,8 @@ export const base = [
   },
 ]
 
+const BANNER_OR_TODO = /[-=*#_~]{4,}|\b(TODO|FIXME|XXX)\b/
+
 export const noComments = {
   plugins: {
     replo: {
@@ -39,15 +41,19 @@ export const noComments = {
             type: 'suggestion',
             schema: [],
             messages: {
-              noComment:
-                'No comments in code: names, types and tests carry the meaning (MEM D-064).',
+              noBlockComment:
+                'Use a short // line comment that says why, or none. Block comments and JSDoc are not allowed (RULES.md §2).',
+              noBanner: 'No divider banners or TODO comments (RULES.md §2).',
             },
           },
           create(context) {
             return {
               Program() {
                 for (const comment of context.sourceCode.getAllComments())
-                  context.report({ loc: comment.loc, messageId: 'noComment' })
+                  if (comment.type === 'Block')
+                    context.report({ loc: comment.loc, messageId: 'noBlockComment' })
+                  else if (BANNER_OR_TODO.test(comment.value))
+                    context.report({ loc: comment.loc, messageId: 'noBanner' })
               },
             }
           },

@@ -5,17 +5,17 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { TutorialContent, ValidationReport } from '@replo/contracts'
 import { ANALYZER_VERSION } from '@replo/repo-analysis'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   generationJobs,
   learningProgress,
   quizAttempts,
   repositories,
-  repoSnapshots,
+  repositorySnapshots,
 } from '../../platform/db/schema'
 import { createTutorialPublisher, type TutorialPublisher } from '../tutorials/publisher.service'
-import { createTutorialReader } from '../tutorials/reader.service'
+import { createVersionAccess } from '../tutorials/version-access.service'
 import { learningRepo } from './learning.repo'
 import { createLearningService, type LearningService } from './learning.service'
 
@@ -158,9 +158,9 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     await migrate(db, {
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
-    await db.execute(sql`truncate table "user", repositories restart identity cascade`)
+    await db.execute(sql`truncate table users, repositories restart identity cascade`)
     publisher = createTutorialPublisher(db)
-    learning = createLearningService({ db, tutorials: createTutorialReader(db) })
+    learning = createLearningService({ db, tutorials: createVersionAccess(db) })
   })
 
   afterAll(async () => {
@@ -169,7 +169,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
 
   const seedUser = async () => {
     const id = randomUUID()
-    await db.insert(user).values({ id, name: 'Learner', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Learner', email: `${id}@test.invalid` })
     return id
   }
 
@@ -188,14 +188,14 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
       .returning({ id: repositories.id })
     if (!repo) throw new Error('repository seed failed')
     const [snapshot] = await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({
         repositoryId: repo.id,
         commitSha: SHA,
         analyzerVersion: ANALYZER_VERSION,
         status: 'ready',
       })
-      .returning({ id: repoSnapshots.id })
+      .returning({ id: repositorySnapshots.id })
     if (!snapshot) throw new Error('snapshot seed failed')
     return { repositoryId: repo.id, snapshotId: snapshot.id, name }
   }
@@ -206,7 +206,6 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
       .values({
         userId,
         snapshotId,
-        kind: 'generate',
         status: 'succeeded',
         audience: 'intermediate',
         idempotencyKey: randomUUID(),
@@ -383,6 +382,55 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
       ]),
     )
     expect(await learning.progress(owner, { tutorialId })).toMatchObject({ quizAttempts: 2 })
+  })
+
+  it('totals reading across versions: a lesson finished twice counts once, per user', async () => {
+    const owner = await seedUser()
+    const other = await seedUser()
+    const seed = await seedRepo()
+    const first = await publish(owner, seed, cartChapters)
+    await learning.markLesson(owner, {
+      versionId: first.versionId,
+      lessonKey: 'map',
+      status: 'completed',
+    })
+    await learning.markLesson(owner, {
+      versionId: first.versionId,
+      lessonKey: 'cart',
+      status: 'in_progress',
+    })
+    const second = await publish(owner, seed, revisedChapters)
+    await learning.markLesson(owner, {
+      versionId: second.versionId,
+      lessonKey: 'map',
+      status: 'completed',
+    })
+    for (const choiceKey of ['false', 'true']) {
+      await learning.submitQuiz(owner, {
+        versionId: first.versionId,
+        lessonKey: 'map',
+        questionKey: 'memory',
+        choiceKey,
+      })
+    }
+
+    expect(await learning.readingStats(owner)).toEqual({
+      lessonsCompleted: 1,
+      lessonsCompletedLast7Days: 1,
+      quizAnswers: 2,
+      quizAnswersCorrect: 1,
+    })
+    const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    expect(await learning.readingStats(owner, nextMonth)).toMatchObject({
+      lessonsCompleted: 1,
+      lessonsCompletedLast7Days: 0,
+    })
+    expect(await learning.readingStats(other)).toEqual({
+      lessonsCompleted: 0,
+      lessonsCompletedLast7Days: 0,
+      quizAnswers: 0,
+      quizAnswersCorrect: 0,
+    })
   })
 
   it('rejects a choice that is not an option and a question the lesson does not have', async () => {

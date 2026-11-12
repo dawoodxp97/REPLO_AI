@@ -43,6 +43,8 @@ export function createTutorialPublisher(db: Db): TutorialPublisher {
         (await writer.findForUserRepo(input.userId, input.repositoryId)) ??
         (await createTutorial(tx, input))
 
+      // generation_job_id is unique per version. Under the tutorial lock, a replayed publish
+      // for the same job returns the version it already made instead of adding another.
       await writer.lockById(tutorial.id)
       const racedReplay = await writer.findVersionByJob(input.jobId)
       if (racedReplay) return toPublished(racedReplay)

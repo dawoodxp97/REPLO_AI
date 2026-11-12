@@ -30,6 +30,12 @@ export const DashboardSummary = z.object({
       slug: z.string(),
     })
     .nullable(),
+  reading: z.object({
+    lessonsCompleted: NonNegativeInt,
+    lessonsCompletedLast7Days: NonNegativeInt,
+    quizAnswers: NonNegativeInt,
+    quizAnswersCorrect: NonNegativeInt,
+  }),
 })
 export type DashboardSummary = z.infer<typeof DashboardSummary>
 

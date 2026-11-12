@@ -179,17 +179,17 @@ The HTTP process needs its own `PgBoss` instance for `send` (create it in `main.
 
 Stages are `ingest, index, summaries, architecture, outline, lessons, validate, publish` (`packages/contracts/src/jobs.ts → STAGES`). Each stage handler is registered in `apps/api/src/modules/pipeline/pipeline.service.ts → stageHandlers` and implemented under `modules/pipeline/stages/`. A handler:
 
-- is idempotent: it reads its own checkpoint from `job_stage_outputs` first and returns early if the work is already done;
+- is idempotent: it reads its own checkpoint from `job_checkpoints` first and returns early if the work is already done;
 - passes `ctx.signal` to every fetch and LLM call so cancel and timeouts abort cleanly;
 - throws `JobError(code, retryable)` for failures the worker should classify;
 - writes intermediate results with `deps.outputs.write(jobId, stage, unit, value)`.
 
-The loop in `jobs/generate-tutorial.worker.ts` handles claim, heartbeat (15 s), per-stage timeout, cancel (`CanceledError`), retry with backoff (rethrow → pg-boss), terminal failure, `job_events` and progress. LLM stages call the session from `openSession` (budget-guarded, built on `generateStructured` from `@replo/ai`), never a provider SDK directly. Keep heavy logic in a module service and the stage handler thin.
+The loop in `worker/generate-tutorial.ts` handles claim, heartbeat (15 s), per-stage timeout, cancel (`CanceledError`), retry with backoff (rethrow → pg-boss), terminal failure, `job_events` and progress. LLM stages call the session from `openSession` (budget-guarded, built on `generateStructured` from `@replo/ai`), never a provider SDK directly. Keep heavy logic in a module service and the stage handler thin.
 
 ### Add a new job type (e.g. nightly cleanup)
 
-1. Name + versioned payload in `apps/api/src/jobs/schemas.ts` (`v: 1` discriminated union; parse at enqueue **and** dequeue).
-2. Handler in `apps/api/src/jobs/<name>.worker.ts` taking `(raw, deps)` so it is testable with fakes (copy `generate-tutorial.worker.test.ts`).
+1. Name + versioned payload in `apps/api/src/worker/job-payload.ts` (`v: 1` discriminated union; parse at enqueue **and** dequeue).
+2. Handler in `apps/api/src/worker/<name>.ts` taking `(raw, deps)` so it is testable with fakes (copy `generate-tutorial.test.ts`).
 3. Register in `apps/api/src/main.worker.ts`:
 
 ```ts

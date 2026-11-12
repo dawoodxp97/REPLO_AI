@@ -42,9 +42,10 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 import { uuidv7 } from 'uuidv7'
-import { user } from './auth-schema'
+import { users } from './auth-schema'
 
 const id = () =>
   uuid('id')
@@ -54,7 +55,7 @@ const ts = (name: string) => timestamp(name, { withTimezone: true })
 const ownerId = () =>
   text('user_id')
     .notNull()
-    .references(() => user.id, { onDelete: 'cascade' })
+    .references(() => users.id, { onDelete: 'cascade' })
 const createdAt = () => ts('created_at').notNull().defaultNow()
 const updatedAt = () => ts('updated_at').notNull().defaultNow()
 
@@ -132,12 +133,12 @@ export const userRepositories = pgTable(
     repositoryId: uuid('repository_id')
       .notNull()
       .references(() => repositories.id),
-    installationId: bigint('installation_id', { mode: 'number' }),
+    githubInstallationId: bigint('github_installation_id', { mode: 'number' }),
     revokedAt: ts('revoked_at'),
   },
   (t) => [
     primaryKey({ columns: [t.userId, t.repositoryId] }),
-    index('user_repositories_installation_idx').on(t.installationId),
+    index('user_repositories_installation_idx').on(t.githubInstallationId),
     index('user_repositories_active_idx')
       .on(t.userId)
       .where(sql`${t.revokedAt} is null`),
@@ -153,7 +154,7 @@ export const providerKeys = pgTable(
     label: text('label').notNull().default('default'),
     ciphertext: text('ciphertext').notNull(),
     iv: text('iv').notNull(),
-    keyVersion: integer('key_version').notNull(),
+    encryptionKeyVersion: integer('encryption_key_version').notNull(),
     last4: text('last4').notNull(),
     lastValidatedAt: ts('last_validated_at'),
     createdAt: createdAt(),
@@ -167,14 +168,14 @@ export const providerKeys = pgTable(
 export const modelPreferences = pgTable('model_preferences', {
   userId: text('user_id')
     .primaryKey()
-    .references(() => user.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'cascade' }),
   preset: text('preset').$type<ModelPreset>().notNull().default('balanced'),
   customModels: jsonb('custom_models').$type<CustomModels>(),
   defaultBudgetMicros: bigint('default_budget_micros', { mode: 'number' }),
 })
 
-export const repoSnapshots = pgTable(
-  'repo_snapshots',
+export const repositorySnapshots = pgTable(
+  'repository_snapshots',
   {
     id: id(),
     repositoryId: uuid('repository_id')
@@ -188,12 +189,12 @@ export const repoSnapshots = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    uniqueIndex('repo_snapshots_repo_sha_analyzer_idx').on(
+    uniqueIndex('repository_snapshots_repo_sha_analyzer_idx').on(
       t.repositoryId,
       t.commitSha,
       t.analyzerVersion,
     ),
-    index('repo_snapshots_repo_created_idx').on(t.repositoryId, t.createdAt.desc()),
+    index('repository_snapshots_repo_created_idx').on(t.repositoryId, t.createdAt.desc()),
   ],
 )
 
@@ -202,7 +203,7 @@ export const snapshotFiles = pgTable(
   {
     snapshotId: uuid('snapshot_id')
       .notNull()
-      .references(() => repoSnapshots.id, { onDelete: 'cascade' }),
+      .references(() => repositorySnapshots.id, { onDelete: 'cascade' }),
     path: text('path').notNull(),
     blobSha: text('blob_sha').notNull(),
     language: text('language').$type<Language>(),
@@ -216,12 +217,12 @@ export const snapshotFiles = pgTable(
   ],
 )
 
-export const symbols = pgTable(
-  'symbols',
+export const snapshotSymbols = pgTable(
+  'snapshot_symbols',
   {
     snapshotId: uuid('snapshot_id')
       .notNull()
-      .references(() => repoSnapshots.id, { onDelete: 'cascade' }),
+      .references(() => repositorySnapshots.id, { onDelete: 'cascade' }),
     symbolKey: text('symbol_key').notNull(),
     name: text('name').notNull(),
     kind: text('kind').$type<SymbolRecord['kind']>().notNull(),
@@ -233,23 +234,23 @@ export const symbols = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.snapshotId, t.symbolKey] }),
-    index('symbols_path_idx').on(t.snapshotId, t.path),
+    index('snapshot_symbols_path_idx').on(t.snapshotId, t.path),
   ],
 )
 
-export const fileEdges = pgTable(
-  'file_edges',
+export const snapshotFileEdges = pgTable(
+  'snapshot_file_edges',
   {
     snapshotId: uuid('snapshot_id')
       .notNull()
-      .references(() => repoSnapshots.id, { onDelete: 'cascade' }),
+      .references(() => repositorySnapshots.id, { onDelete: 'cascade' }),
     fromPath: text('from_path').notNull(),
     toPath: text('to_path').notNull(),
     kind: text('kind').$type<EdgeRecord['kind']>().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.snapshotId, t.fromPath, t.toPath, t.kind] }),
-    index('file_edges_to_idx').on(t.snapshotId, t.toPath),
+    index('snapshot_file_edges_to_idx').on(t.snapshotId, t.toPath),
   ],
 )
 
@@ -257,7 +258,7 @@ export const tutorials = pgTable(
   'tutorials',
   {
     id: id(),
-    userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
     repositoryId: uuid('repository_id')
       .notNull()
       .references(() => repositories.id),
@@ -265,7 +266,10 @@ export const tutorials = pgTable(
     title: text('title').notNull(),
     visibility: visibility('visibility').notNull().default('private'),
     shareToken: text('share_token').unique(),
-    currentVersionId: uuid('current_version_id'),
+    currentVersionId: uuid('current_version_id').references(
+      (): AnyPgColumn => tutorialVersions.id,
+      { onDelete: 'set null' },
+    ),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -287,7 +291,7 @@ export const tutorialVersions = pgTable(
     versionNo: integer('version_no').notNull(),
     snapshotId: uuid('snapshot_id')
       .notNull()
-      .references(() => repoSnapshots.id),
+      .references(() => repositorySnapshots.id),
     schemaVersion: integer('schema_version').notNull(),
     status: text('status').$type<'draft' | 'published'>().notNull().default('draft'),
     audience: text('audience').$type<Audience>().notNull(),
@@ -306,8 +310,8 @@ export const tutorialVersions = pgTable(
   ],
 )
 
-export const lessonIndex = pgTable(
-  'lesson_index',
+export const tutorialLessons = pgTable(
+  'tutorial_lessons',
   {
     versionId: uuid('version_id')
       .notNull()
@@ -319,7 +323,7 @@ export const lessonIndex = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.versionId, t.lessonKey] }),
-    index('lesson_index_title_trgm_idx').using('gin', t.title.op('gin_trgm_ops')),
+    index('tutorial_lessons_title_trgm_idx').using('gin', t.title.op('gin_trgm_ops')),
   ],
 )
 
@@ -350,15 +354,16 @@ export const generationJobs = pgTable(
     userId: ownerId(),
     snapshotId: uuid('snapshot_id')
       .notNull()
-      .references(() => repoSnapshots.id),
+      .references(() => repositorySnapshots.id),
     tutorialId: uuid('tutorial_id').references(() => tutorials.id, { onDelete: 'set null' }),
-    kind: text('kind').$type<'generate'>().notNull(),
     status: jobStatus('status').notNull().default('queued'),
     stage: text('stage').$type<Stage>(),
     progress: integer('progress').notNull().default(0),
     audience: text('audience').$type<Audience>().notNull().default('intermediate'),
     idempotencyKey: text('idempotency_key').notNull(),
-    keyId: uuid('key_id').references(() => providerKeys.id, { onDelete: 'set null' }),
+    providerKeyId: uuid('provider_key_id').references(() => providerKeys.id, {
+      onDelete: 'set null',
+    }),
     models: jsonb('models').$type<ModelPlan>().notNull(),
     budgetMicros: bigint('budget_micros', { mode: 'number' }).notNull(),
     spentMicros: bigint('spent_micros', { mode: 'number' }).notNull().default(0),
@@ -376,7 +381,7 @@ export const generationJobs = pgTable(
     index('generation_jobs_status_finished_idx').on(t.status, t.finishedAt),
     index('generation_jobs_snapshot_idx').on(t.snapshotId),
     index('generation_jobs_key_in_flight_idx')
-      .on(t.keyId)
+      .on(t.providerKeyId)
       .where(sql`${t.status} in (${sql.raw(IN_FLIGHT_STATUSES.map((status) => `'${status}'`).join(', '))})`),
   ],
 )
@@ -395,8 +400,8 @@ export const jobStages = pgTable(
   (t) => [primaryKey({ columns: [t.jobId, t.stage] })],
 )
 
-export const jobStageOutputs = pgTable(
-  'job_stage_outputs',
+export const jobCheckpoints = pgTable(
+  'job_checkpoints',
   {
     jobId: uuid('job_id')
       .notNull()
@@ -419,13 +424,13 @@ export const jobEvents = pgTable(
     type: text('type').$type<JobEventType>().notNull(),
     stage: text('stage').$type<Stage>(),
     data: jsonb('data').$type<JobEventData>(),
-    at: ts('at').notNull().defaultNow(),
+    createdAt: createdAt(),
   },
-  (t) => [index('job_events_job_id_idx').on(t.jobId, t.id), index('job_events_at_idx').on(t.at)],
+  (t) => [index('job_events_job_id_idx').on(t.jobId, t.id), index('job_events_created_at_idx').on(t.createdAt)],
 )
 
-export const llmCalls = pgTable(
-  'llm_calls',
+export const jobLlmCalls = pgTable(
+  'job_llm_calls',
   {
     id: id(),
     jobId: uuid('job_id')
@@ -441,7 +446,7 @@ export const llmCalls = pgTable(
     status: text('status').notNull().default('ok'),
     createdAt: createdAt(),
   },
-  (t) => [index('llm_calls_job_idx').on(t.jobId), index('llm_calls_created_idx').on(t.createdAt)],
+  (t) => [index('job_llm_calls_job_idx').on(t.jobId), index('job_llm_calls_created_idx').on(t.createdAt)],
 )
 
 export const learningProgress = pgTable(
@@ -477,7 +482,7 @@ export const quizAttempts = pgTable(
     questionKey: text('question_key').notNull(),
     choiceKey: text('choice_key').notNull(),
     correct: boolean('correct').notNull(),
-    at: ts('at').notNull().defaultNow(),
+    answeredAt: ts('answered_at').notNull().defaultNow(),
   },
   (t) => [index('quiz_attempts_user_version_idx').on(t.userId, t.versionId)],
 )
@@ -524,26 +529,26 @@ export const tutorialReports = pgTable(
     tutorialId: uuid('tutorial_id')
       .notNull()
       .references(() => tutorials.id, { onDelete: 'cascade' }),
-    reporterId: text('reporter_id').references(() => user.id, { onDelete: 'set null' }),
+    reporterUserId: text('reporter_user_id').references(() => users.id, { onDelete: 'set null' }),
     reason: text('reason').notNull(),
     status: text('status').$type<'open' | 'actioned' | 'dismissed'>().notNull().default('open'),
     createdAt: createdAt(),
   },
   (t) => [
     index('tutorial_reports_tutorial_idx').on(t.tutorialId),
-    uniqueIndex('tutorial_reports_tutorial_reporter_uniq').on(t.tutorialId, t.reporterId),
+    uniqueIndex('tutorial_reports_tutorial_reporter_uniq').on(t.tutorialId, t.reporterUserId),
   ],
 )
 
 export const operators = pgTable('operators', {
   userId: text('user_id')
     .primaryKey()
-    .references(() => user.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'cascade' }),
   grantedAt: ts('granted_at').notNull().defaultNow(),
 })
 
-export const repoPushEvents = pgTable(
-  'repo_push_events',
+export const repositoryPushEvents = pgTable(
+  'repository_push_events',
   {
     id: id(),
     repositoryId: uuid('repository_id')
@@ -553,13 +558,13 @@ export const repoPushEvents = pgTable(
     paths: text('paths').array().notNull(),
     pushedAt: ts('pushed_at').notNull(),
   },
-  (t) => [index('repo_push_events_repo_pushed_idx').on(t.repositoryId, t.pushedAt)],
+  (t) => [index('repository_push_events_repo_pushed_idx').on(t.repositoryId, t.pushedAt)],
 )
 
 export const userPreferences = pgTable('user_preferences', {
   userId: text('user_id')
     .primaryKey()
-    .references(() => user.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'cascade' }),
   theme: text('theme').$type<Theme>().notNull().default('system'),
   defaultAudience: text('default_audience').$type<Audience>().notNull().default('intermediate'),
   autoAdvance: boolean('auto_advance').notNull().default(true),

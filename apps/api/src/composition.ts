@@ -2,7 +2,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createKeyChecker, loadCatalog, MODEL_CATALOG } from '@replo/ai'
 import { DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
-import type { Services } from './context'
+import type { Services } from './request-context'
 import { createAccountService, type AccountService } from './modules/account/account.service'
 import { KeyVault } from './platform/crypto/key-vault'
 import type { Config } from './platform/config'
@@ -13,9 +13,9 @@ import {
   createDashboardService,
   type DashboardService,
 } from './modules/dashboard/dashboard.service'
-import { createJobHistory, type JobHistory } from './modules/generation/job-history.service'
-import { createJobRuntime, type JobRuntime } from './modules/generation/job-runtime.service'
-import { createJobService, type JobService } from './modules/generation/jobs.service'
+import { createJobHistory, type JobHistory } from './modules/jobs/job-history.service'
+import { createJobRuntime, type JobRuntime } from './modules/jobs/job-runtime.service'
+import { createJobService, type JobService } from './modules/jobs/jobs.service'
 import { createGithubService, type GithubService } from './modules/github/github.service'
 import { githubAppFrom } from './modules/github/github.app'
 import { createAuthService, type AuthService } from './modules/identity/auth.service'
@@ -52,13 +52,17 @@ import {
 } from './modules/retention/retention.service'
 import { createSearchService, type SearchService } from './modules/search/search.service'
 import { createSettingsService, type SettingsService } from './modules/settings/settings.service'
-import { createTutorialLibrary, type TutorialLibrary } from './modules/tutorials/library.service'
+import { createTutorialCatalog, type TutorialCatalog } from './modules/tutorials/catalog.service'
+import {
+  createTutorialContent,
+  type TutorialContentService,
+} from './modules/tutorials/content.service'
 import { createTutorialManager, type TutorialManager } from './modules/tutorials/manager.service'
 import {
   createTutorialPublisher,
   type TutorialPublisher,
 } from './modules/tutorials/publisher.service'
-import { createTutorialReader } from './modules/tutorials/reader.service'
+import { createVersionAccess } from './modules/tutorials/version-access.service'
 
 export interface DomainServices {
   identity: IdentityService
@@ -75,7 +79,8 @@ export interface DomainServices {
   keys: KeysService
   models: ModelsService
   tutorialPublisher: TutorialPublisher
-  tutorialLibrary: TutorialLibrary
+  tutorialCatalog: TutorialCatalog
+  tutorialContent: TutorialContentService
   tutorialManager: TutorialManager
   learning: LearningService
   pipeline: PipelineService
@@ -119,19 +124,15 @@ export function createDomainServices(deps: {
     extraction: DEFAULT_EXTRACTION_LIMITS,
     snapshotRoot: config.SNAPSHOT_DIR ?? join(tmpdir(), 'replo-snapshots'),
   })
-  const tutorialReader = createTutorialReader(db)
+  const versionAccess = createVersionAccess(db)
   const catalog = loadCatalog(MODEL_CATALOG)
   const models = createModelsService({ db, catalog })
-  const learning = createLearningService({ db, tutorials: tutorialReader })
-  const tutorialLibrary = createTutorialLibrary({
-    db,
-    indexing,
-    reader: tutorialReader,
-    learning,
-  })
+  const learning = createLearningService({ db, tutorials: versionAccess })
+  const tutorialCatalog = createTutorialCatalog({ db, learning })
+  const tutorialContent = createTutorialContent({ db, indexing, versionAccess, learning })
   const tutorialManager = createTutorialManager({
     db,
-    library: tutorialLibrary,
+    catalog: tutorialCatalog,
     productOrigin: config.PRODUCT_ORIGIN,
   })
   const account = createAccountService({ db, identity, tutorials: tutorialManager })
@@ -146,7 +147,7 @@ export function createDomainServices(deps: {
     queue,
     indexing,
     notifications,
-    tutorials: tutorialReader,
+    tutorials: versionAccess,
     repositories: repositoryLibrary,
   })
   const keys = createKeysService({
@@ -191,19 +192,20 @@ export function createDomainServices(deps: {
     keys,
     models,
     tutorialPublisher,
-    tutorialLibrary,
+    tutorialCatalog,
+    tutorialContent,
     tutorialManager,
     learning,
     pipeline,
     notifications,
     settings: createSettingsService({ db }),
     dashboard: createDashboardService({
-      tutorials: tutorialLibrary,
+      tutorials: tutorialCatalog,
       jobs: jobHistory,
       learning,
       repositories: repositoryLibrary,
     }),
-    search: createSearchService({ tutorials: tutorialLibrary, repositories: repositoryLibrary }),
+    search: createSearchService({ tutorials: tutorialCatalog, repositories: repositoryLibrary }),
     operator: createOperatorService({ db, jobs: jobHistory }),
     retention: createRetentionService({
       jobs: jobHistory,

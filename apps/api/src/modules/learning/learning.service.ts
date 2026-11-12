@@ -8,18 +8,19 @@ import type {
 import type { Db } from '../../platform/db/client'
 import { notFound } from '../../platform/errors'
 import { decodeOffset, offsetPage } from '../../platform/pagination'
+import { daysAgo } from '../../platform/time'
 import type { Viewer } from '../tutorials/access'
-import type { ReadableHead, TutorialReader } from '../tutorials/reader.service'
+import type { ReadableHead, VersionAccess } from '../tutorials/version-access.service'
 import { gradeAnswer } from './learning.quiz'
 import { learningRepo } from './learning.repo'
-import { countCompleted, ratioOf } from './learning.progress'
 
 interface LearningDeps {
   db: Db
-  tutorials: TutorialReader
+  tutorials: VersionAccess
 }
 
 export type ResumeTarget = NonNullable<DashboardSummary['resume']>
+export type ReadingStats = DashboardSummary['reading']
 
 export interface LearningService {
   progress(
@@ -53,9 +54,11 @@ export interface LearningService {
     targets: readonly { tutorialId: string; versionId: string }[],
   ): Promise<Map<string, number | null>>
   resumeTarget(userId: string): Promise<ResumeTarget | null>
+  readingStats(userId: string, now?: Date): Promise<ReadingStats>
 }
 
 const RESUME_CANDIDATES = 20
+const RECENT_READING_DAYS = 7
 
 export function createLearningService(deps: LearningDeps): LearningService {
   const { db, tutorials } = deps
@@ -278,5 +281,29 @@ export function createLearningService(deps: LearningDeps): LearningService {
       }
       return null
     },
+
+    async readingStats(userId, now = new Date()) {
+      const totals = await repo.readingTotals(userId, daysAgo(now, RECENT_READING_DAYS))
+      return {
+        lessonsCompleted: totals.lessonsCompleted,
+        lessonsCompletedLast7Days: totals.lessonsCompletedSince,
+        quizAnswers: totals.quizAnswers,
+        quizAnswersCorrect: totals.quizAnswersCorrect,
+      }
+    },
   }
+}
+
+export function ratioOf(done: number, total: number): number | null {
+  return total === 0 ? null : done / total
+}
+
+export function countCompleted(
+  lessonKeys: readonly string[],
+  completed: ReadonlySet<string> | undefined,
+): number {
+  if (!completed) return 0
+  let count = 0
+  for (const key of lessonKeys) if (completed.has(key)) count += 1
+  return count
 }

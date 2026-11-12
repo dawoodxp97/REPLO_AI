@@ -4,7 +4,7 @@ import { notFound } from '../../platform/errors'
 import { ok, refused, type Outcome } from '../../platform/outcome'
 import { isOwner, newShareToken, ownershipOf, readableTutorial, tutorialPath } from './access'
 import { isOsiApproved } from './licences'
-import type { TutorialLibrary } from './library.service'
+import type { TutorialCatalog } from './catalog.service'
 import { tutorialsRepo } from './tutorials.repo'
 
 export interface OpenLicenseRequired {
@@ -13,7 +13,7 @@ export interface OpenLicenseRequired {
 
 export interface TutorialManagerDeps {
   db: Db
-  library: Pick<TutorialLibrary, 'summary'>
+  catalog: Pick<TutorialCatalog, 'summary'>
   productOrigin: string
 }
 
@@ -40,7 +40,7 @@ export interface TutorialManager {
 }
 
 export function createTutorialManager(deps: TutorialManagerDeps): TutorialManager {
-  const { db, library, productOrigin } = deps
+  const { db, catalog, productOrigin } = deps
   const repo = tutorialsRepo(db)
 
   const owned = async (userId: string, tutorialId: string) => {
@@ -63,7 +63,7 @@ export function createTutorialManager(deps: TutorialManagerDeps): TutorialManage
         input.visibility,
         input.visibility === 'link' ? (row.tutorial.shareToken ?? newShareToken()) : null,
       )
-      return ok(await library.summary(userId, row.tutorial.id))
+      return ok(await catalog.summary(userId, row.tutorial.id))
     },
 
     async createShareLink(userId, tutorialId) {
@@ -88,7 +88,7 @@ export function createTutorialManager(deps: TutorialManagerDeps): TutorialManage
         { userId: reporterId, shareToken },
         'Tutorial',
       )
-      await repo.insertReport({ tutorialId, reporterId, reason })
+      await repo.insertReport({ tutorialId, reporterUserId: reporterId, reason })
     },
 
     async removeForRepository(tx, userId, repositoryId) {

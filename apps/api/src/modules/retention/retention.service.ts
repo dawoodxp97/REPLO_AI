@@ -1,6 +1,6 @@
 import { daysAgo } from '../../platform/time'
 import type { SessionService } from '../identity/session.service'
-import type { JobHistory } from '../generation/job-history.service'
+import type { JobHistory } from '../jobs/job-history.service'
 import type { IndexingService } from '../indexing/indexing.service'
 import type { NotificationsService } from '../notifications/notifications.service'
 import type { TutorialManager } from '../tutorials/manager.service'

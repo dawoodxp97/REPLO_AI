@@ -102,7 +102,7 @@ Priority: **E** = Essential for Release 1 · **V** = after validation · **L** =
 | FR-RUN-10 | ~~Global spend kill switch and daily caps on platform-funded spend~~ **Retired (ADR-007):** the platform funds no spend. | — |
 | FR-RUN-11 | OpenRouter is the only provider the product recommends (onboarding, key form, docs). OpenAI, Google AI Studio and Anthropic are supported without a recommendation | E |
 | FR-RUN-12 | Deleting a key fails every job still running on it with `KEY_REMOVED`. Nothing retries on another key | E |
-| FR-RUN-13 | Each LLM call records tokens and cost from the provider’s own usage numbers (`llm_calls`), so the user can compare the estimate with the real bill | E |
+| FR-RUN-13 | Each LLM call records tokens and cost from the provider’s own usage numbers (`job_llm_calls`), so the user can compare the estimate with the real bill | E |
 
 ### 4.4 Generation pipeline
 
@@ -166,7 +166,7 @@ Stages (see §6): pre-flight → ingest → static index → file summaries → 
 
 | ID       | Requirement                                                                                                                 | P   |
 | -------- | --------------------------------------------------------------------------------------------------------------------------- | --- |
-| FR-OPS-1 | Admin-only dashboard reading `generation_jobs`, `job_stages`, `llm_calls` | E |
+| FR-OPS-1 | Admin-only dashboard reading `generation_jobs`, `job_stages`, `job_llm_calls` | E |
 | FR-OPS-2 | Alerts: job failure rate > 20%/h · oldest queued > 15 min · disk > 80% · backup failed · key-validation failure spike | E |
 | FR-OPS-3 | Nightly encrypted `pg_dump` to R2, 14-day retention, monthly restore drill                                                  | E   |
 
@@ -177,8 +177,8 @@ Stages (see §6): pre-flight → ingest → static index → file summaries → 
 | FR-LIB-1  | "My repositories" and "My tutorials": paginated lists showing job state, visibility and progress; backed by `user_repositories` and the owner's `tutorials`                                                                                                      | E   |
 | FR-LIB-2  | Remove a repo from the library: revokes this user's link and deletes this user's tutorials and progress for it, public ones included                                                                                                                             | E   |
 | FR-LIB-3  | Delete a tutorial (owner only): removes it with its versions, progress and quiz attempts; its public and link URLs stop resolving; a request from another user returns **404**                                                                                    | E   |
-| FR-DASH-1 | Home dashboard: tutorial counts by state, jobs in flight with live progress, resume of the last unfinished lesson, recent activity. Date buckets take the caller's IANA `tz` (default UTC) and are computed in Postgres. No streaks, heatmap or learning-hours metric in R1 (MEM D-018) | E   |
-| FR-SRCH-1 | Substring search over the caller's own repositories, tutorials and lesson titles (`pg_trgm`; lesson titles from `lesson_index`, written at publish). Public search is not in R1                                                                                    | E   |
+| FR-DASH-1 | Home dashboard: tutorial counts by state, jobs in flight with live progress, resume of the last unfinished lesson, reading totals (lessons finished, lessons finished in the last 7 days, quiz answers and how many were correct), recent activity. Date buckets take the caller's IANA `tz` (default UTC) and are computed in Postgres. No streaks, heatmap or learning-hours metric in R1 (MEM D-018) | E   |
+| FR-SRCH-1 | Substring search over the caller's own repositories, tutorials and lesson titles (`pg_trgm`; lesson titles from `tutorial_lessons`, written at publish). Public search is not in R1                                                                                    | E   |
 | FR-NTF-1  | In-app notifications when a job succeeds, fails or is canceled; unread count pushed over SSE; list, mark read, mark all read, delete. No email (MEM D-019)                                                                                                       | E   |
 | FR-SET-1  | Preferences in `user_preferences`: theme (light or dark), default audience level for new imports, auto-advance to the next lesson, quizzes on or off, browser notifications on or off. Profile shows the GitHub name and avatar only; no bio, location, website or UI language in R1 (MEM D-023) | E   |
 
@@ -191,7 +191,7 @@ Stages (see §6): pre-flight → ingest → static index → file summaries → 
 | NFR-SEC-3  | Secrets              | Provider keys AES-256-GCM envelope-encrypted; KEK only in server secret store; decrypted in worker memory for one job; test fails if a key-shaped string reaches logs                                           |
 | NFR-SEC-4  | Web                  | Strict CSP with nonces; allow-list Markdown renderer (no raw HTML); links only to repo permalinks or allow-listed domains; CSRF via Origin check                                                                |
 | NFR-SEC-5  | Worker               | Non-root, read-only root FS, `noexec` temp volume, `no-new-privileges`, egress allow-list, per-stage timeout and memory limits                                                                                  |
-| NFR-SEC-6  | Privacy              | Prompts/completions for private repos are **not stored** (hashes + token counts only); `job_events`/`llm_calls` retained 90 days; tarballs deleted ≤ 24 h                                                       |
+| NFR-SEC-6  | Privacy              | Prompts/completions for private repos are **not stored** (hashes + token counts only); `job_events`/`job_llm_calls` retained 90 days; tarballs deleted ≤ 24 h                                                       |
 | NFR-SEC-7  | Abuse                | Rate limits on sign-in, import and key validation, per user and per IP; over-limit requests return 429 with `Retry-After`                                                                                       |
 | NFR-REL-1  | Reliability          | pg-boss delivery is at-least-once; all stages idempotent; heartbeat ~15 s, reaper each minute; classified retries with backoff + jitter                                                                         |
 | NFR-REL-2  | Data                 | Job payloads versioned (`v: 1`) and parsed at enqueue **and** dequeue; JSONB content carries `schemaVersion` and is upgraded on read                                                                            |
@@ -227,7 +227,7 @@ One immutable, schema-versioned JSONB document per `tutorial_version` (`Tutorial
 
 ## 7. Data model (summary)
 
-Postgres 17 + Drizzle. Chain: `repository → snapshot (commit SHA + analyzer_version) → tutorial_version` (pinned to exactly one snapshot, records models used). Tables: `user` · `session` · `auth_identity` (auth core, ADR-009) · `github_installations` · `repositories` · `user_repositories` · `provider_keys` · `model_preferences` · `repo_snapshots` · `snapshot_files` · `symbols` · `file_edges` · `generation_jobs` · `job_stages` · `job_events` · `llm_calls` · `tutorials` · `tutorial_versions` · `tutorial_source_refs` · `learning_progress` · `quiz_attempts` · `lesson_index` · `notifications` · `user_preferences` · `webhook_deliveries` (+ `chunks` in phase 2). See [`docs/DATABASE.md`](./docs/DATABASE.md).
+Postgres 17 + Drizzle. Chain: `repository → snapshot (commit SHA + analyzer_version) → tutorial_version` (pinned to exactly one snapshot, records models used). Tables: `user` · `session` · `auth_identities` (auth core, ADR-009) · `github_installations` · `repositories` · `user_repositories` · `provider_keys` · `model_preferences` · `repository_snapshots` · `snapshot_files` · `symbols` · `snapshot_file_edges` · `generation_jobs` · `job_stages` · `job_events` · `job_llm_calls` · `tutorials` · `tutorial_versions` · `tutorial_source_refs` · `learning_progress` · `quiz_attempts` · `tutorial_lessons` · `notifications` · `user_preferences` · `webhook_deliveries` (+ `chunks` in phase 2). See [`docs/DATABASE.md`](./docs/DATABASE.md).
 
 ## 8. API surface (Release 1)
 

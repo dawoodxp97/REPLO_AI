@@ -1,6 +1,6 @@
 import type { LearnerQuestion } from '@replo/contracts'
 import { SectionHeader } from '@/components/page-header'
-import type { SourceRefMap } from '@/features/player/source-ref-map'
+import type { SourceRefMap } from '@/features/player/source/source-refs'
 import { QuestionCard } from './question-card'
 
 export interface QuizSectionProps {

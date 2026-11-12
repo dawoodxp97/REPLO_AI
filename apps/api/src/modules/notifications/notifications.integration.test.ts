@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { inArray, sql, type SQL } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import { notifications } from '../../platform/db/schema'
 import { decodeCursor } from './notifications.cursor'
@@ -34,14 +34,14 @@ describe.skipIf(DATABASE_URL === '')('notifications against Postgres', () => {
   })
 
   afterAll(async () => {
-    if (seeded.length > 0) await db.delete(user).where(inArray(user.id, seeded))
+    if (seeded.length > 0) await db.delete(users).where(inArray(users.id, seeded))
     await pool.end()
   })
 
   const seedUser = async () => {
     const id = randomUUID()
     seeded.push(id)
-    await db.insert(user).values({ id, name: 'Developer', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
     return id
   }
 

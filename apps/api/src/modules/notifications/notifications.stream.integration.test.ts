@@ -4,7 +4,7 @@ import Fastify from 'fastify'
 import { inArray } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import { notifications } from '../../platform/db/schema'
 import type { App } from '../../platform/http'
@@ -44,14 +44,14 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
 
   afterAll(async () => {
     await app.close()
-    if (seededUsers.length > 0) await db.delete(user).where(inArray(user.id, seededUsers))
+    if (seededUsers.length > 0) await db.delete(users).where(inArray(users.id, seededUsers))
     await pool.end()
   })
 
   const seedUser = async (unread: number, read = 0) => {
     const id = randomUUID()
     seededUsers.push(id)
-    await db.insert(user).values({ id, name: 'Developer', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
     const rows = [
       ...Array.from({ length: unread }, (_, index) => ({
         userId: id,

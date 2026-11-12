@@ -1,5 +1,6 @@
 import type { JobStatus } from '@replo/contracts'
 import { Badge, type BadgeProps } from '@replo/ui'
+import { LinkButton } from '@/components/link-button'
 import { isActiveJob, JOB_STATUS_LABELS } from './job-status'
 
 const VARIANTS: Record<JobStatus, BadgeProps['variant']> = {
@@ -25,5 +26,16 @@ export function JobStatusBadge({ status }: { status: JobStatus }) {
       ) : null}
       {JOB_STATUS_LABELS[status]}
     </Badge>
+  )
+}
+
+export function JobStatusLink({ jobId, status }: { jobId: string; status: JobStatus }) {
+  return (
+    <>
+      <JobStatusBadge status={status} />
+      <LinkButton href={`/jobs/${jobId}`} variant="outline" size="sm">
+        View job
+      </LinkButton>
+    </>
   )
 }

@@ -39,7 +39,7 @@ Run `pnpm --filter <pkg> typecheck test lint` for what you touched before saying
 ## Conventions
 
 - Files `kebab-case.ts`; extensionless relative imports (`moduleResolution: Bundler`); `import type`; no `any`.
-- No comments in code; clear names, types and tests carry the meaning (reasons go in `MEM.md`).
+- Comments are rare: a one- or two-line `//` only for what the code cannot say (the race a guard closes, why at-least-once delivery needs a check, the rule or quirk forcing a shape). No JSDoc, block comments, dividers or `TODO` (RULES.md §2).
 - Zod-parse at every boundary (env, HTTP, jobs, LLM output, webhooks, JSONB).
 - Tailwind v4 + tokens from `packages/ui` (see `DESIGN.md`); no hard-coded colours. No ads anywhere.
 - Security-sensitive code (vault, HMAC, path safety, budgets) ships with tests in the same PR.

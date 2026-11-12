@@ -1,5 +1,5 @@
 import { dashboardRouter } from './modules/dashboard/dashboard.router'
-import { jobsRouter } from './modules/generation/generation.router'
+import { jobsRouter } from './modules/jobs/jobs.router'
 import { githubRouter } from './modules/github/github.router'
 import { authRouter } from './modules/identity/auth.router'
 import { meRouter } from './modules/identity/identity.router'

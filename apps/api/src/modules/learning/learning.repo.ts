@@ -99,6 +99,7 @@ export const learningRepo = (db: DbOrTx) => ({
           completedAt: row.completedAt,
           updatedAt: row.updatedAt,
         },
+        // A later 'in progress' write must never downgrade a lesson already completed.
         setWhere:
           row.status === 'completed' ? undefined : sql`${learningProgress.status} <> 'completed'`,
       })
@@ -114,6 +115,31 @@ export const learningRepo = (db: DbOrTx) => ({
           eq(learningProgress.lessonKey, lessonKey),
         ),
       )
+  },
+
+  async readingTotals(userId: string, since: Date) {
+    // A lesson finished in two versions of one tutorial is one lesson, hence the distinct pair.
+    const lesson = sql`(${learningProgress.tutorialId}, ${learningProgress.lessonKey})`
+    const [lessons] = await db
+      .select({
+        completed: sql<number>`count(distinct ${lesson})::int`,
+        completedSince: sql<number>`(count(distinct ${lesson}) filter (where ${learningProgress.completedAt} >= ${since.toISOString()}::timestamptz))::int`,
+      })
+      .from(learningProgress)
+      .where(and(eq(learningProgress.userId, userId), eq(learningProgress.status, 'completed')))
+    const [quiz] = await db
+      .select({
+        answers: count(),
+        correct: sql<number>`(count(*) filter (where ${quizAttempts.correct}))::int`,
+      })
+      .from(quizAttempts)
+      .where(eq(quizAttempts.userId, userId))
+    return {
+      lessonsCompleted: lessons?.completed ?? 0,
+      lessonsCompletedSince: lessons?.completedSince ?? 0,
+      quizAnswers: quiz?.answers ?? 0,
+      quizAnswersCorrect: quiz?.correct ?? 0,
+    }
   },
 
   async countAttempts(userId: string, versionId: string): Promise<number> {

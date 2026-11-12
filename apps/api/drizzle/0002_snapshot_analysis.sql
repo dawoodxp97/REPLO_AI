@@ -1,1 +1,0 @@
-ALTER TABLE "repo_snapshots" ADD COLUMN "analysis" jsonb;

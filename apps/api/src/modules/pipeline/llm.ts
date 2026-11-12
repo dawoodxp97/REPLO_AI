@@ -14,7 +14,7 @@ import {
 import type { ModelPlan, Stage } from '@replo/contracts'
 import type { z } from 'zod'
 import type { KeysService } from '../keys/keys.service'
-import { JobError } from '../../jobs/errors'
+import { JobError } from '../../worker/errors'
 
 const OUTPUT_ERRORS = new Set([
   'AI_NoObjectGeneratedError',

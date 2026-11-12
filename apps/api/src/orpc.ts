@@ -1,6 +1,6 @@
 import { implement, ORPCError } from '@orpc/server'
 import { contract } from '@replo/contracts'
-import type { RequestContext } from './context'
+import type { RequestContext } from './request-context'
 
 export const os = implement(contract).$context<RequestContext>()
 

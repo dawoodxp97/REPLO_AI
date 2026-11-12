@@ -2,14 +2,14 @@ import { and, eq, inArray, lt, notExists, sql } from 'drizzle-orm'
 import type { SnapshotStats } from '@replo/contracts'
 import type { Analysis } from '@replo/repo-analysis'
 import type { DbOrTx } from '../../platform/db/client'
-import { insertChunked } from '../../platform/db/insert-chunked'
+import { insertChunked } from '../../platform/db/query-helpers'
 import {
-  fileEdges,
+  snapshotFileEdges,
   generationJobs,
   repositories,
-  repoSnapshots,
+  repositorySnapshots,
   snapshotFiles,
-  symbols,
+  snapshotSymbols,
   tutorialVersions,
   type SnapshotAnalysis,
 } from '../../platform/db/schema'
@@ -31,17 +31,17 @@ export const snapshotsRepo = (db: DbOrTx) => ({
 
   async ensure(input: { repositoryId: string; commitSha: string }): Promise<string> {
     await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({ ...input, analyzerVersion: ANALYZER_VERSION })
       .onConflictDoNothing()
     const [row] = await db
-      .select({ id: repoSnapshots.id })
-      .from(repoSnapshots)
+      .select({ id: repositorySnapshots.id })
+      .from(repositorySnapshots)
       .where(
         and(
-          eq(repoSnapshots.repositoryId, input.repositoryId),
-          eq(repoSnapshots.commitSha, input.commitSha),
-          eq(repoSnapshots.analyzerVersion, ANALYZER_VERSION),
+          eq(repositorySnapshots.repositoryId, input.repositoryId),
+          eq(repositorySnapshots.commitSha, input.commitSha),
+          eq(repositorySnapshots.analyzerVersion, ANALYZER_VERSION),
         ),
       )
       .limit(1)
@@ -52,30 +52,30 @@ export const snapshotsRepo = (db: DbOrTx) => ({
   async findById(snapshotId: string) {
     const [row] = await db
       .select()
-      .from(repoSnapshots)
-      .where(eq(repoSnapshots.id, snapshotId))
+      .from(repositorySnapshots)
+      .where(eq(repositorySnapshots.id, snapshotId))
       .limit(1)
     return row
   },
 
   async unreferencedBefore(cutoff: Date, limit: number): Promise<{ id: string }[]> {
     return db
-      .select({ id: repoSnapshots.id })
-      .from(repoSnapshots)
+      .select({ id: repositorySnapshots.id })
+      .from(repositorySnapshots)
       .where(
         and(
-          lt(repoSnapshots.createdAt, cutoff),
+          lt(repositorySnapshots.createdAt, cutoff),
           notExists(
             db
               .select({ id: generationJobs.id })
               .from(generationJobs)
-              .where(eq(generationJobs.snapshotId, repoSnapshots.id)),
+              .where(eq(generationJobs.snapshotId, repositorySnapshots.id)),
           ),
           notExists(
             db
               .select({ id: tutorialVersions.id })
               .from(tutorialVersions)
-              .where(eq(tutorialVersions.snapshotId, repoSnapshots.id)),
+              .where(eq(tutorialVersions.snapshotId, repositorySnapshots.id)),
           ),
         ),
       )
@@ -84,22 +84,22 @@ export const snapshotsRepo = (db: DbOrTx) => ({
 
   async deleteSnapshots(ids: readonly string[]): Promise<void> {
     if (ids.length === 0) return
-    await db.delete(repoSnapshots).where(inArray(repoSnapshots.id, [...ids]))
+    await db.delete(repositorySnapshots).where(inArray(repositorySnapshots.id, [...ids]))
   },
 
   async findWithRepository(snapshotId: string) {
     const [row] = await db
       .select({
-        repositoryId: repoSnapshots.repositoryId,
-        id: repoSnapshots.id,
-        commitSha: repoSnapshots.commitSha,
-        analysis: repoSnapshots.analysis,
+        repositoryId: repositorySnapshots.repositoryId,
+        id: repositorySnapshots.id,
+        commitSha: repositorySnapshots.commitSha,
+        analysis: repositorySnapshots.analysis,
         owner: repositories.owner,
         repositoryName: repositories.name,
       })
-      .from(repoSnapshots)
-      .innerJoin(repositories, eq(repositories.id, repoSnapshots.repositoryId))
-      .where(eq(repoSnapshots.id, snapshotId))
+      .from(repositorySnapshots)
+      .innerJoin(repositories, eq(repositories.id, repositorySnapshots.repositoryId))
+      .where(eq(repositorySnapshots.id, snapshotId))
       .limit(1)
     return row
   },
@@ -123,24 +123,24 @@ export const snapshotsRepo = (db: DbOrTx) => ({
   listSymbols(snapshotId: string) {
     return db
       .select({
-        symbolKey: symbols.symbolKey,
-        name: symbols.name,
-        kind: symbols.kind,
-        path: symbols.path,
-        startLine: symbols.startLine,
-        endLine: symbols.endLine,
-        exported: symbols.exported,
-        signature: symbols.signature,
+        symbolKey: snapshotSymbols.symbolKey,
+        name: snapshotSymbols.name,
+        kind: snapshotSymbols.kind,
+        path: snapshotSymbols.path,
+        startLine: snapshotSymbols.startLine,
+        endLine: snapshotSymbols.endLine,
+        exported: snapshotSymbols.exported,
+        signature: snapshotSymbols.signature,
       })
-      .from(symbols)
-      .where(eq(symbols.snapshotId, snapshotId))
+      .from(snapshotSymbols)
+      .where(eq(snapshotSymbols.snapshotId, snapshotId))
   },
 
   listEdges(snapshotId: string) {
     return db
-      .select({ fromPath: fileEdges.fromPath, toPath: fileEdges.toPath, kind: fileEdges.kind })
-      .from(fileEdges)
-      .where(eq(fileEdges.snapshotId, snapshotId))
+      .select({ fromPath: snapshotFileEdges.fromPath, toPath: snapshotFileEdges.toPath, kind: snapshotFileEdges.kind })
+      .from(snapshotFileEdges)
+      .where(eq(snapshotFileEdges.snapshotId, snapshotId))
   },
 
   async replaceFiles(snapshotId: string, files: readonly ArchiveRecord[]): Promise<void> {
@@ -161,16 +161,16 @@ export const snapshotsRepo = (db: DbOrTx) => ({
 
   async markReady(snapshotId: string, stats: SnapshotStats) {
     await db
-      .update(repoSnapshots)
+      .update(repositorySnapshots)
       .set({ status: 'ready', stats })
-      .where(eq(repoSnapshots.id, snapshotId))
+      .where(eq(repositorySnapshots.id, snapshotId))
   },
 
   async replaceIndex(snapshotId: string, index: Analysis): Promise<void> {
-    await db.delete(symbols).where(eq(symbols.snapshotId, snapshotId))
-    await db.delete(fileEdges).where(eq(fileEdges.snapshotId, snapshotId))
+    await db.delete(snapshotSymbols).where(eq(snapshotSymbols.snapshotId, snapshotId))
+    await db.delete(snapshotFileEdges).where(eq(snapshotFileEdges.snapshotId, snapshotId))
     await insertChunked(index.symbols, 9, (chunk) =>
-      db.insert(symbols).values(
+      db.insert(snapshotSymbols).values(
         chunk.map((symbol) => ({
           snapshotId,
           symbolKey: symbol.symbolKey,
@@ -185,7 +185,7 @@ export const snapshotsRepo = (db: DbOrTx) => ({
       ),
     )
     await insertChunked(index.edges, 4, (chunk) =>
-      db.insert(fileEdges).values(
+      db.insert(snapshotFileEdges).values(
         chunk.map((edge) => ({
           snapshotId,
           fromPath: edge.fromPath,
@@ -203,6 +203,6 @@ export const snapshotsRepo = (db: DbOrTx) => ({
       unresolvedImports: index.unresolvedImports,
       parseErrors: index.parseErrors,
     }
-    await db.update(repoSnapshots).set({ analysis }).where(eq(repoSnapshots.id, snapshotId))
+    await db.update(repositorySnapshots).set({ analysis }).where(eq(repositorySnapshots.id, snapshotId))
   },
 })

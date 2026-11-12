@@ -1,17 +1,19 @@
-import type { StageContext } from '../../../jobs/generate-tutorial.worker'
-import { JobError } from '../../../jobs/errors'
+import type { StageContext } from '../../../worker/generate-tutorial'
+import { JobError } from '../../../worker/errors'
 import { PIPELINE_VERSION, PROMPT_HASHES, PROMPT_VERSIONS } from '../prompts'
-import { StoredValidation, WHOLE_JOB } from '../stored-outputs'
-import { planOf, snapshotView, type StageDeps } from '../stage-deps'
+import { StoredValidation, WHOLE_JOB } from '../checkpoints'
+import { planOf, snapshotView, type StageDeps } from '../stage-tools'
 import type { TutorialGenerator } from '../../../platform/db/schema'
 
 export async function runPublish(deps: StageDeps, ctx: StageContext): Promise<void> {
+  // The worker can die after the publish commit but before completeStage. On redelivery
+  // the version already exists, so only the cleanup is left.
   if (await deps.tutorials.versionForJob(ctx.job.id)) {
-    await deps.outputs.clear(ctx.job.id)
+    await deps.checkpoints.clear(ctx.job.id)
     return
   }
 
-  const stored = await deps.outputs.read(ctx.job.id, 'validate', WHOLE_JOB, StoredValidation)
+  const stored = await deps.checkpoints.read(ctx.job.id, 'validate', WHOLE_JOB, StoredValidation)
   if (!stored) throw new JobError('VALIDATION_MISSING', false, 'publish needs a validated tutorial')
 
   const view = await snapshotView(deps, ctx)
@@ -43,5 +45,5 @@ export async function runPublish(deps: StageDeps, ctx: StageContext): Promise<vo
     })
     await deps.jobs.linkTutorial(tx, ctx.job.id, published.tutorialId)
   })
-  await deps.outputs.clear(ctx.job.id)
+  await deps.checkpoints.clear(ctx.job.id)
 }

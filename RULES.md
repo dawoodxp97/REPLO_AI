@@ -33,7 +33,8 @@ apps/landing ─▶ ui                     tools/evals ─▶ ai, repo-analysis,
 - Use `import type` for types. ESM only. Relative imports are **extensionless** (`./foo`): every package is bundled (tsdown / Next) or run through `tsx`, so `moduleResolution: Bundler` is used everywhere (see `MEM.md` D-004).
 - Prefer small pure functions; side effects at the edges (routers, workers, repos).
 - Names: files `kebab-case.ts`; types/components `PascalCase`; functions/vars `camelCase`; constants `SCREAMING_SNAKE`; DB columns `snake_case`, TS fields `camelCase`.
-- No comments in code. Names, types and tests carry the meaning; reasons go in `MEM.md` (D-064).
+- Comments are rare. Names, types and tests carry the meaning; decisions and their history go in `MEM.md`. Write a `//` comment only for what the code cannot say: which race a guard closes, why at-least-once delivery needs this check, which security rule or external quirk forces this shape. One or two lines, plain words.
+- Never restate the code, never JSDoc a signature, no section dividers, no `TODO`. Block comments (`/* */`, `/** */`) fail lint (`replo/no-comments`), as do banner and `TODO` line comments.
 
 ## 3. Validation boundaries (types are not trust)
 
@@ -52,7 +53,7 @@ DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services m
 
 - Layout: `platform/` (db, queue, storage, config, logger, crypto, errors) and `modules/<name>/` with `*.service.ts` (public API), `*.router.ts` (implements a slice of the contract), `*.repo.ts` (private data access).
 - **Modules call each other only through services — never another module's tables or repo.**
-- Only `jobs/` handlers and `modules/generation` touch the queue. Enqueue **inside the same DB transaction** as the job row.
+- Only `worker/` handlers and `modules/jobs` touch the queue. Enqueue **inside the same DB transaction** as the job row.
 - Every stage handler is **idempotent** and checkpointed. Assume at-least-once delivery.
 - Any counter shared between requests or workers is enforced with atomic SQL (`UPDATE … WHERE used + n <= limit`), never read-then-write. The per-job budget (`Budget`) is in-process and needs no counter table.
 - Errors: typed oRPC errors from the contract (`errors.REPO_TOO_LARGE(...)`); never leak stack traces or internals to clients.
@@ -75,7 +76,7 @@ DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services m
 
 - Business code asks for **roles** (`planner`, `author`, `summarizer`, `judge`), never vendors. Prices and model lists live in config, not code.
 - Every job runs on the user's key. `modelFor({ provider, decryptedKey }, modelId)` is the only place a key becomes a client.
-- Every LLM call: `budget.reserve` before, `budget.settle` after; record in `llm_calls`.
+- Every LLM call: `budget.reserve` before, `budget.settle` after; record in `job_llm_calls`.
 - Repo text is wrapped in labelled data sections in prompts; models get only read-only, snapshot-scoped tools. Do not rely on prompts for security.
 - A model enters the registry/allow-list **only after it passes the eval gate**. Evals can drop it, on a run with real answers (MEM D-048).
 - Prompts are versioned; the version and prompt hashes are stored with each `tutorial_version`.

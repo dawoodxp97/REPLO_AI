@@ -2,22 +2,34 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ImportRepositoryInput, type RepositorySource } from '@replo/contracts'
-import { Button } from '@replo/ui'
-import { useForm } from 'react-hook-form'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  FormField,
+} from '@replo/ui'
+import type { ReactNode } from 'react'
+import { useController, useForm, type Control } from 'react-hook-form'
+import { BUDGET_ERROR, BudgetInput } from '@/components/budget-input'
 import { InlineError } from '@/components/inline-error'
-import { AudienceField } from './audience-field'
-import { BudgetField } from './budget-field'
+import { RadioCardGroup } from '@/components/radio-card-group'
+import { AUDIENCE_OPTIONS } from '@/features/preferences/audience'
 import { EstimateCard } from './estimate-card'
 import { describeImportError } from './import-errors'
-import { IMPORT_FORM_DEFAULTS, type ImportFormValues } from './import-form-values'
-import { ImportSection } from './import-section'
 import { KeyField } from './key-field'
 import { PreflightPanel } from './preflight-panel'
 import { PresetField } from './preset-field'
 import { SourceField } from './source-field'
-import { useImportDefaults } from './use-import-defaults'
-import { useImportPlan } from './use-import-plan'
-import { useStartImport } from './use-start-import'
+import {
+  IMPORT_FORM_DEFAULTS,
+  useImportDefaults,
+  useImportPlan,
+  useStartImport,
+  type ImportFormValues,
+} from './use-import-form'
 
 export function ImportForm({ initialSource }: { initialSource?: RepositorySource }) {
   const form = useForm<ImportFormValues, unknown, ImportRepositoryInput>({
@@ -68,5 +80,62 @@ export function ImportForm({ initialSource }: { initialSource?: RepositorySource
         </p>
       </div>
     </form>
+  )
+}
+
+interface ImportSectionProps {
+  title: string
+  description: string
+  children: ReactNode
+}
+
+function ImportSection({ title, description, children }: ImportSectionProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">{children}</CardContent>
+    </Card>
+  )
+}
+
+function AudienceField({ control }: { control: Control<ImportFormValues> }) {
+  const { field } = useController({ control, name: 'audience' })
+
+  return (
+    <RadioCardGroup
+      name="audience"
+      legend="Who is this tutorial for?"
+      options={AUDIENCE_OPTIONS}
+      value={field.value}
+      onChange={field.onChange}
+    />
+  )
+}
+
+function BudgetField({ control }: { control: Control<ImportFormValues> }) {
+  const { field, fieldState } = useController({ control, name: 'budgetUsd' })
+  const error = fieldState.error ? BUDGET_ERROR : undefined
+
+  return (
+    <FormField
+      id="budget"
+      label="Budget ceiling (USD)"
+      hint="Optional. The job stops when it reaches this amount. Leave it empty for the default."
+      error={error}
+    >
+      <BudgetInput
+        id="budget"
+        error={error}
+        placeholder="Default"
+        className="tabular sm:max-w-48"
+        value={field.value ?? ''}
+        onChange={(event) =>
+          field.onChange(event.target.value === '' ? undefined : event.target.valueAsNumber)
+        }
+      />
+    </FormField>
   )
 }

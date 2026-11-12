@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { App } from './http'
 import type { FixedWindowLimiter } from './rate-limit'
@@ -57,4 +58,11 @@ export function registerGuards(app: App, options: GuardOptions): void {
 
 function refuse(reply: FastifyReply, status: number, error: string) {
   return reply.code(status).type('application/json').send({ error })
+}
+
+const CLIENT_REQUEST_ID = /^[A-Za-z0-9._-]{8,128}$/
+
+export function requestIdFrom(header: string | string[] | undefined): string {
+  const value = Array.isArray(header) ? header[0] : header
+  return value !== undefined && CLIENT_REQUEST_ID.test(value) ? value : randomUUID()
 }

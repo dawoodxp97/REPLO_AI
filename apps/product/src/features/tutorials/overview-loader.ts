@@ -2,7 +2,7 @@ import type { TutorialOverviewDto } from '@replo/contracts'
 import { cache } from 'react'
 import { nullOnNotFound } from '@/lib/api-error'
 import { serverApi } from '@/lib/server-client'
-import { resolveLessonHref } from '@/features/player/lesson-navigation'
+import { resolveLessonHref } from '@/features/player/lesson/lesson-navigation'
 import {
   createTutorialLinks,
   latestVersionNo,

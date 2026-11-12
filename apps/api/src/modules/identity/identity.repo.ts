@@ -1,10 +1,10 @@
 import { and, eq, gt, lte, ne } from 'drizzle-orm'
 import type { AuthProvider } from '@replo/contracts'
 import type { DbOrTx } from '../../platform/db/client'
-import { authIdentity, session, user } from '../../platform/db/auth-schema'
+import { authIdentities, sessions, users } from '../../platform/db/auth-schema'
 
-export type UserRow = typeof user.$inferSelect
-export type IdentityRow = typeof authIdentity.$inferSelect
+export type UserRow = typeof users.$inferSelect
+export type IdentityRow = typeof authIdentities.$inferSelect
 
 export interface NewIdentity {
   userId: string
@@ -24,12 +24,12 @@ export interface SealedTokenColumns {
 
 export const identityRepo = (db: DbOrTx) => ({
   async userById(userId: string): Promise<UserRow | undefined> {
-    const [row] = await db.select().from(user).where(eq(user.id, userId)).limit(1)
+    const [row] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
     return row
   },
 
   async userByEmail(email: string): Promise<UserRow | undefined> {
-    const [row] = await db.select().from(user).where(eq(user.email, email)).limit(1)
+    const [row] = await db.select().from(users).where(eq(users.email, email)).limit(1)
     return row
   },
 
@@ -40,33 +40,33 @@ export const identityRepo = (db: DbOrTx) => ({
     emailVerified: boolean
     image: string | null
   }): Promise<UserRow> {
-    const [row] = await db.insert(user).values(values).returning()
+    const [row] = await db.insert(users).values(values).returning()
     if (!row) throw new Error('user insert returned no row')
     return row
   },
 
   async markEmailVerified(userId: string, email: string): Promise<void> {
     await db
-      .update(user)
+      .update(users)
       .set({ emailVerified: true, updatedAt: new Date() })
-      .where(and(eq(user.id, userId), eq(user.email, email)))
+      .where(and(eq(users.id, userId), eq(users.email, email)))
   },
 
   async deleteUser(userId: string): Promise<void> {
-    await db.delete(user).where(eq(user.id, userId))
+    await db.delete(users).where(eq(users.id, userId))
   },
 
   async passwordAccountByEmail(
     email: string,
   ): Promise<{ user: UserRow; passwordHash: string | null } | undefined> {
     const [row] = await db
-      .select({ user, passwordHash: authIdentity.passwordHash })
-      .from(user)
+      .select({ user: users, passwordHash: authIdentities.passwordHash })
+      .from(users)
       .leftJoin(
-        authIdentity,
-        and(eq(authIdentity.userId, user.id), eq(authIdentity.provider, 'password')),
+        authIdentities,
+        and(eq(authIdentities.userId, users.id), eq(authIdentities.provider, 'password')),
       )
-      .where(eq(user.email, email))
+      .where(eq(users.email, email))
       .limit(1)
     return row
   },
@@ -77,11 +77,11 @@ export const identityRepo = (db: DbOrTx) => ({
   ): Promise<IdentityRow | undefined> {
     const [row] = await db
       .select()
-      .from(authIdentity)
+      .from(authIdentities)
       .where(
         and(
-          eq(authIdentity.provider, provider),
-          eq(authIdentity.providerAccountId, providerAccountId),
+          eq(authIdentities.provider, provider),
+          eq(authIdentities.providerAccountId, providerAccountId),
         ),
       )
       .limit(1)
@@ -91,29 +91,29 @@ export const identityRepo = (db: DbOrTx) => ({
   async identityFor(userId: string, provider: AuthProvider): Promise<IdentityRow | undefined> {
     const [row] = await db
       .select()
-      .from(authIdentity)
-      .where(and(eq(authIdentity.userId, userId), eq(authIdentity.provider, provider)))
+      .from(authIdentities)
+      .where(and(eq(authIdentities.userId, userId), eq(authIdentities.provider, provider)))
       .limit(1)
     return row
   },
 
   async providersOf(userId: string): Promise<string[]> {
     const rows = await db
-      .select({ provider: authIdentity.provider })
-      .from(authIdentity)
-      .where(eq(authIdentity.userId, userId))
+      .select({ provider: authIdentities.provider })
+      .from(authIdentities)
+      .where(eq(authIdentities.userId, userId))
     return rows.map((row) => row.provider)
   },
 
   async insertIdentity(values: NewIdentity): Promise<void> {
-    await db.insert(authIdentity).values(values)
+    await db.insert(authIdentities).values(values)
   },
 
   async updateIdentityToken(identityId: string, token: SealedTokenColumns): Promise<void> {
     await db
-      .update(authIdentity)
+      .update(authIdentities)
       .set({ ...token, updatedAt: new Date() })
-      .where(eq(authIdentity.id, identityId))
+      .where(eq(authIdentities.id, identityId))
   },
 
   async insertSession(values: {
@@ -121,7 +121,7 @@ export const identityRepo = (db: DbOrTx) => ({
     userId: string
     expiresAt: Date
   }): Promise<string> {
-    const [row] = await db.insert(session).values(values).returning({ id: session.id })
+    const [row] = await db.insert(sessions).values(values).returning({ id: sessions.id })
     if (!row) throw new Error('session insert returned no row')
     return row.id
   },
@@ -131,24 +131,24 @@ export const identityRepo = (db: DbOrTx) => ({
     now: Date,
   ): Promise<{ sessionId: string; user: UserRow } | undefined> {
     const [row] = await db
-      .select({ sessionId: session.id, user })
-      .from(session)
-      .innerJoin(user, eq(user.id, session.userId))
-      .where(and(eq(session.tokenHash, tokenHash), gt(session.expiresAt, now)))
+      .select({ sessionId: sessions.id, user: users })
+      .from(sessions)
+      .innerJoin(users, eq(users.id, sessions.userId))
+      .where(and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, now)))
       .limit(1)
     return row
   },
 
   async deleteSession(sessionId: string): Promise<void> {
-    await db.delete(session).where(eq(session.id, sessionId))
+    await db.delete(sessions).where(eq(sessions.id, sessionId))
   },
 
   async deleteExpiredSessions(now: Date): Promise<number> {
-    const result = await db.delete(session).where(lte(session.expiresAt, now))
+    const result = await db.delete(sessions).where(lte(sessions.expiresAt, now))
     return result.rowCount ?? 0
   },
 
   async deleteOtherSessions(userId: string, keepSessionId: string): Promise<void> {
-    await db.delete(session).where(and(eq(session.userId, userId), ne(session.id, keepSessionId)))
+    await db.delete(sessions).where(and(eq(sessions.userId, userId), ne(sessions.id, keepSessionId)))
   },
 })

@@ -10,9 +10,9 @@ src/app/(app)/…                      signed-in shell (AuthGate + AppShell side
 src/app/operator/…                   operator screens; a server check returns 404 to everyone else (D-077)
 src/app/login/                       sign-in page (GitHub, Google, email and password)
 src/app/tutorials/[owner]/[repo]/[slug]/…   public overview (SSR), learn/[chapterKey]/[lessonKey], code (source explorer), progress, opengraph-image (public only)
-src/components/                      shared composites: app-shell/ (sidebar, header, user menu + theme), Brand, PageHeader/SectionHeader, LinkButton,
+src/components/                      shared composites: app-shell/ (sidebar, AppHeader, UserPill: account popover with theme and settings links), UserAvatar, StatusDot, Brand, PageHeader/SectionHeader, LinkButton,
                                      QueryBoundary, ErrorPanel, LoadMore, ConfirmDialog, RadioCardGroup, Sheet, SafeMarkdown, CopyLinkButton
-src/features/<name>/                 composites: session, import, keys, jobs, notifications, library, search, dashboard, tutorials, diagram, player, quiz, progress, repositories, settings, operator
+src/features/<name>/                 composites: session, import, keys, jobs, notifications, library, search, dashboard, tutorials, diagram, player (blocks/, commands/, lesson/, source/), quiz, progress, repositories, settings, operator
 src/hooks/                           browser hooks (media query, debounce, visibility)
 src/lib/orpc.ts                      typed oRPC client + TanStack Query utils (contract TYPE only); per-call context carries the Idempotency-Key
 src/lib/server-client.ts             oRPC client for server components; forwards the caller's cookies to the API

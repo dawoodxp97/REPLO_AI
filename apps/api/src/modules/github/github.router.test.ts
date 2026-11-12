@@ -1,6 +1,6 @@
 import { createRouterClient } from '@orpc/server'
 import { describe, expect, it } from 'vitest'
-import type { RequestContext } from '../../context'
+import type { RequestContext } from '../../request-context'
 import { githubRouter } from './github.router'
 import { GithubTokenRejectedError, type GithubService } from './github.service'
 

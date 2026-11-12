@@ -2,11 +2,9 @@
 
 import { cn, Input, Kbd, Spinner } from '@replo/ui'
 import { Search } from 'lucide-react'
-import { useRef, useState } from 'react'
-import { moveFocus } from './result-focus'
+import { useRef, useState, type KeyboardEvent } from 'react'
 import { SearchGroups } from './search-results'
-import { MIN_QUERY_LENGTH, useLibrarySearch } from './use-search'
-import { useSearchShortcut } from './use-search-shortcut'
+import { MIN_QUERY_LENGTH, useLibrarySearch, useSearchShortcut } from './use-search'
 
 const RESULTS_ID = 'library-search-results'
 
@@ -93,4 +91,19 @@ export function SearchBox({
       ) : null}
     </div>
   )
+}
+
+function moveFocus(
+  event: KeyboardEvent<HTMLElement>,
+  container: HTMLElement | null,
+  input: HTMLInputElement | null,
+) {
+  const links = Array.from(container?.querySelectorAll<HTMLAnchorElement>('a') ?? [])
+  if (links.length === 0) return
+  const index = links.findIndex((link) => link === document.activeElement)
+  const delta = event.key === 'ArrowDown' ? 1 : -1
+  const next = index === -1 ? (delta === 1 ? 0 : links.length - 1) : index + delta
+  event.preventDefault()
+  if (next < 0) input?.focus()
+  else links[Math.min(next, links.length - 1)]?.focus()
 }

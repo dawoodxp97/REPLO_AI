@@ -62,7 +62,11 @@ const toDto = (
 export function createKeysService(deps: KeysDeps): KeysService {
   const { db, vault, checker, jobs } = deps
 
-  const open = (row: ProviderKeyRow) => vault.open(row, keyAad(row.userId, row.provider))
+  const open = (row: ProviderKeyRow) =>
+    vault.open(
+      { ciphertext: row.ciphertext, iv: row.iv, keyVersion: row.encryptionKeyVersion },
+      keyAad(row.userId, row.provider),
+    )
 
   return {
     async list(userId) {
@@ -85,7 +89,7 @@ export function createKeysService(deps: KeysDeps): KeysService {
         label: input.label,
         ciphertext: sealed.ciphertext,
         iv: sealed.iv,
-        keyVersion: sealed.keyVersion,
+        encryptionKeyVersion: sealed.keyVersion,
         last4: sealed.last4,
         lastValidatedAt: new Date(),
       })
@@ -95,6 +99,8 @@ export function createKeysService(deps: KeysDeps): KeysService {
 
     async validate(userId, keyId) {
       const row = requireFound(await keysRepo(db).findOwned(userId, keyId), 'Key')
+      // The one place the HTTP process decrypts a key: for this provider check only, in
+      // memory, dropped on return (RULES §0.3 exception, also used by repositories.import).
       const check = await checker.check(row.provider, open(row))
       if (check === 'unavailable') return refused({ code: 'KEY_CHECK_UNAVAILABLE' })
       if (check === 'valid') await keysRepo(db).markValidated(row.id, new Date())
@@ -104,6 +110,8 @@ export function createKeysService(deps: KeysDeps): KeysService {
     async delete(userId, keyId) {
       await db.transaction(async (tx) => {
         const row = requireFound(await keysRepo(tx).findOwned(userId, keyId), 'Key')
+        // Failing the key's jobs in this transaction is what stops their workers: the next
+        // heartbeat finds no running row (D-044).
         await jobs.failForKey(tx, row.id)
         await keysRepo(tx).delete(row.id)
       })

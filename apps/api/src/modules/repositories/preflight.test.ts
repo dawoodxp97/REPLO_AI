@@ -7,7 +7,7 @@ import {
   type GithubRequestOptions,
   type GithubRest,
 } from '../../platform/github/client'
-import type { InstallationDirectory } from './repositories.ports'
+import type { InstallationDirectory } from './preflight'
 import { createPreflight } from './preflight'
 
 const SHA = 'a'.repeat(40)

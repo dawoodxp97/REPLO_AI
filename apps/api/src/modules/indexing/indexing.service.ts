@@ -20,7 +20,7 @@ import {
 import type { Db, Tx } from '../../platform/db/client'
 import type { SnapshotAnalysis, SnapshotStatus } from '../../platform/db/schema'
 import { classifyGithubFailure, repoApiPath, type GithubRest } from '../../platform/github/client'
-import { JobError } from '../../jobs/errors'
+import { JobError } from '../../worker/errors'
 import { extractArchive } from './archive'
 import { installDirectory } from './install-directory'
 import { readManifest, readOptional } from './manifest'

@@ -1,6 +1,6 @@
 import { createRouterClient } from '@orpc/server'
 import { describe, expect, it, vi } from 'vitest'
-import type { RequestContext } from '../../context'
+import type { RequestContext } from '../../request-context'
 import { tutorialsRouter } from './tutorials.router'
 
 const TUTORIAL_ID = '0198c7a0-0000-7000-8000-000000000001'

@@ -1,6 +1,6 @@
-import type { StageContext } from '../../../jobs/generate-tutorial.worker'
-import { JobError } from '../../../jobs/errors'
-import { draftPaths } from '../context'
+import type { StageContext } from '../../../worker/generate-tutorial'
+import { JobError } from '../../../worker/errors'
+import { draftPaths } from '../prompt-inputs'
 import {
   type ArchitectureDraft,
   ChapterDraft,
@@ -13,8 +13,14 @@ import { groundLesson, type Failure, type GroundedLesson } from '../grounding/le
 import type { LessonOutcome } from '../grounding/report'
 import type { SourceIndex } from '../grounding/source-index'
 import { dataSection, promptFor } from '../prompts'
-import { judgeUnit, lessonUnit, OVERVIEW_UNIT, StoredJudge, StoredRepair } from '../stored-outputs'
-import { checkpointed, type StageDeps, type StageWorkspace } from '../stage-deps'
+import {
+  judgeCheckpointKey,
+  lessonCheckpointKey,
+  OVERVIEW_CHECKPOINT,
+  StoredJudge,
+  StoredRepair,
+} from '../checkpoints'
+import { checkpointed, type StageDeps, type StageWorkspace } from '../stage-tools'
 
 export interface GroundedDraft {
   outcome: LessonOutcome
@@ -38,7 +44,7 @@ interface GroundingRun {
   deps: StageDeps
   ctx: StageContext
   index: SourceIndex
-  known: ReadonlySet<string>
+  knownIdentifiers: ReadonlySet<string>
   session: StageWorkspace['session']
 }
 
@@ -49,7 +55,13 @@ export async function groundChapters(
   inputs: { architecture: ArchitectureDraft; outline: OutlineDraft },
 ): Promise<GroundedTutorial> {
   const { index, session } = workspace
-  const run: GroundingRun = { deps, ctx, index, known: await index.knownIdentifiers(), session }
+  const run: GroundingRun = {
+    deps,
+    ctx,
+    index,
+    knownIdentifiers: await index.knownIdentifiers(),
+    session,
+  }
   const outcomes: LessonOutcome[] = []
   const judgeScores: number[] = []
 
@@ -61,7 +73,7 @@ export async function groundChapters(
       blocks: inputs.architecture.blocks,
       quiz: [],
     },
-    OVERVIEW_UNIT,
+    OVERVIEW_CHECKPOINT,
     run,
   )
   outcomes.push(overview.outcome)
@@ -69,13 +81,13 @@ export async function groundChapters(
   const chapters: GroundedChapter[] = []
   for (const spec of inputs.outline.chapters) {
     ctx.signal.throwIfAborted()
-    const drafted = await deps.outputs.read(ctx.job.id, 'lessons', spec.key, ChapterDraft)
+    const drafted = await deps.checkpoints.read(ctx.job.id, 'lessons', spec.key, ChapterDraft)
     if (!drafted) throw new JobError('LESSONS_MISSING', false, `chapter ${spec.key} has no lessons`)
 
     const lessons: GroundedDraft[] = []
     for (const lesson of drafted.lessons) {
       ctx.signal.throwIfAborted()
-      lessons.push(await groundAndRepair(lesson, lessonUnit(lesson.key), run))
+      lessons.push(await groundAndRepair(lesson, lessonCheckpointKey(lesson.key), run))
     }
     outcomes.push(...lessons.map((entry) => entry.outcome))
 
@@ -88,28 +100,35 @@ export async function groundChapters(
 
 async function groundAndRepair(
   draft: LessonDraft,
-  unit: string,
+  checkpointKey: string,
   run: GroundingRun,
 ): Promise<GroundedDraft> {
-  const { deps, ctx, index, known } = run
+  const { deps, ctx, index, knownIdentifiers } = run
   await index.load(draftPaths(draft))
-  const first = groundLesson(draft, index, known)
+  const beforeRepair = groundLesson(draft, index, knownIdentifiers)
   const unrepaired: GroundedDraft = {
-    outcome: { lessonKey: draft.key, first, final: first, repaired: false },
-    grounded: first,
+    outcome: { lessonKey: draft.key, first: beforeRepair, final: beforeRepair, repaired: false },
+    grounded: beforeRepair,
   }
-  if (first.failures.length === 0) return unrepaired
+  if (beforeRepair.failures.length === 0) return unrepaired
 
-  const { repaired } = await checkpointed(deps, ctx, 'validate', unit, StoredRepair, async () => ({
-    repaired: (await repairDraft(draft, first.failures, run)) ?? null,
-  }))
+  const { repaired } = await checkpointed(
+    deps,
+    ctx,
+    'validate',
+    checkpointKey,
+    StoredRepair,
+    async () => ({
+      repaired: (await repairDraft(draft, beforeRepair.failures, run)) ?? null,
+    }),
+  )
   if (!repaired) return unrepaired
 
   await index.load(draftPaths(repaired))
-  const final = groundLesson(repaired, index, known)
+  const afterRepair = groundLesson(repaired, index, knownIdentifiers)
   return {
-    outcome: { lessonKey: draft.key, first, final, repaired: true },
-    grounded: final,
+    outcome: { lessonKey: draft.key, first: beforeRepair, final: afterRepair, repaired: true },
+    grounded: afterRepair,
   }
 }
 
@@ -150,7 +169,7 @@ async function judgeChapter(
     deps,
     ctx,
     'validate',
-    judgeUnit(chapter.key),
+    judgeCheckpointKey(chapter.key),
     StoredJudge,
     async () => {
       const judged = await session.ask('judge', {

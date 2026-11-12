@@ -1,8 +1,8 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { Logger } from 'pino'
 import type { App } from '../../platform/http'
 import type { GithubWebhookService } from './github.webhook.service'
-import { verifyGithubSignature } from './webhook'
 
 const WEBHOOK_BODY_LIMIT_BYTES = 25 * 1024 * 1024
 const SIGNATURE_SHAPE = /^sha256=[0-9a-f]{64}$/i
@@ -25,6 +25,8 @@ export function registerGithubWebhook(
   }
 
   app.register(async (scope) => {
+    // GitHub signs the exact bytes it sent, so this scope keeps the body raw and JSON is
+    // parsed only after the HMAC over those bytes checks out.
     scope.addContentTypeParser(
       'application/json',
       { parseAs: 'buffer', bodyLimit: WEBHOOK_BODY_LIMIT_BYTES },
@@ -35,6 +37,8 @@ export function registerGithubWebhook(
       '/webhooks/github',
       {
         bodyLimit: WEBHOOK_BODY_LIMIT_BYTES,
+        // onRequest runs before the body is read, so unsigned requests are refused without
+        // buffering up to 25 MB.
         onRequest: rejectUnidentified,
         config: { rateLimit: { max: 300, timeWindow: '1 minute' } },
       },
@@ -83,4 +87,16 @@ export function registerGithubWebhook(
       },
     )
   })
+}
+
+export function verifyGithubSignature(
+  secret: string,
+  rawBody: Buffer | string,
+  signatureHeader: string | undefined,
+): boolean {
+  if (!signatureHeader?.startsWith('sha256=')) return false
+  const hex = signatureHeader.slice('sha256='.length)
+  if (!/^[0-9a-f]{64}$/i.test(hex)) return false
+  const expected = createHmac('sha256', secret).update(rawBody).digest()
+  return timingSafeEqual(Buffer.from(hex, 'hex'), expected)
 }

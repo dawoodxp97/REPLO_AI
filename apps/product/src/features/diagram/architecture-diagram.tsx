@@ -1,10 +1,18 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
-import { DIAGRAM_STATUS_MESSAGE, type DiagramStatus } from './diagram-state'
 import { describeFlowchart } from './mermaid-steps'
 import { renderMermaid } from './render-mermaid'
 import { useColorScheme } from './use-color-scheme'
+
+type DiagramStatus = 'waiting' | 'rendering' | 'ready' | 'failed'
+
+const DIAGRAM_STATUS_MESSAGE: Record<DiagramStatus, string> = {
+  waiting: 'The diagram is drawn when it scrolls into view.',
+  rendering: 'Drawing the diagram…',
+  ready: '',
+  failed: 'The diagram could not be drawn. The steps below describe it.',
+}
 
 interface DiagramRender {
   source: string

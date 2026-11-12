@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { SourceExplorer } from '@/features/player/source-explorer'
+import { SourceExplorer } from '@/features/player/source/source-explorer'
 import { TutorialShell } from '@/features/tutorials/tutorial-shell'
 
 export const metadata: Metadata = { title: 'Source' }

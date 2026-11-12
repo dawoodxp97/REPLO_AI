@@ -7,7 +7,7 @@ import type {
   TutorialSummaryDto,
 } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
-import { containsPattern } from '../../platform/db/like'
+import { containsPattern } from '../../platform/db/query-helpers'
 import { requireFound } from '../../platform/errors'
 import type { LearningService } from '../learning/learning.service'
 import { tutorialPath } from './access'

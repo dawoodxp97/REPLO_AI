@@ -2,10 +2,10 @@ import { and, desc, eq, gt, ilike, inArray, lt, notExists, sql, type SQL } from 
 import type { Visibility } from '@replo/contracts'
 import type { DbOrTx } from '../../platform/db/client'
 import {
-  lessonIndex,
+  tutorialLessons,
   repositories,
-  repoPushEvents,
-  repoSnapshots,
+  repositoryPushEvents,
+  repositorySnapshots,
   tutorialReports,
   tutorialSourceRefs,
   tutorialVersions,
@@ -232,26 +232,26 @@ export const tutorialsRepo = (db: DbOrTx) => {
       return new Set(rows.map((row) => row.path))
     },
 
-    async insertLessons(values: (typeof lessonIndex.$inferInsert)[]): Promise<void> {
-      if (values.length > 0) await db.insert(lessonIndex).values(values)
+    async insertLessons(values: (typeof tutorialLessons.$inferInsert)[]): Promise<void> {
+      if (values.length > 0) await db.insert(tutorialLessons).values(values)
     },
 
     lessonKeysOf(userId: string, versionIds: readonly string[]) {
       if (versionIds.length === 0) return []
       return db
-        .select({ versionId: lessonIndex.versionId, lessonKey: lessonIndex.lessonKey })
-        .from(lessonIndex)
-        .innerJoin(tutorialVersions, eq(tutorialVersions.id, lessonIndex.versionId))
+        .select({ versionId: tutorialLessons.versionId, lessonKey: tutorialLessons.lessonKey })
+        .from(tutorialLessons)
+        .innerJoin(tutorialVersions, eq(tutorialVersions.id, tutorialLessons.versionId))
         .innerJoin(tutorials, eq(tutorials.id, tutorialVersions.tutorialId))
-        .where(and(eq(tutorials.userId, userId), inArray(lessonIndex.versionId, [...versionIds])))
+        .where(and(eq(tutorials.userId, userId), inArray(tutorialLessons.versionId, [...versionIds])))
     },
 
     lessonsOf(versionId: string) {
       return db
         .select()
-        .from(lessonIndex)
-        .where(eq(lessonIndex.versionId, versionId))
-        .orderBy(lessonIndex.position)
+        .from(tutorialLessons)
+        .where(eq(tutorialLessons.versionId, versionId))
+        .orderBy(tutorialLessons.position)
     },
 
     async isStale(input: {
@@ -261,12 +261,12 @@ export const tutorialsRepo = (db: DbOrTx) => {
     }): Promise<boolean> {
       const [row] = await db
         .select({ hit: sql<number>`1` })
-        .from(repoPushEvents)
+        .from(repositoryPushEvents)
         .where(
           and(
-            eq(repoPushEvents.repositoryId, input.repositoryId),
-            gt(repoPushEvents.pushedAt, input.snapshotCreatedAt),
-            sql`${repoPushEvents.paths} && (select array_agg(distinct ${tutorialSourceRefs.path}) from ${tutorialSourceRefs} where ${tutorialSourceRefs.versionId} = ${input.versionId})`,
+            eq(repositoryPushEvents.repositoryId, input.repositoryId),
+            gt(repositoryPushEvents.pushedAt, input.snapshotCreatedAt),
+            sql`${repositoryPushEvents.paths} && (select array_agg(distinct ${tutorialSourceRefs.path}) from ${tutorialSourceRefs} where ${tutorialSourceRefs.versionId} = ${input.versionId})`,
           ),
         )
         .limit(1)
@@ -279,38 +279,38 @@ export const tutorialsRepo = (db: DbOrTx) => {
       paths: string[]
       pushedAt: Date
     }): Promise<void> {
-      await db.insert(repoPushEvents).values(input)
+      await db.insert(repositoryPushEvents).values(input)
     },
 
     async deleteObsoletePushEvents(): Promise<number> {
       const deleted = await db
-        .delete(repoPushEvents)
+        .delete(repositoryPushEvents)
         .where(
           notExists(
             db
               .select({ one: sql`1` })
-              .from(repoSnapshots)
+              .from(repositorySnapshots)
               .where(
                 and(
-                  eq(repoSnapshots.repositoryId, repoPushEvents.repositoryId),
-                  lt(repoSnapshots.createdAt, repoPushEvents.pushedAt),
+                  eq(repositorySnapshots.repositoryId, repositoryPushEvents.repositoryId),
+                  lt(repositorySnapshots.createdAt, repositoryPushEvents.pushedAt),
                 ),
               ),
           ),
         )
-        .returning({ id: repoPushEvents.id })
+        .returning({ id: repositoryPushEvents.id })
       return deleted.length
     },
 
     async insertReport(values: {
       tutorialId: string
-      reporterId: string
+      reporterUserId: string
       reason: string
     }): Promise<void> {
       await db
         .insert(tutorialReports)
         .values(values)
-        .onConflictDoNothing({ target: [tutorialReports.tutorialId, tutorialReports.reporterId] })
+        .onConflictDoNothing({ target: [tutorialReports.tutorialId, tutorialReports.reporterUserId] })
     },
 
     async countsFor(userId: string) {
@@ -343,16 +343,16 @@ export const tutorialsRepo = (db: DbOrTx) => {
           owner: repositories.owner,
           repo: repositories.name,
           slug: tutorials.slug,
-          versionId: lessonIndex.versionId,
-          chapterKey: lessonIndex.chapterKey,
-          lessonKey: lessonIndex.lessonKey,
-          title: lessonIndex.title,
+          versionId: tutorialLessons.versionId,
+          chapterKey: tutorialLessons.chapterKey,
+          lessonKey: tutorialLessons.lessonKey,
+          title: tutorialLessons.title,
         })
-        .from(lessonIndex)
-        .innerJoin(tutorials, eq(tutorials.currentVersionId, lessonIndex.versionId))
+        .from(tutorialLessons)
+        .innerJoin(tutorials, eq(tutorials.currentVersionId, tutorialLessons.versionId))
         .innerJoin(repositories, eq(repositories.id, tutorials.repositoryId))
-        .where(and(eq(tutorials.userId, userId), ilike(lessonIndex.title, pattern)))
-        .orderBy(lessonIndex.title)
+        .where(and(eq(tutorials.userId, userId), ilike(tutorialLessons.title, pattern)))
+        .orderBy(tutorialLessons.title)
         .limit(limit)
     },
 

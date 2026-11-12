@@ -5,7 +5,7 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from '@rep
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { LinkButton } from '@/components/link-button'
 import { RepoVisibilityBadge } from '@/components/repo-visibility-badge'
-import { JobStatusLink } from '@/features/jobs/job-status-link'
+import { JobStatusLink } from '@/features/jobs/job-status-badge'
 import { formatRepoName } from '@/lib/format'
 import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
 import { useRemoveRepository } from './use-repositories'

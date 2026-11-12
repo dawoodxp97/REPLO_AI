@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { frameworkFromManifest } from './framework-manifest'
+import { frameworkFromManifest } from './preflight'
 
 const encode = (text: string, encoding: 'base64' | 'utf-8' = 'base64') => ({
   content: encoding === 'base64' ? Buffer.from(text).toString('base64') : text,

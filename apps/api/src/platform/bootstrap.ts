@@ -1,6 +1,6 @@
 import PgBoss from 'pg-boss'
 import type { Logger } from 'pino'
-import { declareQueues } from '../jobs/queues'
+import { declareQueues } from '../worker/job-payload'
 import { loadConfig, type Config } from './config'
 import { createDb, type Db } from './db/client'
 import { createLogger } from './logger'

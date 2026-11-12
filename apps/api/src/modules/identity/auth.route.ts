@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { serializeCookie } from '../../platform/cookies'
 import type { App } from '../../platform/http'
 import type { AuthService } from './auth.service'
-import { createAuthRedirects } from './auth-redirects'
 import { newOAuthAttempt, OAuthFailure, type OAuthClients, type OAuthGrant } from './oauth'
 import { ATTEMPT_COOKIE, AuthIntent, encodeAttempt, readAttempt } from './oauth-attempt'
 import { sessionFromRequest } from './session-request'
@@ -123,4 +122,20 @@ export function registerAuthRoutes(app: App, deps: AuthRouteDeps) {
     if (outcome.kind === 'refused') return fail(outcome.refusal)
     return finish(productUrl('/'), [deps.sessionCookie.issue(outcome.value.token)])
   })
+}
+
+export function createAuthRedirects(origins: { productOrigin: string; apiPublicUrl: string }) {
+  const product = (path: string, params: Record<string, string> = {}) => {
+    const url = new URL(path, origins.productOrigin)
+    for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value)
+    return url.toString()
+  }
+  const withError = (error?: string): Record<string, string> => (error ? { error } : {})
+  return {
+    product,
+    login: (error?: string) => product('/login', withError(error)),
+    settings: (error?: string) => product('/settings/profile', withError(error)),
+    callback: (provider: OAuthProvider) =>
+      new URL(`/auth/${provider}/callback`, origins.apiPublicUrl).toString(),
+  }
 }

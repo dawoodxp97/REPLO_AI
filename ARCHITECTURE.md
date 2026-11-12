@@ -70,21 +70,27 @@ Postgres ~0.6–1.0 · worker 0.5–1.5 peak (concurrency 1–2) · product ~0.2
 
 ```
 main.http.ts        Fastify + oRPC router + auth routes + webhooks + SSE + /healthz /readyz
-main.worker.ts      pg-boss workers + reaper; only HTTP is /healthz
-platform/           config(env), db, queue, storage, logger, crypto (key vault), errors, context
+main.worker.ts      pg-boss workers (generate-tutorial, reaper, retention purge); only HTTP is /healthz
+composition.ts      builds every service from its dependencies
+request-context.ts  RequestContext + Services, built per request
+worker/             generate-tutorial handler, job-payload (queue names, payload, timeouts, retry policy), error classification
+platform/           config(env), db, queue, logger, crypto (key vault), errors, http guards, sse
 modules/
   identity/         sign-up and sign-in, OAuth (Google, GitHub), sessions, current user
   github/           app installs, token minting, webhooks, access checks
-  repositories/     repos, snapshots, pre-flight, cost estimate
+  repositories/     repos, snapshots, pre-flight, cost estimate, import
   indexing/         orchestrates packages/repo-analysis, stores the index
-  generation/       pipeline stages, budgets, prompts via packages/ai
-  models/           BYOK keys, model catalogue, presets
-  tutorials/        versions, content, publishing, visibility, share links
+  jobs/             generation_jobs lifecycle: create, cancel, retry, claim, heartbeat, reaper, SSE progress
+  pipeline/         stage handlers, checkpoints, prompt inputs, grounding, via packages/ai
+  keys/, models/    BYOK keys, model catalogue, presets
+  tutorials/        catalog, content, version access, publishing, visibility, share links
   learning/         progress, quiz attempts
-jobs/registry.ts    job name → handler + payload schema + retry policy
+  account/, notifications/, settings/, search/, dashboard/, operator/, retention/
 ```
 
 Per module: `*.service.ts` (public API) · `*.router.ts` (implements its contract slice) · `*.repo.ts` (private data access). **Modules call each other only through services.**
+
+One tutorial from the Generate click to the published page, file by file: [`docs/HOW_GENERATION_WORKS.md`](./docs/HOW_GENERATION_WORKS.md).
 
 ## 4. Contract-first API
 
@@ -145,7 +151,7 @@ SSE at `GET /jobs/:id/events`. Event `id = job_events.id`; reconnect replays via
 
 Base URLs are fixed per provider. There are no platform-owned keys, so a failing key fails the job and is never swapped for another (PRD FR-RUN-4, ADR-007).
 
-Every call: `budget.reserve → generate → budget.settle` (writes `llm_calls`, updates `spent_micros`). Fallback models only for retryable provider errors, and only models that passed evals.
+Every call: `budget.reserve → generate → budget.settle` (writes `job_llm_calls`, updates `spent_micros`). Fallback models only for retryable provider errors, and only models that passed evals.
 
 ## 8. Repository ingestion and code understanding
 

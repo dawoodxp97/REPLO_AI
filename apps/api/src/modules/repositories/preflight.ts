@@ -4,14 +4,30 @@ import {
   type RepoLimitData,
   type RepositorySource,
 } from '@replo/contracts'
-import { inventory, limitBreach, type Inventory, type RepoLimits } from '@replo/repo-analysis'
+import {
+  detectFramework,
+  inventory,
+  limitBreach,
+  type Inventory,
+  type RepoLimits,
+} from '@replo/repo-analysis'
 import type { z } from 'zod'
 import { notFound } from '../../platform/errors'
 import { ok, refused, type Outcome } from '../../platform/outcome'
 import { classifyGithubFailure, repoApiPath, type GithubRest } from '../../platform/github/client'
-import { CommitRef, GitBlob, GitTree, GithubRepository } from '../../platform/github/schemas'
-import { frameworkFromManifest } from './framework-manifest'
-import type { InstallationDirectory } from './repositories.ports'
+import {
+  CommitRef,
+  GitBlob,
+  GitTree,
+  GithubRepository,
+  PackageManifestJson,
+} from '../../platform/github/schemas'
+
+export interface InstallationDirectory {
+  activeInstallations(userId: string): Promise<{ githubInstallationId: number }[]>
+  installationToken(installationId: number): Promise<string | undefined>
+  userCanAccess(userId: string, repository: { owner: string; name: string }): Promise<boolean>
+}
 
 export type PreflightRefusal =
   | { code: 'REPO_NOT_ACCESSIBLE' }
@@ -168,4 +184,17 @@ export function createPreflight(deps: PreflightDeps): Preflight {
       })
     },
   }
+}
+
+export function frameworkFromManifest(blob: z.output<typeof GitBlob>): string | null {
+  const text =
+    blob.encoding === 'base64' ? Buffer.from(blob.content, 'base64').toString('utf8') : blob.content
+  let json: unknown
+  try {
+    json = JSON.parse(text)
+  } catch {
+    return null
+  }
+  const manifest = PackageManifestJson.safeParse(json)
+  return manifest.success ? detectFramework(manifest.data) : null
 }

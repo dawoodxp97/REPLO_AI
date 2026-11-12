@@ -4,8 +4,8 @@ import type { TutorialOverviewDto } from '@replo/contracts'
 import { Skeleton } from '@replo/ui'
 import { LinkButton } from '@/components/link-button'
 import { PageHeader, SectionHeader } from '@/components/page-header'
-import { resolveLessonHref } from '@/features/player/lesson-navigation'
-import { useTutorialOverview } from '@/features/player/use-tutorial-overview'
+import { resolveLessonHref } from '@/features/player/lesson/lesson-navigation'
+import { useTutorialOverview } from '@/features/player/use-tutorial'
 import { formatRepoName } from '@/lib/format'
 import {
   createTutorialLinks,

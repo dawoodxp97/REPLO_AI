@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { App } from './http'
 import { normalizePath, registerGuards } from './http-guards'
 import { FixedWindowLimiter } from './rate-limit'
-import { requestIdFrom } from './request-id'
+import { requestIdFrom } from './http-guards'
 
 const ORIGIN = 'https://replo.test'
 

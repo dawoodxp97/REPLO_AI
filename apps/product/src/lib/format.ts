@@ -33,6 +33,10 @@ export function formatUsd(usd: number): string {
   return (usd > 0 && usd < 0.01 ? USD_PRECISE_FORMAT : USD_FORMAT).format(usd)
 }
 
+export function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
 export function formatCount(value: number): string {
   return COUNT_FORMAT.format(value)
 }

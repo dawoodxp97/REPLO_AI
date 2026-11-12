@@ -16,8 +16,13 @@ import {
 import { BudgetInput } from '@/components/budget-input'
 import { InlineError } from '@/components/inline-error'
 import { LLM_PROVIDER_LABELS } from '@/features/keys/providers'
-import { describeModelError } from './model-errors'
+import { createErrorDescriber } from '@/lib/error-copy'
 import { useModelsForm } from './use-models-form'
+
+const describeModelError = createErrorDescriber({
+  CUSTOM_MODEL_NOT_ALLOWED: 'That model is not verified for this role. Pick another one.',
+  BAD_REQUEST: 'Enter a budget from $0.01 to $50, or leave it empty.',
+})
 
 const ROLES: readonly { role: keyof CustomModels; label: string }[] = [
   { role: 'planner', label: 'Planner' },

@@ -19,15 +19,14 @@ import { Check } from 'lucide-react'
 import { ErrorPanel } from '@/components/error-panel'
 import { LoadMore } from '@/components/load-more'
 import { TextLink } from '@/components/text-link'
-import { resolveLessonHref } from '@/features/player/lesson-navigation'
-import { useUnmarkLesson } from '@/features/player/use-lesson-progress'
+import { resolveLessonHref } from '@/features/player/lesson/lesson-navigation'
 import { formatDate } from '@/lib/format'
 import {
   createTutorialLinks,
   type TutorialLinkContext,
   type TutorialRef,
 } from '@/lib/tutorial-paths'
-import { useLessonHistory, type ProgressIds } from './use-progress'
+import { useLessonHistory, useUnmarkLesson, type ProgressIds } from './use-progress'
 
 export interface LessonHistoryProps {
   tutorial: TutorialRef

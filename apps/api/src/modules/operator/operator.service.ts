@@ -2,7 +2,7 @@ import type { OperatorJobDetail, OperatorJobRow } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
 import { notFound, requireFound } from '../../platform/errors'
 import { decodeOffset, offsetPage } from '../../platform/pagination'
-import type { JobHistory } from '../generation/job-history.service'
+import type { JobHistory } from '../jobs/job-history.service'
 import { operatorRepo } from './operator.repo'
 
 interface OperatorDeps {

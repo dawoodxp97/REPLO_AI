@@ -12,27 +12,16 @@ import {
   ItemContent,
   ItemDescription,
   ItemTitle,
-  Progress,
 } from '@replo/ui'
 import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { formatDate, formatPercent, formatRepoName } from '@/lib/format'
+import { formatDate, formatRepoName } from '@/lib/format'
 import { tutorialPath } from '@/lib/tutorial-paths'
+import { ReadProgress } from './read-progress'
 import { useDeleteTutorial } from './use-library'
 import { VisibilityControl } from './visibility-control'
 import { VISIBILITY_LABEL } from './visibility-options'
-
-function ReadProgress({ ratio }: { ratio: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Progress value={ratio * 100} aria-label="Read" className="w-16" />
-      <span className="tabular font-mono text-xs text-muted-foreground">
-        {formatPercent(ratio)} read
-      </span>
-    </div>
-  )
-}
 
 export function TutorialRow({ tutorial }: { tutorial: TutorialSummaryDto }) {
   const remove = useDeleteTutorial()

@@ -10,10 +10,11 @@ import {
   Spinner,
   Textarea,
 } from '@replo/ui'
+import { useMutation } from '@tanstack/react-query'
 import { CircleAlert, CircleCheck } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { useReportTutorial } from './use-report-tutorial'
+import { orpc } from '@/lib/orpc'
 
 const ReportValues = z.object({ reason: z.string().trim().min(1).max(1000) })
 type ReportValues = z.infer<typeof ReportValues>
@@ -25,7 +26,7 @@ export function ReportForm({
   tutorialId: string
   shareToken?: string | undefined
 }) {
-  const report = useReportTutorial()
+  const report = useMutation(orpc.tutorials.report.mutationOptions())
   const form = useForm<ReportValues>({
     resolver: zodResolver(ReportValues),
     defaultValues: { reason: '' },

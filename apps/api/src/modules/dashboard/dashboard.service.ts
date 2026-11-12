@@ -2,18 +2,18 @@ import type { ActivityItem, ActivityPage, DashboardSummary } from '@replo/contra
 import { isTerminalStatus, jobLink } from '../../platform/job-status'
 import { badRequest } from '../../platform/errors'
 import { decodeOffset, offsetPage } from '../../platform/pagination'
-import type { JobHistory, RecentJob } from '../generation/job-history.service'
+import type { JobHistory, RecentJob } from '../jobs/job-history.service'
 import type { LearningService } from '../learning/learning.service'
 import type { RepositoryLibrary } from '../repositories/library.service'
-import type { TutorialLibrary } from '../tutorials/library.service'
+import type { TutorialCatalog } from '../tutorials/catalog.service'
 
 const IN_FLIGHT_LIMIT = 20
 const MAX_FEED_OFFSET = 5000
 
 export interface DashboardDeps {
-  tutorials: Pick<TutorialLibrary, 'counts' | 'recentPublished'>
+  tutorials: Pick<TutorialCatalog, 'counts' | 'recentPublished'>
   jobs: Pick<JobHistory, 'inFlightFor' | 'recentFor'>
-  learning: Pick<LearningService, 'resumeTarget'>
+  learning: Pick<LearningService, 'resumeTarget' | 'readingStats'>
   repositories: Pick<RepositoryLibrary, 'describeLinked' | 'linkedIds'>
 }
 
@@ -33,10 +33,11 @@ export function createDashboardService(deps: DashboardDeps): DashboardService {
 
   return {
     async summary(userId) {
-      const [counts, inFlight, resume] = await Promise.all([
+      const [counts, inFlight, resume, reading] = await Promise.all([
         tutorials.counts(userId),
         jobs.inFlightFor(userId, IN_FLIGHT_LIMIT),
         learning.resumeTarget(userId),
+        learning.readingStats(userId),
       ])
       const linked = await repositories.describeLinked(
         userId,
@@ -60,6 +61,7 @@ export function createDashboardService(deps: DashboardDeps): DashboardService {
           ]
         }),
         resume,
+        reading,
       }
     },
 

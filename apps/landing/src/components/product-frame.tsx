@@ -1,6 +1,7 @@
 import { cn, CodePanel, CodePanelHeader, MonoLabel } from '@replo/ui'
 import { BookOpen, FileCode2, GitCommitHorizontal } from 'lucide-react'
 import { Fragment } from 'react'
+import { CitationChip, CitationLink } from './citation-chip'
 
 const PINNED_SHA = '3b17b2e'
 
@@ -121,23 +122,6 @@ function SourceViewer() {
   )
 }
 
-function CitationChip({ children, active }: { children: string; active?: boolean }) {
-  const Tag = active ? 'a' : 'span'
-  return (
-    <Tag
-      href={active ? '#example-source' : undefined}
-      aria-label={active ? `View example source: ${children}` : undefined}
-      className={cn(
-        'inline-flex max-w-full items-center gap-1.5 rounded-sm border bg-card px-1.5 py-0.5 align-middle font-sans transition-colors hover:bg-accent',
-        active && 'border-observed/45',
-      )}
-    >
-      <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-observed" />
-      <span className="truncate font-mono text-meta leading-4 text-foreground">{children}</span>
-    </Tag>
-  )
-}
-
 function InlineCode({ children }: { children: string }) {
   return (
     <code className="rounded-sm bg-muted px-1 py-px font-mono text-inline-code text-foreground">
@@ -163,7 +147,13 @@ function LessonPane() {
           The thunk writes the new quantity to the store first, then calls{' '}
           <InlineCode>cartApi.setLine</InlineCode>. If the request fails, it dispatches{' '}
           <InlineCode>itemRolledBack</InlineCode> with the previous quantity.{' '}
-          <CitationChip active>src/cart/thunks.ts:L9–27</CitationChip>
+          <CitationLink
+            active
+            href="#example-source"
+            label="View example source: src/cart/thunks.ts:L9–27"
+          >
+            src/cart/thunks.ts:L9–27
+          </CitationLink>
         </p>
       </div>
       <aside

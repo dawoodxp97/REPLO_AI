@@ -5,24 +5,25 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { TutorialContent, ValidationReport } from '@replo/contracts'
 import { ANALYZER_VERSION } from '@replo/repo-analysis'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   generationJobs,
   repositories,
-  repoSnapshots,
+  repositorySnapshots,
   tutorialReports,
   tutorials,
   tutorialVersions,
-  lessonIndex,
+  tutorialLessons,
 } from '../../platform/db/schema'
 import type { IndexingService } from '../indexing/indexing.service'
 import { fixedProgress } from '../../test/domain'
-import { createTutorialLibrary, type TutorialLibrary } from './library.service'
+import { createTutorialCatalog, type TutorialCatalog } from './catalog.service'
+import { createTutorialContent, type TutorialContentService } from './content.service'
 import { createTutorialManager, type TutorialManager } from './manager.service'
 import { createTutorialPublisher, type TutorialPublisher } from './publisher.service'
 import { slugify } from './publish-rows'
-import { createTutorialReader } from './reader.service'
+import { createVersionAccess } from './version-access.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 const SHA = 'c'.repeat(40)
@@ -116,7 +117,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
   let db: Db
   let pool: ReturnType<typeof createDb>['pool']
   let publisher: TutorialPublisher
-  let library: TutorialLibrary
+  let catalog: TutorialCatalog
+  let content: TutorialContentService
   let manager: TutorialManager
   const TREE_FILES = [
     {
@@ -169,15 +171,16 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     await migrate(db, {
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
-    await db.execute(sql`truncate table "user", repositories restart identity cascade`)
-    library = createTutorialLibrary({
+    await db.execute(sql`truncate table users, repositories restart identity cascade`)
+    catalog = createTutorialCatalog({ db, learning: fixedProgress(0.5) })
+    content = createTutorialContent({
       db,
       indexing,
-      reader: createTutorialReader(db),
+      versionAccess: createVersionAccess(db),
       learning: fixedProgress(0.5),
     })
     publisher = createTutorialPublisher(db)
-    manager = createTutorialManager({ db, library, productOrigin: 'https://replo.test' })
+    manager = createTutorialManager({ db, catalog, productOrigin: 'https://replo.test' })
   })
 
   afterAll(async () => {
@@ -186,7 +189,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
 
   const seedUser = async () => {
     const id = randomUUID()
-    await db.insert(user).values({ id, name: 'Developer', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
     return id
   }
 
@@ -205,7 +208,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
       .returning({ id: repositories.id })
     if (!repo) throw new Error('repository seed failed')
     const [snapshot] = await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({
         repositoryId: repo.id,
         commitSha: SHA,
@@ -221,7 +224,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
           parseErrors: [],
         },
       })
-      .returning({ id: repoSnapshots.id })
+      .returning({ id: repositorySnapshots.id })
     if (!snapshot) throw new Error('snapshot seed failed')
     return { repositoryId: repo.id, snapshotId: snapshot.id, name }
   }
@@ -234,7 +237,6 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
       .values({
         userId,
         snapshotId,
-        kind: 'generate',
         status: 'succeeded',
         audience: 'intermediate',
         idempotencyKey: randomUUID(),
@@ -297,7 +299,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
 
     expect(second.tutorialId).toBe(first.tutorialId)
     expect(second.versionNo).toBe(first.versionNo + 1)
-    const overview = await library.overview({ userId: owner }, lookup(seed))
+    const overview = await content.overview({ userId: owner }, lookup(seed))
     expect(overview.tutorial.title).toBe('Second draft')
     expect(overview.newerVersionAvailable).toBe(false)
   })
@@ -308,10 +310,10 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const seed = await seedRepo('MIT')
     await publish(owner, seed, 'Private walk')
 
-    await expect(library.overview({ userId: stranger }, lookup(seed))).rejects.toMatchObject({
+    await expect(content.overview({ userId: stranger }, lookup(seed))).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
-    await expect(library.overview({}, lookup(seed))).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(content.overview({}, lookup(seed))).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
   it('serves a link-shared tutorial only with the right token', async () => {
@@ -322,10 +324,10 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const { token, url } = await manager.createShareLink(owner, version.tutorialId)
     expect(url).toContain(`?share=${token}`)
 
-    const viaLink = await library.overview({}, { ...lookup(seed), shareToken: token })
+    const viaLink = await content.overview({}, { ...lookup(seed), shareToken: token })
     expect(viaLink.versionId).toBe(version.versionId)
     await expect(
-      library.overview({}, { ...lookup(seed), shareToken: 'wrong' }),
+      content.overview({}, { ...lookup(seed), shareToken: 'wrong' }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
@@ -349,7 +351,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const seed = await seedRepo('MIT')
     const version = await publish(owner, seed, 'Learner view')
 
-    const chapter = await library.chapter(
+    const chapter = await content.chapter(
       { userId: owner },
       { versionId: version.versionId, chapterKey: 'orientation' },
     )
@@ -365,14 +367,14 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const seed = await seedRepo('MIT')
     const version = await publish(owner, seed, 'Source walk')
 
-    const file = await library.source(
+    const file = await content.source(
       { userId: owner },
       { versionId: version.versionId, path: 'src/cart.ts' },
     )
     expect(file.content).toBe(CART_TEXT)
     expect(file.permalink).toBe(`https://github.com/acme/${seed.name}/blob/${SHA}/src/cart.ts`)
     await expect(
-      library.source({ userId: owner }, { versionId: version.versionId, path: 'src/missing.ts' }),
+      content.source({ userId: owner }, { versionId: version.versionId, path: 'src/missing.ts' }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
@@ -381,7 +383,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const seed = await seedRepo('MIT')
     const version = await publish(owner, seed, 'Tree walk')
 
-    const tree = await library.sourceTree({ userId: owner }, { versionId: version.versionId })
+    const tree = await content.sourceTree({ userId: owner }, { versionId: version.versionId })
 
     expect(tree.commitSha).toBe(SHA)
     expect(tree.files.map((file) => file.path)).toEqual([
@@ -407,7 +409,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const version = await publish(owner, seed, 'Private tree')
 
     await expect(
-      library.sourceTree({ userId: stranger }, { versionId: version.versionId }),
+      content.sourceTree({ userId: stranger }, { versionId: version.versionId }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
@@ -415,7 +417,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const owner = await seedUser()
     const seed = await seedRepo('MIT')
     await publish(owner, seed, 'Stale walk')
-    const before = await library.overview({ userId: owner }, lookup(seed))
+    const before = await content.overview({ userId: owner }, lookup(seed))
     expect(before.stale).toBe(false)
 
     await db.transaction((tx) =>
@@ -426,7 +428,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
         pushedAt: new Date(Date.now() + 60_000),
       }),
     )
-    const after = await library.overview({ userId: owner }, lookup(seed))
+    const after = await content.overview({ userId: owner }, lookup(seed))
     expect(after.stale).toBe(true)
   })
 
@@ -477,8 +479,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     expect(versions).toHaveLength(1)
     const lessons = await db
       .select()
-      .from(lessonIndex)
-      .where(eq(lessonIndex.versionId, versions[0]?.id ?? ''))
+      .from(tutorialLessons)
+      .where(eq(tutorialLessons.versionId, versions[0]?.id ?? ''))
     expect(lessons).toHaveLength(1)
   })
 
@@ -529,14 +531,14 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     await manager.setVisibility(owner, { tutorialId: linked.tutorialId, visibility: 'link' })
     await manager.setVisibility(owner, { tutorialId: open.tutorialId, visibility: 'public' })
 
-    expect(await library.counts(owner)).toEqual({
+    expect(await catalog.counts(owner)).toEqual({
       total: 3,
       draft: 1,
       private: 1,
       link: 1,
       public: 1,
     })
-    expect(await library.counts(await seedUser())).toEqual({
+    expect(await catalog.counts(await seedUser())).toEqual({
       total: 0,
       draft: 0,
       private: 0,
@@ -561,8 +563,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
       .select()
       .from(tutorialReports)
       .where(eq(tutorialReports.tutorialId, version.tutorialId))
-    expect(rows.map((row) => row.reporterId).sort()).toEqual([reporter, other].sort())
-    expect(rows.find((row) => row.reporterId === reporter)?.reason).toBe('copyright')
+    expect(rows.map((row) => row.reporterUserId).sort()).toEqual([reporter, other].sort())
+    expect(rows.find((row) => row.reporterUserId === reporter)?.reason).toBe('copyright')
   })
 
   it('keeps one report when the same reporter submits concurrently', async () => {
@@ -633,7 +635,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     await expect(manager.createShareLink(stranger, version.tutorialId)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
-    const unchanged = await library.overview({ userId: owner }, lookup(seed))
+    const unchanged = await content.overview({ userId: owner }, lookup(seed))
     expect(unchanged.tutorial.visibility).toBe('private')
   })
 
@@ -642,7 +644,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const stranger = await seedUser()
     const seed = await seedRepo('MIT')
     await publish(owner, seed, 'Delete me')
-    const { items } = await library.list(owner, { limit: 25 })
+    const { items } = await catalog.list(owner, { limit: 25 })
     const target = items.find((item) => item.title === 'Delete me')
     expect(target).toBeDefined()
     if (!target) return
@@ -651,7 +653,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
       code: 'NOT_FOUND',
     })
     await manager.deleteTutorial(owner, target.id)
-    const after = await library.list(owner, { limit: 25 })
+    const after = await catalog.list(owner, { limit: 25 })
     expect(after.items.map((item) => item.id)).not.toContain(target.id)
   })
 
@@ -662,15 +664,15 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     await publish(owner, seed, 'Searchable cart tour')
     await publish(stranger, seed, 'Searchable cart tour')
 
-    const counts = await library.counts(owner)
+    const counts = await catalog.counts(owner)
     expect(counts.total).toBe(1)
     expect(counts.private).toBe(1)
 
-    const found = await library.searchOwn(owner, 'cart tour', 10)
+    const found = await catalog.searchOwn(owner, 'cart tour', 10)
     expect(found.tutorials.map((item) => item.title)).toEqual(['Searchable cart tour'])
     expect(found.lessons).toEqual([])
 
-    const lessons = await library.searchOwn(owner, 'map', 10)
+    const lessons = await catalog.searchOwn(owner, 'map', 10)
     expect(lessons.lessons).toEqual([
       expect.objectContaining({
         lessonKey: 'map',
@@ -686,11 +688,11 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const stranger = await seedUser()
     const seed = await seedRepo('MIT')
     const version = await publish(owner, seed, 'Linked walk')
-    const reader = createTutorialReader(db)
+    const versionAccess = createVersionAccess(db)
 
-    expect(await reader.refOf({ userId: owner }, version.tutorialId)).toEqual(lookup(seed))
-    expect(await reader.refOf({ userId: stranger }, version.tutorialId)).toBeUndefined()
-    expect(await reader.refOf({ userId: owner }, randomUUID())).toBeUndefined()
+    expect(await versionAccess.refOf({ userId: owner }, version.tutorialId)).toEqual(lookup(seed))
+    expect(await versionAccess.refOf({ userId: stranger }, version.tutorialId)).toBeUndefined()
+    expect(await versionAccess.refOf({ userId: owner }, randomUUID())).toBeUndefined()
   })
 
   it('lists recent publications in the caller’s time zone', async () => {
@@ -698,7 +700,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial library against Postgres', () => 
     const seed = await seedRepo('MIT')
     await publish(owner, seed, 'Recent walk')
 
-    const items = await library.recentPublished(owner, {
+    const items = await catalog.recentPublished(owner, {
       zone: 'Asia/Karachi',
       limit: 10,
       offset: 0,

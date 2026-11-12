@@ -1,4 +1,10 @@
-import { skipToken, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import {
+  skipToken,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { orpc } from '@/lib/orpc'
 import { cursorPaging, pageItems } from '@/lib/paging'
 
@@ -21,4 +27,23 @@ export function useLessonHistory(ids: ProgressIds) {
     }),
   )
   return { query, entries: pageItems(query.data) }
+}
+
+function useInvalidateProgress() {
+  const queryClient = useQueryClient()
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: orpc.learning.key() }),
+      queryClient.invalidateQueries({ queryKey: orpc.dashboard.key() }),
+    ])
+}
+
+export function useMarkLesson() {
+  const onSuccess = useInvalidateProgress()
+  return useMutation(orpc.learning.markLesson.mutationOptions({ onSuccess }))
+}
+
+export function useUnmarkLesson() {
+  const onSuccess = useInvalidateProgress()
+  return useMutation(orpc.learning.unmarkLesson.mutationOptions({ onSuccess }))
 }

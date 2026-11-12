@@ -7,7 +7,7 @@ import { useController, type Control } from 'react-hook-form'
 import { QueryBoundary } from '@/components/query-boundary'
 import { RadioCardGroup, type RadioCardOption } from '@/components/radio-card-group'
 import { orpc } from '@/lib/orpc'
-import type { ImportFormValues } from './import-form-values'
+import type { ImportFormValues } from './use-import-form'
 
 export function PresetField({ control }: { control: Control<ImportFormValues> }) {
   const { field } = useController({ control, name: 'preset' })

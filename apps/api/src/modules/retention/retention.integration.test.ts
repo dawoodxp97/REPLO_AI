@@ -8,25 +8,25 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ModelPlan } from '@replo/contracts'
 import { DEFAULT_EXTRACTION_LIMITS, ANALYZER_VERSION } from '@replo/repo-analysis'
-import { session, user } from '../../platform/db/auth-schema'
+import { sessions, users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   generationJobs,
   jobEvents,
-  jobStageOutputs,
+  jobCheckpoints,
   notifications,
   repositories,
-  repoPushEvents,
-  repoSnapshots,
+  repositoryPushEvents,
+  repositorySnapshots,
   tutorialVersions,
   tutorials,
 } from '../../platform/db/schema'
 import type { GithubRest } from '../../platform/github/client'
-import { createJobHistory } from '../generation/job-history.service'
+import { createJobHistory } from '../jobs/job-history.service'
 import { createSessionService } from '../identity/session.service'
 import { createIndexingService } from '../indexing/indexing.service'
 import { createNotificationsService } from '../notifications/notifications.service'
-import { createStageOutputs } from '../pipeline/outputs'
+import { createCheckpoints } from '../pipeline/checkpoints'
 import { tutorialsRepo } from '../tutorials/tutorials.repo'
 import { createRetentionService } from './retention.service'
 
@@ -60,7 +60,7 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     await migrate(db, {
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
-    await db.execute(sql`truncate table "user", repositories restart identity cascade`)
+    await db.execute(sql`truncate table users, repositories restart identity cascade`)
     snapshotRoot = await mkdtemp(join(tmpdir(), 'replo-retention-'))
   })
 
@@ -77,7 +77,7 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
 
   const seedSnapshot = async (repositoryId: string, createdAt: Date) => {
     const [row] = await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({
         repositoryId,
         commitSha: randomUUID().replace(/-/g, '').padEnd(40, 'a').slice(0, 40),
@@ -85,7 +85,7 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
         status: 'ready',
         createdAt,
       })
-      .returning({ id: repoSnapshots.id })
+      .returning({ id: repositorySnapshots.id })
     if (!row) throw new Error('snapshot seed failed')
     await mkdir(join(snapshotRoot, row.id), { recursive: true })
     await writeFile(join(snapshotRoot, row.id, 'index.ts'), 'export {}\n')
@@ -103,7 +103,6 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
       .values({
         userId,
         snapshotId,
-        kind: 'generate',
         status,
         audience: 'intermediate',
         idempotencyKey: randomUUID(),
@@ -113,13 +112,13 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
       })
       .returning({ id: generationJobs.id })
     if (!row) throw new Error('job seed failed')
-    await createStageOutputs(db).write(row.id, 'outline', 'all', { title: 'kept?' })
+    await createCheckpoints(db).write(row.id, 'outline', 'all', { title: 'kept?' })
     return row.id
   }
 
   it('purges finished-job checkpoints, old events and unreferenced snapshots and keeps live references', async () => {
     const owner = randomUUID()
-    await db.insert(user).values({ id: owner, name: 'Developer', email: `${owner}@test.invalid` })
+    await db.insert(users).values({ id: owner, name: 'Developer', email: `${owner}@test.invalid` })
     const [repository] = await db
       .insert(repositories)
       .values({
@@ -147,7 +146,7 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     const referencedByJob = await seedSnapshot(repository.id, daysBefore(3))
     const referencedByVersion = await seedSnapshot(repository.id, daysBefore(3))
     const recent = await seedSnapshot(repository.id, daysBefore(0))
-    await db.insert(repoPushEvents).values([
+    await db.insert(repositoryPushEvents).values([
       { repositoryId: repository.id, commitSha: 'old', paths: ['a.ts'], pushedAt: daysBefore(10) },
       { repositoryId: repository.id, commitSha: 'new', paths: ['a.ts'], pushedAt: daysBefore(1) },
     ])
@@ -188,8 +187,8 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     })
 
     await db.insert(jobEvents).values([
-      { jobId: succeeded, type: 'queued', at: daysBefore(120) },
-      { jobId: succeeded, type: 'succeeded', at: daysBefore(2) },
+      { jobId: succeeded, type: 'queued', createdAt: daysBefore(120) },
+      { jobId: succeeded, type: 'succeeded', createdAt: daysBefore(2) },
     ])
 
     const [staleNote, freshNote] = await db
@@ -202,12 +201,12 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     if (!staleNote || !freshNote) throw new Error('notification seed failed')
 
     const [expiredSession, liveSession] = await db
-      .insert(session)
+      .insert(sessions)
       .values([
         { tokenHash: randomUUID(), userId: owner, expiresAt: daysBefore(1) },
         { tokenHash: randomUUID(), userId: owner, expiresAt: new Date(NOW.getTime() + DAY) },
       ])
-      .returning({ id: session.id })
+      .returning({ id: sessions.id })
     if (!expiredSession || !liveSession) throw new Error('session seed failed')
 
     const retention = createRetentionService({
@@ -224,7 +223,7 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     expect(report.notificationsPurged).toBeGreaterThanOrEqual(1)
     expect(report.sessionsPurged).toBe(1)
 
-    const remainingSessions = await db.select({ id: session.id }).from(session)
+    const remainingSessions = await db.select({ id: sessions.id }).from(sessions)
     expect(remainingSessions.map((row) => row.id)).toEqual([liveSession.id])
 
     const remainingNotes = await db
@@ -233,16 +232,16 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
       .where(inArray(notifications.id, [staleNote.id, freshNote.id]))
     expect(remainingNotes.map((row) => row.id)).toEqual([freshNote.id])
 
-    const outputs = await db.select({ jobId: jobStageOutputs.jobId }).from(jobStageOutputs)
+    const outputs = await db.select({ jobId: jobCheckpoints.jobId }).from(jobCheckpoints)
     expect(outputs.map((row) => row.jobId).sort()).toEqual([failed, freshFailure].sort())
 
     const events = await db.select({ type: jobEvents.type }).from(jobEvents)
     expect(events.map((row) => row.type)).toEqual(['succeeded'])
 
-    const pushes = await db.select({ commitSha: repoPushEvents.commitSha }).from(repoPushEvents)
+    const pushes = await db.select({ commitSha: repositoryPushEvents.commitSha }).from(repositoryPushEvents)
     expect(pushes.map((row) => row.commitSha)).toEqual(['new'])
 
-    const snapshots = await db.select({ id: repoSnapshots.id }).from(repoSnapshots)
+    const snapshots = await db.select({ id: repositorySnapshots.id }).from(repositorySnapshots)
     expect(snapshots.map((row) => row.id).sort()).toEqual(
       [referencedByJob, referencedByVersion, recent].sort(),
     )

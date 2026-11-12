@@ -1,13 +1,15 @@
 'use client'
 
-import { FormField, NativeSelect, Skeleton } from '@replo/ui'
-import type { Control } from 'react-hook-form'
+import type { KeyDto } from '@replo/contracts'
+import { Alert, AlertDescription, AlertTitle, FormField, NativeSelect, Skeleton } from '@replo/ui'
+import { KeyRound } from 'lucide-react'
+import { useEffect } from 'react'
+import { useController, type Control } from 'react-hook-form'
+import { LinkButton } from '@/components/link-button'
 import { QueryBoundary } from '@/components/query-boundary'
-import { keyOptionLabel, useKeys } from '@/features/keys'
+import { keyOptionLabel, RecommendedKeyNote, useKeys } from '@/features/keys'
 import { fieldInvalid } from '@/lib/field-a11y'
-import type { ImportFormValues } from './import-form-values'
-import { NoKeysNotice } from './no-keys-notice'
-import { useDefaultKeySelection } from './use-default-key-selection'
+import type { ImportFormValues } from './use-import-form'
 
 const KEY_ERROR = 'Choose the key to pay with.'
 
@@ -48,5 +50,36 @@ export function KeyField({ control }: { control: Control<ImportFormValues> }) {
         )
       }
     </QueryBoundary>
+  )
+}
+
+function useDefaultKeySelection(
+  control: Control<ImportFormValues>,
+  keys: readonly KeyDto[] | undefined,
+) {
+  const { field, fieldState } = useController({ control, name: 'keyId' })
+  const { value, onChange } = field
+  const firstKeyId = keys?.[0]?.id
+
+  useEffect(() => {
+    if (!value && firstKeyId) onChange(firstKeyId)
+  }, [value, firstKeyId, onChange])
+
+  return { value, onChange, hasError: fieldState.error !== undefined }
+}
+
+function NoKeysNotice() {
+  return (
+    <Alert variant="interpretation">
+      <KeyRound />
+      <AlertTitle>Add an API key first</AlertTitle>
+      <AlertDescription>
+        <p>A tutorial cannot start without a key to pay for it.</p>
+        <RecommendedKeyNote />
+        <LinkButton href="/settings/keys" variant="outline" size="sm" className="mt-1">
+          Add a key
+        </LinkButton>
+      </AlertDescription>
+    </Alert>
   )
 }

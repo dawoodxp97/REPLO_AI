@@ -1,5 +1,6 @@
 import { STAGES, type GenerationJobDto } from '@replo/contracts'
 import { AUDIENCE_LABELS } from '@/features/preferences/audience'
+import { capitalize } from '@/lib/format'
 import type { JobProgress } from './job-progress-state'
 import { STAGE_LABELS } from './job-status'
 
@@ -14,8 +15,7 @@ export function jobTitle(job: Pick<GenerationJobDto, 'repository'>): string {
 export function jobPlan(job: JobHeadingInput): string {
   const reader = `${AUDIENCE_LABELS[job.audience].toLowerCase()} readers`
   if (!job.preset) return `Written for ${reader}.`
-  const preset = job.preset.charAt(0).toUpperCase() + job.preset.slice(1)
-  return `${preset} preset, written for ${reader}.`
+  return `${capitalize(job.preset)} preset, written for ${reader}.`
 }
 
 export function stageLine(

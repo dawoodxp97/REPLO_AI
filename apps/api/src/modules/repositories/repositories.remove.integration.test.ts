@@ -3,14 +3,13 @@ import { fileURLToPath } from 'node:url'
 import { and, eq, sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import { repositories, tutorials, userRepositories } from '../../platform/db/schema'
-import { createJobHistory } from '../generation/job-history.service'
+import { createJobHistory } from '../jobs/job-history.service'
 import { fixedProgress } from '../../test/domain'
-import { createTutorialLibrary } from '../tutorials/library.service'
+import { createTutorialCatalog } from '../tutorials/catalog.service'
 import { createTutorialManager } from '../tutorials/manager.service'
-import { createTutorialReader } from '../tutorials/reader.service'
 import { createRepositoryLibrary, type RepositoryLibrary } from './library.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -28,22 +27,12 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
     await migrate(db, {
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
-    await db.execute(sql`truncate table "user", repositories restart identity cascade`)
-    const library = createTutorialLibrary({
-      db,
-      indexing: {
-        readFile: async () => undefined,
-        listFiles: async () => [],
-        readText: async () => undefined,
-        snapshotRef: async () => undefined,
-      },
-      reader: createTutorialReader(db),
-      learning: fixedProgress(null),
-    })
+    await db.execute(sql`truncate table users, repositories restart identity cascade`)
+    const catalog = createTutorialCatalog({ db, learning: fixedProgress(null) })
     repositoriesService = createRepositoryLibrary({
       db,
       jobs: createJobHistory(db),
-      tutorials: createTutorialManager({ db, library, productOrigin: 'https://replo.test' }),
+      tutorials: createTutorialManager({ db, catalog, productOrigin: 'https://replo.test' }),
     })
   })
 
@@ -53,7 +42,7 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
 
   const seedUser = async () => {
     const id = randomUUID()
-    await db.insert(user).values({ id, name: 'Developer', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
     return id
   }
 
@@ -74,7 +63,7 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
   }
 
   const link = (userId: string, repositoryId: string) =>
-    db.insert(userRepositories).values({ userId, repositoryId, installationId: null })
+    db.insert(userRepositories).values({ userId, repositoryId, githubInstallationId: null })
 
   const seedTutorial = (userId: string, repositoryId: string, slug: string) =>
     db.insert(tutorials).values({

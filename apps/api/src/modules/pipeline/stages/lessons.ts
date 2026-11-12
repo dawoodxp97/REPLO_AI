@@ -1,6 +1,6 @@
-import type { StageContext } from '../../../jobs/generate-tutorial.worker'
-import { JobError } from '../../../jobs/errors'
-import { dataFiles, fallbackFocusPaths, focusPathsOf } from '../context'
+import type { StageContext } from '../../../worker/generate-tutorial'
+import { JobError } from '../../../worker/errors'
+import { dataFiles, fallbackFocusPaths, focusPathsOf } from '../prompt-inputs'
 import {
   ChapterDraft,
   chapterDraftFor,
@@ -9,11 +9,11 @@ import {
   OutlineDraft,
 } from '../drafts'
 import { dataSection, promptFor } from '../prompts'
-import { WHOLE_JOB } from '../stored-outputs'
-import { checkpointed, stageWorkspace, type StageDeps } from '../stage-deps'
+import { WHOLE_JOB } from '../checkpoints'
+import { checkpointed, stageWorkspace, type StageDeps } from '../stage-tools'
 
 export async function runLessons(deps: StageDeps, ctx: StageContext): Promise<void> {
-  const outline = await deps.outputs.read(ctx.job.id, 'outline', WHOLE_JOB, OutlineDraft)
+  const outline = await deps.checkpoints.read(ctx.job.id, 'outline', WHOLE_JOB, OutlineDraft)
   if (!outline) throw new JobError('OUTLINE_MISSING', false, 'lessons need an outline')
 
   const { view, index, session } = await stageWorkspace(deps, ctx)

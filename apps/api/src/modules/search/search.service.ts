@@ -1,9 +1,9 @@
 import type { SearchResults } from '@replo/contracts'
 import type { RepositoryLibrary } from '../repositories/library.service'
-import type { TutorialLibrary } from '../tutorials/library.service'
+import type { TutorialCatalog } from '../tutorials/catalog.service'
 
 export interface SearchDeps {
-  tutorials: Pick<TutorialLibrary, 'searchOwn'>
+  tutorials: Pick<TutorialCatalog, 'searchOwn'>
   repositories: Pick<RepositoryLibrary, 'searchOwn'>
 }
 

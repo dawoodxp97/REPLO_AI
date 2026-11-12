@@ -1,6 +1,6 @@
 import { createRouterClient } from '@orpc/server'
 import { describe, expect, it, vi } from 'vitest'
-import type { RequestContext } from '../../context'
+import type { RequestContext } from '../../request-context'
 import { authRouter } from './auth.router'
 
 function refusedAuthClient() {

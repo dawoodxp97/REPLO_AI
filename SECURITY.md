@@ -57,7 +57,7 @@ Two risks could end Replo: **leaking a customer's private source code** and **ex
 
 ## Retention and deletion
 
-Tarballs ≤ 24 h · private blobs only while a version/link references them · `job_events` and `llm_calls` 90 days · prompts/completions for private repos **not stored** (hashes + token counts) · uninstall/repo-removal webhook sets `revoked_at`, hides tutorials, schedules purge · account deletion removes keys, progress, private tutorials, blobs.
+Tarballs ≤ 24 h · private blobs only while a version/link references them · `job_events` and `job_llm_calls` 90 days · prompts/completions for private repos **not stored** (hashes + token counts) · uninstall/repo-removal webhook sets `revoked_at`, hides tutorials, schedules purge · account deletion removes keys, progress, private tutorials, blobs.
 
 ## Licensing (public tutorials)
 

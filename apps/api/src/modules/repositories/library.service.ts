@@ -1,8 +1,8 @@
 import type { RepositoryListInput, RepositoryPage } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
-import { containsPattern } from '../../platform/db/like'
+import { containsPattern } from '../../platform/db/query-helpers'
 import { notFound } from '../../platform/errors'
-import type { JobHistory } from '../generation/job-history.service'
+import type { JobHistory } from '../jobs/job-history.service'
 import type { TutorialManager } from '../tutorials/manager.service'
 import { repositoriesRepo } from './repositories.repo'
 

@@ -10,7 +10,9 @@ export function breadcrumbsFor(pathname: string): Crumb[] | null {
   if (!child) return null
   if (area === 'settings') {
     const section = SETTINGS_SECTIONS.find((item) => item.key === child)
-    return section ? [{ label: 'Settings', href: '/settings/profile' }, { label: section.title }] : null
+    return section
+      ? [{ label: 'Settings', href: '/settings/profile' }, { label: section.title }]
+      : null
   }
   if (area === 'jobs') return [{ label: 'Library', href: '/library' }, { label: 'Generation' }]
   return null

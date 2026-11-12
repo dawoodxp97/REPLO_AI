@@ -1,5 +1,5 @@
 import { OK_RESULT } from '@replo/contracts'
-import type { RequestContext } from '../../context'
+import type { RequestContext } from '../../request-context'
 import { authed, os } from '../../orpc'
 import type { IssuedSession } from './auth.service'
 

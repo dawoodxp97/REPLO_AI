@@ -3,17 +3,17 @@ import { fileURLToPath } from 'node:url'
 import { eq, sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   generationJobs,
-  llmCalls,
+  jobLlmCalls,
   notifications,
-  repoSnapshots,
+  repositorySnapshots,
   repositories,
 } from '../../platform/db/schema'
-import { createJobRuntime, type JobRuntime } from '../generation/job-runtime.service'
-import { createJobService, type JobService } from '../generation/jobs.service'
+import { createJobRuntime, type JobRuntime } from '../jobs/job-runtime.service'
+import { createJobService, type JobService } from '../jobs/jobs.service'
 import { createModelsService } from '../models/models.service'
 import { createNotificationsService } from '../notifications/notifications.service'
 import { bundledCatalog, fakeKeyChecker, testVault } from '../../test/domain'
@@ -38,7 +38,7 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
     await db.execute(
-      sql`truncate table "user", repositories, github_installations, webhook_deliveries, provider_keys restart identity cascade`,
+      sql`truncate table users, repositories, github_installations, webhook_deliveries, provider_keys restart identity cascade`,
     )
     const vault = testVault()
     const queue = { send: async () => null }
@@ -67,7 +67,7 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
 
   const seedUser = async () => {
     const id = randomUUID()
-    await db.insert(user).values({ id, name: 'Developer', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
     return id
   }
 
@@ -135,9 +135,9 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
       })
       .returning({ id: repositories.id })
     const [snapshot] = await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({ repositoryId: repo!.id, commitSha: 'd'.repeat(40), analyzerVersion: 1 })
-      .returning({ id: repoSnapshots.id })
+      .returning({ id: repositorySnapshots.id })
     const plan = {
       provider: 'openai' as const,
       preset: 'budget' as const,
@@ -156,30 +156,27 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
         {
           userId: owner,
           snapshotId: snapshot!.id,
-          kind: 'generate',
           status: 'running',
           idempotencyKey: randomUUID(),
-          keyId: outcome.value.id,
+          providerKeyId: outcome.value.id,
           models: plan,
           budgetMicros: 2_000_000,
         },
         {
           userId: owner,
           snapshotId: snapshot!.id,
-          kind: 'generate',
           status: 'queued',
           idempotencyKey: randomUUID(),
-          keyId: outcome.value.id,
+          providerKeyId: outcome.value.id,
           models: plan,
           budgetMicros: 2_000_000,
         },
         {
           userId: owner,
           snapshotId: snapshot!.id,
-          kind: 'generate',
           status: 'succeeded',
           idempotencyKey: randomUUID(),
-          keyId: outcome.value.id,
+          providerKeyId: outcome.value.id,
           models: plan,
           budgetMicros: 2_000_000,
         },
@@ -193,7 +190,7 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
         id: generationJobs.id,
         status: generationJobs.status,
         errorCode: generationJobs.errorCode,
-        keyId: generationJobs.keyId,
+        providerKeyId: generationJobs.providerKeyId,
       })
       .from(generationJobs)
       .where(eq(generationJobs.userId, owner))
@@ -201,7 +198,7 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
     const running = byId.get(jobs[0]!.id)
     const queued = byId.get(jobs[1]!.id)
     const succeeded = byId.get(jobs[2]!.id)
-    expect(running).toMatchObject({ status: 'failed', errorCode: 'KEY_REMOVED', keyId: null })
+    expect(running).toMatchObject({ status: 'failed', errorCode: 'KEY_REMOVED', providerKeyId: null })
     expect(queued).toMatchObject({ status: 'failed', errorCode: 'KEY_REMOVED' })
     expect(succeeded).toMatchObject({ status: 'succeeded', errorCode: null })
     const sent = await db.select().from(notifications).where(eq(notifications.userId, owner))
@@ -222,15 +219,14 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
       })
       .returning({ id: repositories.id })
     const [snapshot] = await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({ repositoryId: repo!.id, commitSha: 'e'.repeat(40), analyzerVersion: 1 })
-      .returning({ id: repoSnapshots.id })
+      .returning({ id: repositorySnapshots.id })
     const [job] = await db
       .insert(generationJobs)
       .values({
         userId: owner,
         snapshotId: snapshot!.id,
-        kind: 'generate',
         status: 'running',
         idempotencyKey: randomUUID(),
         models: {
@@ -261,7 +257,7 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
       latencyMs: 812,
     })
 
-    const [row] = await db.select().from(llmCalls).where(eq(llmCalls.jobId, job!.id))
+    const [row] = await db.select().from(jobLlmCalls).where(eq(jobLlmCalls.jobId, job!.id))
     expect(row).toMatchObject({
       stage: 'lessons',
       provider: 'anthropic',

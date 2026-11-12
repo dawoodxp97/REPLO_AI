@@ -11,7 +11,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 
-export const user = pgTable('user', {
+export const users = pgTable('users', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
@@ -23,30 +23,30 @@ export const user = pgTable('user', {
 
 export const authProvider = pgEnum('auth_provider', AUTH_PROVIDERS)
 
-export const session = pgTable(
-  'session',
+export const sessions = pgTable(
+  'sessions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     tokenHash: text('token_hash').notNull().unique(),
     userId: text('user_id')
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+      .references(() => users.id, { onDelete: 'cascade' }),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index('session_user_id_idx').on(t.userId),
-    index('session_expires_at_idx').on(t.expiresAt),
+    index('sessions_user_id_idx').on(t.userId),
+    index('sessions_expires_at_idx').on(t.expiresAt),
   ],
 )
 
-export const authIdentity = pgTable(
-  'auth_identity',
+export const authIdentities = pgTable(
+  'auth_identities',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     userId: text('user_id')
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+      .references(() => users.id, { onDelete: 'cascade' }),
     provider: authProvider('provider').notNull(),
     providerAccountId: text('provider_account_id').notNull(),
     passwordHash: text('password_hash'),
@@ -57,7 +57,7 @@ export const authIdentity = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex('auth_identity_provider_account_idx').on(t.provider, t.providerAccountId),
-    uniqueIndex('auth_identity_user_provider_idx').on(t.userId, t.provider),
+    uniqueIndex('auth_identities_provider_account_idx').on(t.provider, t.providerAccountId),
+    uniqueIndex('auth_identities_user_provider_idx').on(t.userId, t.provider),
   ],
 )

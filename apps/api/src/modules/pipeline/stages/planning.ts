@@ -1,15 +1,15 @@
-import type { StageContext } from '../../../jobs/generate-tutorial.worker'
-import { FALLBACK_FILES, normaliseOutline, rankedPaths, repoMap } from '../context'
+import type { StageContext } from '../../../worker/generate-tutorial'
+import { FALLBACK_FILES, normaliseOutline, rankedPaths, repoMap } from '../prompt-inputs'
 import { ArchitectureAndOutlineDraft, ArchitectureDraft, OutlineDraft } from '../drafts'
 import { dataSection, promptFor } from '../prompts'
-import { StoredSummaries, WHOLE_JOB } from '../stored-outputs'
+import { StoredSummaries, WHOLE_JOB } from '../checkpoints'
 import {
   checkpointed,
   planOf,
   stageWorkspace,
   type StageDeps,
   type StageWorkspace,
-} from '../stage-deps'
+} from '../stage-tools'
 
 const LITE_MAX_CHAPTERS = 5
 const FULL_MAX_CHAPTERS = 8
@@ -70,7 +70,7 @@ interface PlanningWorkspace extends StageWorkspace {
 
 async function planningWorkspace(deps: StageDeps, ctx: StageContext): Promise<PlanningWorkspace> {
   const workspace = await stageWorkspace(deps, ctx)
-  const stored = await deps.outputs.read(ctx.job.id, 'summaries', WHOLE_JOB, StoredSummaries)
+  const stored = await deps.checkpoints.read(ctx.job.id, 'summaries', WHOLE_JOB, StoredSummaries)
   return { ...workspace, summaries: stored?.files ?? {} }
 }
 

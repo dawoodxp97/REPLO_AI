@@ -17,7 +17,7 @@ const linkedRepositoryColumns = {
   name: repositories.name,
   isPrivate: repositories.isPrivate,
   defaultBranch: repositories.defaultBranch,
-  installationId: userRepositories.installationId,
+  installationId: userRepositories.githubInstallationId,
 }
 
 const activeLinkOf = (userId: string) =>
@@ -62,10 +62,10 @@ export const repositoriesRepo = (db: DbOrTx) => {
     async linkUser(userId: string, repositoryId: string, installationId: number | null) {
       await db
         .insert(userRepositories)
-        .values({ userId, repositoryId, installationId })
+        .values({ userId, repositoryId, githubInstallationId: installationId })
         .onConflictDoUpdate({
           target: [userRepositories.userId, userRepositories.repositoryId],
-          set: { installationId, revokedAt: null },
+          set: { githubInstallationId: installationId, revokedAt: null },
         })
     },
 
@@ -127,7 +127,7 @@ export const repositoriesRepo = (db: DbOrTx) => {
     async revokeInstallation(installationId: number) {
       await revokeWhere(
         and(
-          eq(userRepositories.installationId, installationId),
+          eq(userRepositories.githubInstallationId, installationId),
           isNull(userRepositories.revokedAt),
         ),
       )
@@ -136,7 +136,7 @@ export const repositoriesRepo = (db: DbOrTx) => {
     async revokeInstallationRepositories(installationId: number, githubRepoIds: number[]) {
       await revokeWhere(
         and(
-          eq(userRepositories.installationId, installationId),
+          eq(userRepositories.githubInstallationId, installationId),
           isNull(userRepositories.revokedAt),
           inArray(userRepositories.repositoryId, repositoryIdsByGithubIds(db, githubRepoIds)),
         ),

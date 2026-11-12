@@ -1,6 +1,6 @@
 import { OK_RESULT } from '@replo/contracts'
 import { authed, os } from '../../orpc'
-import type { RequestContext } from '../../context'
+import type { RequestContext } from '../../request-context'
 
 const viewerOf = (context: RequestContext, shareToken?: string) => ({
   userId: context.user?.id,
@@ -9,19 +9,19 @@ const viewerOf = (context: RequestContext, shareToken?: string) => ({
 
 export const tutorialsRouter = {
   list: authed.tutorials.list.handler(({ input, context }) =>
-    context.services.tutorialLibrary.list(context.user.id, input),
+    context.services.tutorialCatalog.list(context.user.id, input),
   ),
   get: os.tutorials.get.handler(({ input, context }) =>
-    context.services.tutorialLibrary.overview(viewerOf(context, input.shareToken), input),
+    context.services.tutorialContent.overview(viewerOf(context, input.shareToken), input),
   ),
   getChapter: os.tutorials.getChapter.handler(({ input, context }) =>
-    context.services.tutorialLibrary.chapter(viewerOf(context, input.shareToken), input),
+    context.services.tutorialContent.chapter(viewerOf(context, input.shareToken), input),
   ),
   getSource: os.tutorials.getSource.handler(({ input, context }) =>
-    context.services.tutorialLibrary.source(viewerOf(context, input.shareToken), input),
+    context.services.tutorialContent.source(viewerOf(context, input.shareToken), input),
   ),
   sourceTree: os.tutorials.sourceTree.handler(({ input, context }) =>
-    context.services.tutorialLibrary.sourceTree(viewerOf(context, input.shareToken), input),
+    context.services.tutorialContent.sourceTree(viewerOf(context, input.shareToken), input),
   ),
   setVisibility: authed.tutorials.setVisibility.handler(async ({ input, context, errors }) => {
     const outcome = await context.services.tutorialManager.setVisibility(context.user.id, input)

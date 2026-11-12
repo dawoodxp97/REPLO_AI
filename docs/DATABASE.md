@@ -6,9 +6,9 @@ PostgreSQL 17 is the **single system of record** (records + job queue), accessed
 
 - **One user owns every private row** (`user_id`). No workspaces, no roles.
 - **Relational for what's queried across documents; JSONB for the document itself.** A tutorial version's full content is one immutable, schema-versioned JSONB document; refs, progress and quiz attempts are normalised.
-- **Version chain:** `repository → repo_snapshot (commit SHA + analyzer_version) → tutorial_version` (pinned to exactly one snapshot, records the models used).
+- **Version chain:** `repository → repository_snapshot (commit SHA + analyzer_version) → tutorial_version` (pinned to exactly one snapshot, records the models used).
 - **Money is integer micro-USD** (`*_micros`, 1 USD = 1,000,000). DTOs convert to USD for display only.
-- **IDs:** app-side UUIDv7 for entity PKs; `user` keeps its text ID; `session` and `auth_identity` use `uuid` (`gen_random_uuid()`); `job_events` uses `bigserial`.
+- **IDs:** app-side UUIDv7 for entity PKs; `users` keeps its text ID; `sessions` and `auth_identities` use `uuid` (`gen_random_uuid()`); `job_events` uses `bigserial`.
 - **Row types never leave a module's `*.repo.ts`**; services map rows to DTOs from `@replo/contracts`.
 - No vector DB, search engine or graph DB in release 1. pgvector is installed (image `pgvector/pgvector:pg17`) but unused; `chunks` is phase 2. Substring search in R1 uses the `pg_trgm` extension only (FR-SRCH-1).
 
@@ -16,29 +16,30 @@ PostgreSQL 17 is the **single system of record** (records + job queue), accessed
 
 ```mermaid
 erDiagram
-  user ||--o{ github_installations : installs
-  user ||--o{ user_repositories : links
+  users ||--o{ github_installations : installs
+  users ||--o{ user_repositories : links
   repositories ||--o{ user_repositories : linked_by
-  user ||--o{ provider_keys : stores
-  user ||--o| model_preferences : sets
-  user ||--o| user_preferences : sets
-  user ||--o{ notifications : receives
-  repositories ||--o{ repo_snapshots : has
-  repo_snapshots ||--o{ snapshot_files : contains
-  repo_snapshots ||--o{ symbols : defines
-  repo_snapshots ||--o{ file_edges : links
-  user ||--o{ generation_jobs : runs
-  repo_snapshots ||--o{ generation_jobs : input
-  generation_jobs ||--o{ job_stages : checkpoints
+  users ||--o{ provider_keys : stores
+  users ||--o| model_preferences : sets
+  users ||--o| user_preferences : sets
+  users ||--o{ notifications : receives
+  repositories ||--o{ repository_snapshots : has
+  repository_snapshots ||--o{ snapshot_files : contains
+  repository_snapshots ||--o{ snapshot_symbols : defines
+  repository_snapshots ||--o{ snapshot_file_edges : links
+  users ||--o{ generation_jobs : runs
+  repository_snapshots ||--o{ generation_jobs : input
+  generation_jobs ||--o{ job_stages : completes
+  generation_jobs ||--o{ job_checkpoints : checkpoints
   generation_jobs ||--o{ job_events : logs
-  generation_jobs ||--o{ llm_calls : spends
+  generation_jobs ||--o{ job_llm_calls : spends
   generation_jobs ||--o{ notifications : announces
-  user ||--o{ tutorials : owns
+  users ||--o{ tutorials : owns
   repositories ||--o{ tutorials : about
   tutorials ||--o{ tutorial_versions : has
-  repo_snapshots ||--o{ tutorial_versions : pins
+  repository_snapshots ||--o{ tutorial_versions : pins
   tutorial_versions ||--o{ tutorial_source_refs : cites
-  tutorial_versions ||--o{ lesson_index : indexes
+  tutorial_versions ||--o{ tutorial_lessons : indexes
   tutorial_versions ||--o{ learning_progress : tracks
   tutorial_versions ||--o{ quiz_attempts : records
 ```
@@ -47,19 +48,19 @@ erDiagram
 
 | Group         | Tables                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth          | `user`, `session` (hashed token, 30 days), `auth_identity` (one row per provider per user: password hash, or a sealed GitHub token)                                                                                                                                                                                                                                                                                  |
+| Auth          | `users`, `sessions` (hashed token, 30 days), `auth_identities` (one row per provider per user: password hash, or a sealed GitHub token)                                                                                                                                                                                                                                                                                  |
 | GitHub        | `github_installations`, `repositories` (global; public snapshots shared), `user_repositories` (PK user+repo, `revoked_at`)                                                                                                                                                                                                                                                                                           |
-| Models/keys   | `provider_keys` (envelope-encrypted: `ciphertext`, `iv`, `key_version`, `last4`), `model_preferences`                                                                                                                                                                                                                                                                                                                |
+| Models/keys   | `provider_keys` (envelope-encrypted: `ciphertext`, `iv`, `encryption_key_version`, `last4`), `model_preferences`                                                                                                                                                                                                                                                                                                                |
 | Preferences   | `user_preferences` (PK `user_id`: theme, default audience level, auto-advance, quizzes on or off, browser notifications on or off). FR-SET-1                                                                                                                                                                                                                                                                         |
 | Notifications | `notifications` (per user: `kind`, `title`, `body`, `link`, `job_id`, `read_at`; deleted after 90 days). FR-NTF-1                                                                                                                                                                                                                                                                                                    |
-| Index         | `repo_snapshots` (unique repo+sha+analyzer; `analysis` jsonb: entry points, routes, per-file metrics), `snapshot_files`, `symbols`, `file_edges`                                                                                                                                                                                                                                                                     |
-| Jobs          | `generation_jobs` (durable truth), `job_stages` (checkpoints), `job_stage_outputs` (intermediate pipeline outputs, purged on publish or by retention, D-050/D-059), `job_events` (append-only; SSE replay; 90 days), `llm_calls` (tokens, cost, latency; no prompts or completions stored; 90 days)                                                                                                                  |
+| Index         | `repository_snapshots` (unique repo+sha+analyzer; `analysis` jsonb: entry points, routes, per-file metrics), `snapshot_files`, `snapshot_symbols`, `snapshot_file_edges`                                                                                                                                                                                                                                                                     |
+| Jobs          | `generation_jobs` (durable truth), `job_stages` (one row per finished stage), `job_checkpoints` (intermediate pipeline outputs, purged on publish or by retention, D-050/D-059), `job_events` (append-only; SSE replay; 90 days), `job_llm_calls` (tokens, cost, latency; no prompts or completions stored; 90 days)                                                                                                                  |
 | Tutorials     | `tutorials` (one per user and repository; visibility `private\|link\|public`, `share_token`, stable `slug` unique per repository; `user_id` null only after anonymising, D-031), `tutorial_versions` (JSONB `content`, `validation_report`, `generator`; `generation_job_id` unique, so a replayed publish returns the same version), `tutorial_source_refs`, `tutorial_reports` (public-tutorial reports, FR-SHR-3) |
-| Search        | `lesson_index` (per version: `chapter_key`, `lesson_key`, `title`, global `position`; written at publish). `pg_trgm` GIN indexes on `repositories.name`, `tutorials.title` and `lesson_index.title` (migration `0006` creates the extension). FR-SRCH-1                                                                                                                                                              |
+| Search        | `tutorial_lessons` (per version: `chapter_key`, `lesson_key`, `title`, global `position`; written at publish). `pg_trgm` GIN indexes on `repositories.name`, `tutorials.title` and `tutorial_lessons.title` (the baseline migration creates the extension). FR-SRCH-1                                                                                                                                                              |
 | Learning      | `learning_progress` (PK user+version+lesson; `updated_at` orders history and resume; completion carries over by lesson key within a tutorial), `quiz_attempts` (multiple choice and true/false)                                                                                                                                                                                                                      |
-| Webhooks      | `webhook_deliveries` (unique `source+delivery_id`), `repo_push_events` (changed paths of default-branch pushes; staleness, D-062; 90 days)                                                                                                                                                                                                                                                                           |
+| Webhooks      | `webhook_deliveries` (unique `source+delivery_id`), `repository_push_events` (changed paths of default-branch pushes; staleness, D-062; 90 days)                                                                                                                                                                                                                                                                           |
 | Operator      | `operators` (one row per operator; FR-OPS-1, D-060)                                                                                                                                                                                                                                                                                                                                                                  |
-| Phase 2       | `chunks` (+ pgvector `halfvec`, GIN on `tsv`); trigram index on `symbols.name`                                                                                                                                                                                                                                                                                                                                       |
+| Phase 2       | `chunks` (+ pgvector `halfvec`, GIN on `tsv`); trigram index on `snapshot_symbols.name`                                                                                                                                                                                                                                                                                                                                       |
 
 ## Budgets, not quotas
 
@@ -70,16 +71,18 @@ There are no platform quotas or credits (ADR-007). Each job has a budget ceiling
 - **Isolation:** services take the session user ID; a `scoped(userId)` helper makes the filter impossible to forget; CI cross-user tests (A requests B's IDs → 404).
 - **Shared public data:** public repos' snapshots and public tutorials are global (a second import of the same commit reuses the index). Private snapshots are readable only via a non-revoked `user_repositories` link.
 - **Keys:** envelope-encrypted; decrypted only in the worker, in memory, for that user's job; deletion is immediate.
-- **Retention:** tarballs ≤ 24 h · private blobs only while a version/link references them · `job_events`, `llm_calls`, `notifications` 90 days · expired `session` rows deleted daily by the retention job · prompts/completions for private repos **not stored**.
-- **Reports:** one `tutorial_reports` row per (tutorial, reporter) (unique index, migration `0011`); rows whose reporter was deleted are not constrained.
-- **Preferences:** `user_preferences.theme` defaults to `system` (migration `0010`).
+- **Retention:** tarballs ≤ 24 h · private blobs only while a version/link references them · `job_events`, `job_llm_calls`, `notifications` 90 days · expired `sessions` rows deleted daily by the retention job · prompts/completions for private repos **not stored**.
+- **Reports:** one `tutorial_reports` row per (tutorial, reporter) (unique index); rows whose reporter was deleted are not constrained.
+- **Preferences:** `user_preferences.theme` defaults to `system`.
 - **Revocation/deletion:** uninstall/repo-removal webhook sets `revoked_at`, hides tutorials, schedules blob purge. Removing a repo from the library (FR-LIB-2) deletes that user's tutorials, versions and progress for it. Deleting a tutorial (FR-LIB-3) removes its versions, progress and quiz attempts. Account deletion cascades (keys, preferences, progress, private tutorials, blobs); user chooses delete vs. anonymise for public tutorials.
 
-## Indexes added in the refactor round
+## Naming
 
-- `0012`: `session_expires_at_idx`, `notifications_created_at_idx`, partial `notifications_user_unread_idx` on `(user_id)` where `read_at is null`.
-- `0013_yielding_sphinx`: `generation_jobs(status, finished_at)`, partial `generation_jobs(key_id)` over the in-flight statuses, `job_events(at)`; `tutorial_versions.published_at` is NOT NULL (nulls backfilled with `now()`).
-- `0014`: `generation_jobs_snapshot_idx`, `learning_progress_user_status_updated_idx`, `repositories_qualified_name_trgm_idx` (gin on `owner || '/' || name`), partial `user_repositories_active_idx`.
+- Tables are plural `snake_case`. A child table carries its parent's name as a prefix: `repository_snapshots`, `snapshot_files`, `snapshot_symbols`, `snapshot_file_edges`; `job_stages`, `job_checkpoints`, `job_events`, `job_llm_calls`; `tutorial_versions`, `tutorial_lessons`, `tutorial_source_refs`.
+- `generation_jobs` keeps its long name so it is never confused with pg-boss's own `pgboss.job` table. Its children use the short `job_` prefix.
+- A foreign key says what it points at: `provider_key_id`, `github_installation_id`, `reporter_user_id`. The one exception is `user_id`, which always means the owning user.
+- Timestamps end in `_at` and say what happened: `created_at`, `answered_at`, `finished_at`. No bare `at`.
+- `tutorials.current_version_id` references `tutorial_versions(id)` and is set to null if that version is deleted.
 
 ## Migrations workflow
 
@@ -90,7 +93,9 @@ pnpm db:migrate         # apply (local)   — in CD: `docker compose run --rm mi
 pnpm db:check-drift     # drizzle-kit check (CI)
 ```
 
-Breaking changes use **expand → backfill → contract across two deploys**. `drizzle-kit push` only against local/preview databases. Initial migration: `0000_cute_zemo.sql` (regenerated 22 Oct 2026 after the BYOK-only pivot, [ADR-007](./adr/007-byok-only-no-billing.md); **not yet applied to a live database**). Migrations `0001`–`0003` are additive. `0004` adds `job_stage_outputs`, `lesson_index`, `user_preferences` and the publish keys, `0005` adds `tutorial_reports`, `operators`, `repo_push_events` and makes `tutorials.user_id` nullable, `0006` creates the `pg_trgm` extension and the trigram indexes, `0007` adds `learning_progress.updated_at`, and `0008` drops columns nothing wrote or read (`job_stages.output_key`, `output_hash`, `started_at`, `llm_calls.cached_input_tokens`, `prompt_hash`, `repo_snapshots.artifact_key`). `0004`–`0007` are additive, so no backfill is needed. Once any database has applied `0000`, the nullable and index changes must follow expand → backfill → contract (D-015).
+There is one migration, `0000_baseline.sql`, generated on 11 Nov 2026 from the current schema. It replaced the fifteen earlier migrations, which had never been applied to a live database. A database created from the old migrations must be dropped and recreated; there is no upgrade path between the two.
+
+From here on, breaking changes use **expand → backfill → contract across two deploys** (D-015). `drizzle-kit push` only against local/preview databases.
 
 ## Where Postgres runs
 
@@ -98,4 +103,4 @@ Release 1: `postgres:17`/pgvector image in Docker on the app VPS, named volume, 
 
 ## Migration order (build order)
 
-auth → GitHub installations, repositories, user links → provider keys + model preferences + user preferences → snapshots/files/symbols/edges → jobs/stages/events/LLM calls/stage outputs → tutorials/versions/source refs/lesson index/reports → progress/quiz → notifications → operators → push events → `pg_trgm` indexes → chunks + pgvector.
+auth → GitHub installations, repositories, user links → provider keys + model preferences + user preferences → snapshots/files/symbols/edges → jobs/stages/checkpoints/events/LLM calls → tutorials/versions/source refs/lessons/reports → progress/quiz → notifications → operators → push events → `pg_trgm` indexes → chunks + pgvector.

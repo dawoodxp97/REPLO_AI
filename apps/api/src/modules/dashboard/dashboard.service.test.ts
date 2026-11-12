@@ -1,8 +1,8 @@
 import type { ActivityItem, ActivityPage } from '@replo/contracts'
 import { describe, expect, it, vi } from 'vitest'
-import type { InFlightJob, RecentJob } from '../generation/job-history.service'
-import type { ResumeTarget } from '../learning/learning.service'
-import type { TutorialCounts } from '../tutorials/library.service'
+import type { InFlightJob, RecentJob } from '../jobs/job-history.service'
+import type { ReadingStats, ResumeTarget } from '../learning/learning.service'
+import type { TutorialCounts } from '../tutorials/catalog.service'
 import { createDashboardService, type DashboardDeps } from './dashboard.service'
 
 const USER = 'user-1'
@@ -19,6 +19,13 @@ const describeLinked: DashboardDeps['repositories']['describeLinked'] = async (_
   return found
 }
 
+const NO_READING: ReadingStats = {
+  lessonsCompleted: 0,
+  lessonsCompletedLast7Days: 0,
+  quizAnswers: 0,
+  quizAnswersCorrect: 0,
+}
+
 interface PageInput {
   limit: number
   offset: number
@@ -30,6 +37,7 @@ interface Fixtures {
   inFlight?: InFlightJob[]
   counts?: TutorialCounts
   resume?: ResumeTarget | null
+  reading?: ReadingStats
 }
 
 function sliceWindow<T>(rows: readonly T[], input: PageInput): T[] {
@@ -42,6 +50,7 @@ function stubs(fixtures: Fixtures = {}) {
   const inFlightRows = fixtures.inFlight ?? []
   const counts = fixtures.counts ?? { total: 0, draft: 0, private: 0, link: 0, public: 0 }
   const resume = fixtures.resume ?? null
+  const reading = fixtures.reading ?? NO_READING
   const recentPublished = vi.fn(async (_userId: string, input: PageInput & { zone: string }) =>
     sliceWindow(publishedRows, input),
   )
@@ -52,7 +61,7 @@ function stubs(fixtures: Fixtures = {}) {
   const deps: DashboardDeps = {
     tutorials: { counts: async () => counts, recentPublished },
     jobs: { inFlightFor, recentFor },
-    learning: { resumeTarget: async () => resume },
+    learning: { resumeTarget: async () => resume, readingStats: async () => reading },
     repositories: { describeLinked, linkedIds: async () => LINKED_IDS },
   }
   return { deps, recentPublished, recentFor, inFlightFor }
@@ -96,6 +105,18 @@ function pageSummary(page: ActivityPage) {
 }
 
 describe('dashboard summary', () => {
+  it('reports the reading totals from the learning service', async () => {
+    const reading = {
+      lessonsCompleted: 12,
+      lessonsCompletedLast7Days: 3,
+      quizAnswers: 9,
+      quizAnswersCorrect: 7,
+    }
+    const { deps } = stubs({ reading })
+
+    expect((await createDashboardService(deps).summary(USER)).reading).toEqual(reading)
+  })
+
   it('maps the tutorial counts', async () => {
     const counts = { total: 5, draft: 2, private: 1, link: 1, public: 1 }
     const { deps } = stubs({ counts })

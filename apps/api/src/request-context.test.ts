@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { describe, expect, it, vi } from 'vitest'
-import type { Services } from './context'
+import type { Services } from './request-context'
 import { buildRequestContext } from './request-context'
 
 const SESSION = { user: { id: 'u1', name: null, email: null, image: null }, sessionId: 's1' }

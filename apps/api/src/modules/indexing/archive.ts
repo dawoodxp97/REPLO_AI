@@ -12,7 +12,7 @@ import {
   type Language,
 } from '@replo/repo-analysis'
 import { extract, type Extract, type Header } from 'tar-stream'
-import { JobError } from '../../jobs/errors'
+import { JobError } from '../../worker/errors'
 import { decideFile, isLfsPointer } from './file-policy'
 
 export interface ArchiveRecord {

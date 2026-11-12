@@ -1,9 +1,21 @@
 import { buttonVariants } from '@replo/ui'
 import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { KEY_GUIDE } from '@/lib/routes'
+import { CitationLink } from '../citation-chip'
 import { Container } from '../page-section'
 import { ProductFrame } from '../product-frame'
 import { APP_URL } from '../site'
+
+const ASSURANCES = [
+  { claim: 'Free to use', source: 'terms', href: '/terms/' },
+  { claim: 'Runs on your own model key', source: 'your key', href: KEY_GUIDE.href },
+  {
+    claim: 'Your code is never executed',
+    source: 'keys and privacy',
+    href: '/docs/keys-and-privacy/',
+  },
+] as const
 
 export function Hero() {
   return (
@@ -35,9 +47,16 @@ export function Hero() {
                 Explore an example
               </Link>
             </div>
-            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-              Free to use. Bring your own model key. Your code is never executed.
-            </p>
+            <ul className="mt-5 flex flex-col gap-1.5 text-xs text-muted-foreground">
+              {ASSURANCES.map(({ claim, source, href }) => (
+                <li key={href} className="flex flex-wrap items-center gap-2">
+                  {claim}
+                  <CitationLink href={href} label={`${claim}: read ${source}`}>
+                    {source}
+                  </CitationLink>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
         <div id="example" className="mt-10 scroll-mt-24 sm:mt-14">

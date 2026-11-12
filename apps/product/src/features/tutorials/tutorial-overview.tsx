@@ -2,7 +2,6 @@ import type { TutorialOverviewDto } from '@replo/contracts'
 import { Badge } from '@replo/ui'
 import { VISIBILITY_LABEL } from '@/features/library/visibility-options'
 import { AUDIENCE_LABELS } from '@/features/preferences/audience'
-import { BulletList } from '@/components/bullet-list'
 import { LinkButton } from '@/components/link-button'
 import { SectionHeader, TitledSection } from '@/components/page-header'
 import { ArchitectureDiagram } from '@/features/diagram/architecture-diagram'
@@ -23,6 +22,16 @@ export interface TutorialOverviewProps {
   latestVersionHref: string | null
   shareToken?: string
   versionNo?: number
+}
+
+function BulletList({ items }: { items: readonly string[] }) {
+  return (
+    <ul className="list-disc space-y-1.5 pl-5 text-sm marker:text-muted-foreground">
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  )
 }
 
 export function TutorialOverview({

@@ -14,7 +14,7 @@ import {
   type GithubRest,
 } from '../../platform/github/client'
 import { gzippedTarballOf } from '../../test/tarball'
-import { JobError } from '../../jobs/errors'
+import { JobError } from '../../worker/errors'
 import { createIndexingService, type IngestSource } from './indexing.service'
 import { snapshotsRepo } from './indexing.repo'
 
@@ -37,7 +37,7 @@ describe.skipIf(DATABASE_URL === '')('indexing against Postgres', () => {
     await migrate(db, {
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
-    await db.execute(sql`truncate table "user", repositories restart identity cascade`)
+    await db.execute(sql`truncate table users, repositories restart identity cascade`)
     snapshotRoot = await mkdtemp(join(tmpdir(), 'replo-indexing-'))
   })
 

@@ -38,6 +38,8 @@ export function readableTutorial<T extends TutorialWithRepo>(
   viewer: Viewer,
   label: string,
 ): T {
+  // Not found, never forbidden: a stranger must not learn that a private tutorial
+  // exists (RULES §0.4).
   if (!row || !canRead(ownershipOf(row.tutorial), viewer)) notFound(label)
   return row
 }
@@ -57,5 +59,6 @@ export function tutorialPath(owner: string, repo: string, slug: string): string 
 function sameToken(given: string, expected: string): boolean {
   const a = Buffer.from(given)
   const b = Buffer.from(expected)
+  // Constant-time compare, so a share token cannot be recovered from response timing.
   return a.length === b.length && timingSafeEqual(a, b)
 }

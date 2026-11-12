@@ -9,7 +9,7 @@ import {
   Progress,
 } from '@replo/ui'
 import { SectionHeader } from '@/components/page-header'
-import { JobStatusLink } from '@/features/jobs/job-status-link'
+import { JobStatusLink } from '@/features/jobs/job-status-badge'
 import { STAGE_LABELS } from '@/features/jobs/job-status'
 import { formatRepoName } from '@/lib/format'
 

@@ -3,13 +3,12 @@ import { fileURLToPath } from 'node:url'
 import { eq, sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import { repositories, tutorials } from '../../platform/db/schema'
 import { fixedProgress } from '../../test/domain'
-import { createTutorialLibrary } from '../tutorials/library.service'
+import { createTutorialCatalog } from '../tutorials/catalog.service'
 import { createTutorialManager, type TutorialManager } from '../tutorials/manager.service'
-import { createTutorialReader } from '../tutorials/reader.service'
 import { randomBytes } from 'node:crypto'
 import { KeyVault } from '../../platform/crypto/key-vault'
 import { createIdentityService } from '../identity/identity.service'
@@ -32,19 +31,9 @@ describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => 
     await migrate(db, {
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
-    await db.execute(sql`truncate table "user", repositories restart identity cascade`)
-    const library = createTutorialLibrary({
-      db,
-      indexing: {
-        readFile: async () => undefined,
-        listFiles: async () => [],
-        readText: async () => undefined,
-        snapshotRef: async () => undefined,
-      },
-      reader: createTutorialReader(db),
-      learning: fixedProgress(null),
-    })
-    manager = createTutorialManager({ db, library, productOrigin: 'https://replo.test' })
+    await db.execute(sql`truncate table users, repositories restart identity cascade`)
+    const catalog = createTutorialCatalog({ db, learning: fixedProgress(null) })
+    manager = createTutorialManager({ db, catalog, productOrigin: 'https://replo.test' })
   })
 
   afterAll(async () => {
@@ -60,7 +49,7 @@ describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => 
 
   const seedUser = async () => {
     const id = randomUUID()
-    await db.insert(user).values({ id, name: 'Developer', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
     return id
   }
 
@@ -106,7 +95,7 @@ describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => 
       .where(eq(tutorials.id, tutorialId))
 
   const accountExists = async (userId: string) =>
-    (await db.select({ id: user.id }).from(user).where(eq(user.id, userId))).length === 1
+    (await db.select({ id: users.id }).from(users).where(eq(users.id, userId))).length === 1
 
   it('anonymise keeps public tutorials without an owner and removes private ones', async () => {
     const owner = await seedUser()

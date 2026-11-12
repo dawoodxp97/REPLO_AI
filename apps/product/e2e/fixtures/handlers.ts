@@ -108,6 +108,7 @@ const NOTIFICATIONS = [
 
 export function defaultHandlers(): RpcHandlers {
   let tutorial = TUTORIAL_SUMMARY
+  let preferences = DEFAULT_PREFERENCES
   return {
     'me.get': () => ({ body: USER }),
     'me.deleteAccount': () => ({ body: { ok: true } }),
@@ -247,6 +248,12 @@ export function defaultHandlers(): RpcHandlers {
           repo: 'widgets',
           slug: 'cart-flow',
         },
+        reading: {
+          lessonsCompleted: 1,
+          lessonsCompletedLast7Days: 1,
+          quizAnswers: 2,
+          quizAnswersCorrect: 1,
+        },
       },
     }),
     'dashboard.recent': () => ({
@@ -267,10 +274,11 @@ export function defaultHandlers(): RpcHandlers {
 
     'search.own': () => ({ body: SEARCH_RESULTS }),
 
-    'settings.get': () => ({ body: DEFAULT_PREFERENCES }),
-    'settings.update': ({ input }) => ({
-      body: { ...DEFAULT_PREFERENCES, ...Preferences.partial().parse(input) },
-    }),
+    'settings.get': () => ({ body: preferences }),
+    'settings.update': ({ input }) => {
+      preferences = { ...preferences, ...Preferences.partial().parse(input) }
+      return { body: preferences }
+    },
 
     'operator.jobs': () => rpcError('NOT_FOUND', 404),
     'operator.job': () => rpcError('NOT_FOUND', 404),

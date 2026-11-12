@@ -14,13 +14,14 @@ import {
   RadioGroup,
   Spinner,
 } from '@replo/ui'
+import { useMutation } from '@tanstack/react-query'
 import { CircleCheck, CircleX } from 'lucide-react'
 import { useId, useState } from 'react'
 import { InlineError } from '@/components/inline-error'
-import { EvidenceChips } from '@/features/player/evidence-chips'
-import type { SourceRefMap } from '@/features/player/source-ref-map'
+import { EvidenceChips } from '@/features/player/blocks/evidence-chips'
+import type { SourceRefMap } from '@/features/player/source/source-refs'
+import { orpc } from '@/lib/orpc'
 import { QuizOption, type OptionOutcome } from './quiz-option'
-import { useSubmitQuiz } from './use-submit-quiz'
 
 export interface QuestionCardProps {
   versionId: string
@@ -39,7 +40,7 @@ export function QuestionCard({
 }: QuestionCardProps) {
   const promptId = useId()
   const [choice, setChoice] = useState('')
-  const submit = useSubmitQuiz()
+  const submit = useMutation(orpc.learning.submitQuiz.mutationOptions())
   const result = submit.data
   const locked = result !== undefined || submit.isPending
   const correctText = question.options.find((option) => option.key === result?.correctKey)?.text

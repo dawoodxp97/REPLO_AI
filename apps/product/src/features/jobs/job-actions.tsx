@@ -4,7 +4,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { InlineError } from '@/components/inline-error'
 import { describeJobActionError } from './job-errors'
 import { canCancelJob, canRetryJob } from './job-status'
-import { useCancelJob, useRetryJob } from './use-job-actions'
+import { useCancelJob, useRetryJob } from './use-job'
 
 export function JobActions({ job, onRetried }: { job: GenerationJobDto; onRetried: () => void }) {
   const cancel = useCancelJob(job.jobId)

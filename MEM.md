@@ -265,7 +265,7 @@ A `push` to the repository's default branch with changed paths is stored in `rep
 
 Local DB suites run against an embedded Postgres 18 binary (the npm `embedded-postgres` package), because no Docker is available here. The suites migrate on start and truncate shared tables, so each parallel run needs its own database. CI still targets Postgres 17 as in `docs/DATABASE.md`; the migrations use only features common to both (`pg_trgm`, `gin`, `uuid`).
 
-### D-064 · 2026-10-22 · active — No comments in code
+### D-064 · 2026-10-22 · superseded by D-109 — No comments in code
 
 Source files carry no comments: names, types and tests say what the code does, and the reasons live in this file and in `docs/`. Generated SQL under `apps/api/drizzle` is exempt. Found by the backend review in `docs/CODE_REVIEW.md`, which also lists the open follow-ups.
 
@@ -277,7 +277,7 @@ A module exposes several small services instead of one large one (tutorials: pub
 
 `repositories.import` refuses a request without the header (`IDEMPOTENCY_KEY_REQUIRED`). The handler used to mint a random key when none was sent, so a retried request started a second run and spent the user's key again. **Why:** the key is the only protection against duplicate paid jobs. **How to apply:** the client creates one key per import attempt and reuses it on retries. Resolved in F1: `createIdempotencyKeys` (`apps/product/src/lib/idempotency-key.ts`) reuses the key while the payload is unchanged, and the oRPC link adds the header only when a call supplies one.
 
-### D-067 · 2026-10-23 · active — Backend comments are blocked by lint
+### D-067 · 2026-10-23 · amended by D-109 — Backend comments are blocked by lint
 
 `replo/no-comments` (`packages/config/eslint`) is part of the backend ESLint configs (`apps/api`, `packages/contracts`, `packages/ai`, `packages/repo-analysis`, `tools/evals`) and fails on any comment. D-064 is still the rule; the lint rule keeps it. Frontends and `packages/ui` are covered from D-070. **How to apply:** do not add an ESLint disable directive to get around it; record an exception here first.
 
@@ -420,7 +420,7 @@ An installation token can read every repository in an org installation, so listi
 - Job events SSE no longer queries the job row per tick: it ends when the job was terminal at connect or when the last flushed event is succeeded, failed or canceled. A retry emits `queued` in the same transaction, so a replayed old terminal event does not end a retried job's stream. `Last-Event-ID` is zod-parsed. No per-user stream cap and no idle backoff yet.
 - Retention: `job_stage_outputs` for finished jobs go in one `DELETE` with a subquery; `job_events` and `llm_calls` in 5000-row batches; `repo_push_events` not newer than any snapshot of their repository are purged. `RetentionService` takes `tutorials`; `pipeline.purgeOutputs` is gone. `report.finishedJobs` counts distinct jobs whose outputs were deleted.
 - `generate-tutorial` payload is `{ jobId }` only; in-flight v1 messages still parse (zod strips extra keys). `StageContext` no longer carries payload. `withTimeout` uses `AbortSignal.any/timeout`; `graceMs` is required.
-- `TutorialReader` has `readableHead` and `lessonsOfVersion(versionId)` (no access check: resolve a readable version first); `lessonsOf(viewer, versionId)` is removed. `readableTutorial` in `access.ts` is the single load, `canRead`, else 404 helper. `source` and `sourceTree` take `commitSha` from the snapshot.
+- `VersionAccess` (was `TutorialReader` until D-109) has `readableHead` and `lessonsOfVersion(versionId)` (no access check: resolve a readable version first); `lessonsOf(viewer, versionId)` is removed. `readableTutorial` in `access.ts` is the single load, `canRead`, else 404 helper. `source` and `sourceTree` take `commitSha` from the snapshot.
 
 ### D-100 · 2026-11-02 · active — Frontend refactor decisions
 
@@ -475,6 +475,18 @@ The audit ranks 22 findings and groups them into five slices (foundations, playe
 - The mock API (`e2e/support/mock-api.ts`) holds `/notifications/stream` and `/jobs/:id/events` open as idle event streams, so mock mode no longer logs 404s or shows “Reconnecting”; teardown calls `closeAllConnections()` first.
 - The `link` visibility is labelled “Shared by link” everywhere; overview badges use `AUDIENCE_LABELS` and `VISIBILITY_LABEL` instead of raw enum values.
 - **How to apply:** a new route gets a row in `PAGES` in the accessibility spec; a new small control gets a `pointer-coarse:` size or a padded wrapping label (see `preference-switch.tsx`).
+
+### D-108 · 2026-11-11 · active — One baseline migration and consistent table names
+
+The fifteen migrations became `0000_baseline.sql`; none had reached a live database. Tables are plural and a child carries its parent's prefix: `users`, `sessions`, `auth_identities`, `repository_snapshots`, `repository_push_events`, `snapshot_symbols`, `snapshot_file_edges`, `tutorial_lessons`, `job_checkpoints`, `job_llm_calls`. `generation_jobs` keeps its name so it is not confused with pg-boss's `pgboss.job`. Columns: `provider_key_id`, `github_installation_id`, `encryption_key_version`, `reporter_user_id`, `job_events.created_at`, `quiz_attempts.answered_at`. `generation_jobs.kind` is dropped (it only ever held `generate`). `tutorials.current_version_id` now references `tutorial_versions(id)` with `on delete set null`. Naming rules are in `docs/DATABASE.md`. A database built from the old migrations has to be dropped and recreated. Left as they were: `job_stages.status` and `job_llm_calls.status` each hold one value but are part of the operator contract.
+
+### D-109 · 2026-11-11 · active — Comments are allowed when they carry a reason (supersedes D-064, D-067, D-070 for the backend)
+
+The owner could not follow the code with reasons kept only in this file. `//` comments are allowed for what the code cannot say: the race a guard closes, why at-least-once delivery needs a check, a security rule, an external quirk. Block comments, JSDoc and dividers still fail lint (`replo/no-comments`). `docs/HOW_GENERATION_WORKS.md` walks one tutorial through the pipeline by file and function. The same pass renamed the confusing backend modules: `src/jobs/` is `src/worker/`, `modules/generation/` is `modules/jobs/`, the pipeline's stage outputs are `checkpoints`, `TutorialReader` is `VersionAccess`, `TutorialViewer` is `TutorialContentService`, and the `TutorialLibrary` merger is gone (`tutorialCatalog` and `tutorialContent` are separate services). Frontend code still has no comments (D-070). Known gap: RULES §0.3 describes a validate-only vault, but `keys.service.ts` `validate` uses the full `KeyVault`.
+
+### D-110 · 2026-11-11 · active — Account pill in the header; Home shows workspace state
+
+The account control moved from the sidebar foot to a pill at the right of the header. It opens a popover with identity, theme, a link to each settings section with its status, and Sign out (`components/app-shell/user-pill.tsx`). Home is two columns from `lg`: reading on the left, and on the right what a new tutorial will run on (key, GitHub, preset), library counts and repositories. The workspace card and shelf read existing endpoints through `useWorkspaceSetup` and the list hooks. One addition to the API: `dashboard.summary.reading` (lessons finished, finished in the last 7 days, quiz answers, correct answers), counted in `learning.repo.readingTotals`; a lesson finished in two versions of a tutorial counts once. FR-DASH-1 is amended for it; streaks, heatmaps and hours stay out (D-018). The Library has a client-side toolbar (text, visibility, hide finished, sort) over the pages loaded so far (`features/library/library-filter.ts`). The product app's small single-use files were merged into their users (261 to about 225 source files); the player is grouped into `blocks/`, `commands/`, `lesson/` and `source/`. Tailwind in `next dev` can miss a newly added arbitrary class until the dev server restarts; the production build is unaffected.
 
 ## Assumptions to validate (from blueprint §20)
 

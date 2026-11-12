@@ -4,17 +4,17 @@ import { sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import type { JobStatus, ModelPlan } from '@replo/contracts'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   generationJobs,
   jobStages,
-  llmCalls,
+  jobLlmCalls,
   operators,
-  repoSnapshots,
+  repositorySnapshots,
   repositories,
 } from '../../platform/db/schema'
-import { createJobHistory } from '../generation/job-history.service'
+import { createJobHistory } from '../jobs/job-history.service'
 import { createOperatorService, type OperatorService } from './operator.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -53,7 +53,7 @@ describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
   })
 
   beforeEach(async () => {
-    await db.execute(sql`truncate table "user", repositories restart identity cascade`)
+    await db.execute(sql`truncate table users, repositories restart identity cascade`)
     const [repo] = await db
       .insert(repositories)
       .values({
@@ -65,15 +65,15 @@ describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
       })
       .returning({ id: repositories.id })
     const [snapshot] = await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({ repositoryId: repo!.id, commitSha: 'f'.repeat(40), analyzerVersion: 1 })
-      .returning({ id: repoSnapshots.id })
+      .returning({ id: repositorySnapshots.id })
     snapshotId = snapshot!.id
   })
 
   const seedUser = async (name = 'Developer') => {
     const id = randomUUID()
-    await db.insert(user).values({ id, name, email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name, email: `${id}@test.invalid` })
     return id
   }
 
@@ -89,7 +89,6 @@ describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
       .values({
         userId,
         snapshotId,
-        kind: 'generate',
         status,
         idempotencyKey: randomUUID(),
         models: plan,
@@ -157,7 +156,7 @@ describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
       attempt: 1,
       finishedAt,
     })
-    await db.insert(llmCalls).values({
+    await db.insert(jobLlmCalls).values({
       jobId,
       stage: 'planner',
       provider: 'anthropic',

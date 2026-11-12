@@ -10,16 +10,16 @@ import { ANALYZER_VERSION, DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysi
 import { and, eq, sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
-  jobStageOutputs,
-  lessonIndex,
+  jobCheckpoints,
+  tutorialLessons,
   repositories,
-  repoSnapshots,
+  repositorySnapshots,
   snapshotFiles,
-  symbols,
-  fileEdges,
+  snapshotSymbols,
+  snapshotFileEdges,
   generationJobs,
   tutorials,
   tutorialSourceRefs,
@@ -27,17 +27,17 @@ import {
 } from '../../platform/db/schema'
 import type { GithubRest } from '../../platform/github/client'
 import { createLogger } from '../../platform/logger'
-import { CanceledError, JobError, StoppedError } from '../../jobs/errors'
-import { handleGenerateTutorial } from '../../jobs/generate-tutorial.worker'
+import { CanceledError, JobError, StoppedError } from '../../worker/errors'
+import { handleGenerateTutorial } from '../../worker/generate-tutorial'
 import { bundledCatalog, fakeKeyChecker, testVault } from '../../test/domain'
 import { FIXTURE_FILES, fixtureData } from '../../test/grounding'
-import { createJobRuntime, type JobRuntime } from '../generation/job-runtime.service'
-import { createJobService, type JobService } from '../generation/jobs.service'
+import { createJobRuntime, type JobRuntime } from '../jobs/job-runtime.service'
+import { createJobService, type JobService } from '../jobs/jobs.service'
 import { createIndexingService, type IndexingService } from '../indexing/indexing.service'
 import { createKeysService, type KeysService } from '../keys/keys.service'
 import { createNotificationsService } from '../notifications/notifications.service'
 import { createTutorialPublisher, type TutorialPublisher } from '../tutorials/publisher.service'
-import { createTutorialReader } from '../tutorials/reader.service'
+import { createVersionAccess } from '../tutorials/version-access.service'
 import type { OutlineDraft } from './drafts'
 import { createPipelineService, type PipelineService } from './pipeline.service'
 
@@ -270,7 +270,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
     await db.execute(
-      sql`truncate table "user", repositories, provider_keys restart identity cascade`,
+      sql`truncate table users, repositories, provider_keys restart identity cascade`,
     )
     snapshotRoot = await mkdtemp(join(tmpdir(), 'replo-pipeline-'))
     indexing = createIndexingService({
@@ -296,7 +296,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
       queue,
       indexing,
       notifications,
-      tutorials: createTutorialReader(db),
+      tutorials: createVersionAccess(db),
       repositories: { describeLinked: async () => new Map() },
     })
     runtime = createJobRuntime({ db, queue, notifications })
@@ -311,7 +311,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
 
   const seedUser = async () => {
     const id = randomUUID()
-    await db.insert(user).values({ id, name: 'Developer', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
     return id
   }
 
@@ -340,7 +340,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
       parseErrors: [],
     }
     const [snapshot] = await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({
         repositoryId: repository.id,
         commitSha: SHA,
@@ -356,7 +356,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
         },
         analysis,
       })
-      .returning({ id: repoSnapshots.id })
+      .returning({ id: repositorySnapshots.id })
     if (!snapshot) throw new Error('snapshot seed failed')
 
     await db.insert(snapshotFiles).values(
@@ -370,9 +370,9 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
       })),
     )
     await db
-      .insert(symbols)
+      .insert(snapshotSymbols)
       .values(data.symbols.map((symbol) => ({ ...symbol, snapshotId: snapshot.id })))
-    await db.insert(fileEdges).values(
+    await db.insert(snapshotFileEdges).values(
       data.edges.map((edge) => ({
         snapshotId: snapshot.id,
         fromPath: edge.fromPath,
@@ -424,7 +424,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
         snapshotId: input.snapshotId,
         idempotencyKey: randomUUID(),
         audience: AUDIENCE,
-        keyId: input.keyId,
+        providerKeyId: input.keyId,
         models,
         budgetMicros,
       }),
@@ -496,8 +496,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
 
     const lessons = await db
       .select()
-      .from(lessonIndex)
-      .where(eq(lessonIndex.versionId, version?.id ?? ''))
+      .from(tutorialLessons)
+      .where(eq(tutorialLessons.versionId, version?.id ?? ''))
     expect(lessons.map((row) => row.lessonKey).sort()).toEqual(['map', 'review', 'route'])
 
     const refs = await db
@@ -509,8 +509,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
 
     const leftovers = await db
       .select()
-      .from(jobStageOutputs)
-      .where(eq(jobStageOutputs.jobId, job.id))
+      .from(jobCheckpoints)
+      .where(eq(jobCheckpoints.jobId, job.id))
     expect(leftovers).toEqual([])
   })
 
@@ -756,8 +756,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
         lessons: async (ctx) => {
           const [stored] = await db
             .select()
-            .from(jobStageOutputs)
-            .where(and(eq(jobStageOutputs.jobId, job.id), eq(jobStageOutputs.stage, 'outline')))
+            .from(jobCheckpoints)
+            .where(and(eq(jobCheckpoints.jobId, job.id), eq(jobCheckpoints.stage, 'outline')))
           const outline = stored?.payload as OutlineDraft
           const legacy = {
             ...outline,
@@ -771,9 +771,9 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
             ),
           }
           await db
-            .update(jobStageOutputs)
+            .update(jobCheckpoints)
             .set({ payload: legacy })
-            .where(and(eq(jobStageOutputs.jobId, job.id), eq(jobStageOutputs.stage, 'outline')))
+            .where(and(eq(jobCheckpoints.jobId, job.id), eq(jobCheckpoints.stage, 'outline')))
           await handlers.lessons(ctx)
         },
       }),

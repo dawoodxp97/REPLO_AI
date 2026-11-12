@@ -125,4 +125,5 @@ export {
 } from './components/table'
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './components/tabs'
 export { Textarea } from './components/textarea'
+export { ToggleGroup, ToggleGroupItem } from './components/toggle-group'
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/tooltip'

@@ -6,26 +6,27 @@ import Fastify from 'fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { TutorialContent, ValidationReport } from '@replo/contracts'
 import { ANALYZER_VERSION } from '@replo/repo-analysis'
-import { user } from '../../platform/db/auth-schema'
+import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   generationJobs,
   githubInstallations,
-  repoPushEvents,
-  repoSnapshots,
+  repositoryPushEvents,
+  repositorySnapshots,
   repositories,
   userRepositories,
   webhookDeliveries,
 } from '../../platform/db/schema'
 import { createLogger } from '../../platform/logger'
-import { createJobHistory } from '../generation/job-history.service'
-import { createJobService } from '../generation/jobs.service'
+import { createJobHistory } from '../jobs/job-history.service'
+import { createJobService } from '../jobs/jobs.service'
 import { createNotificationsService } from '../notifications/notifications.service'
 import { fixedProgress } from '../../test/domain'
-import { createTutorialLibrary } from '../tutorials/library.service'
+import { createTutorialCatalog } from '../tutorials/catalog.service'
+import { createTutorialContent } from '../tutorials/content.service'
 import { createTutorialManager } from '../tutorials/manager.service'
 import { createTutorialPublisher, type TutorialPublisher } from '../tutorials/publisher.service'
-import { createTutorialReader } from '../tutorials/reader.service'
+import { createVersionAccess } from '../tutorials/version-access.service'
 import { identityRepo } from '../identity/identity.repo'
 import { createRepositoryChanges } from '../repositories/changes.service'
 import { createRepositoryLibrary, type RepositoryLibrary } from '../repositories/library.service'
@@ -181,7 +182,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
   let pool: ReturnType<typeof createDb>['pool']
   let repositoryLibrary: RepositoryLibrary
   let publisher: TutorialPublisher
-  let library: ReturnType<typeof createTutorialLibrary>
+  let content: ReturnType<typeof createTutorialContent>
   let webhooks: ReturnType<typeof createGithubWebhookService>
   let jobs: ReturnType<typeof createJobService>
   let history: ReturnType<typeof createJobHistory>
@@ -194,7 +195,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
       migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
     })
     await db.execute(
-      sql`truncate table "user", repositories, github_installations, webhook_deliveries restart identity cascade`,
+      sql`truncate table users, repositories, github_installations, webhook_deliveries restart identity cascade`,
     )
     jobs = createJobService({
       db,
@@ -205,7 +206,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
       repositories: { describeLinked: async () => new Map() },
     })
     history = createJobHistory(db)
-    library = createTutorialLibrary({
+    content = createTutorialContent({
       db,
       indexing: {
         readFile: async () => undefined,
@@ -218,11 +219,15 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
           createdAt: new Date(0),
         }),
       },
-      reader: createTutorialReader(db),
+      versionAccess: createVersionAccess(db),
       learning: fixedProgress(null),
     })
     publisher = createTutorialPublisher(db)
-    const manager = createTutorialManager({ db, library, productOrigin: 'https://replo.test' })
+    const manager = createTutorialManager({
+      db,
+      catalog: createTutorialCatalog({ db, learning: fixedProgress(null) }),
+      productOrigin: 'https://replo.test',
+    })
     repositoryLibrary = createRepositoryLibrary({ db, jobs: history, tutorials: manager })
     webhooks = createGithubWebhookService({ db, sink: createRepositoryChanges(manager) })
   })
@@ -233,7 +238,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
 
   const seedUser = async () => {
     const id = randomUUID()
-    await db.insert(user).values({ id, name: 'Developer', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
     return id
   }
 
@@ -253,7 +258,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
   }
 
   const link = (userId: string, repositoryId: string, installationId: number) =>
-    db.insert(userRepositories).values({ userId, repositoryId, installationId })
+    db.insert(userRepositories).values({ userId, repositoryId, githubInstallationId: installationId })
 
   const installation = (userId: string, githubInstallationId: number) =>
     githubInstallationsRepo(db).upsertForUser({
@@ -379,16 +384,15 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
     const stranger = await seedUser()
     const repoId = await seedRepo(900_007)
     const [snapshot] = await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({ repositoryId: repoId, commitSha: 'c'.repeat(40), analyzerVersion: 1 })
-      .returning({ id: repoSnapshots.id })
+      .returning({ id: repositorySnapshots.id })
     if (!snapshot) throw new Error('snapshot seed failed')
     const [job] = await db
       .insert(generationJobs)
       .values({
         userId: owner,
         snapshotId: snapshot.id,
-        kind: 'generate',
         idempotencyKey: randomUUID(),
         models: {
           provider: 'openrouter',
@@ -411,20 +415,19 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
 
   describe('push events', () => {
     const pushedRows = (repositoryId: string) =>
-      db.select().from(repoPushEvents).where(eq(repoPushEvents.repositoryId, repositoryId))
+      db.select().from(repositoryPushEvents).where(eq(repositoryPushEvents.repositoryId, repositoryId))
 
     const seedPublishedTutorial = async (owner: string, repoId: string, repoName: string) => {
       const [snapshot] = await db
-        .insert(repoSnapshots)
+        .insert(repositorySnapshots)
         .values({ repositoryId: repoId, commitSha: SHA, analyzerVersion: ANALYZER_VERSION })
-        .returning({ id: repoSnapshots.id })
+        .returning({ id: repositorySnapshots.id })
       if (!snapshot) throw new Error('snapshot seed failed')
       const [job] = await db
         .insert(generationJobs)
         .values({
           userId: owner,
           snapshotId: snapshot.id,
-          kind: 'generate',
           idempotencyKey: randomUUID(),
           models: {
             provider: 'anthropic',
@@ -474,9 +477,9 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
       await link(owner, repoId, 5_032)
       const lookup = await seedPublishedTutorial(owner, repoId, 'shop-900032')
 
-      expect((await library.overview({ userId: owner }, lookup)).stale).toBe(false)
+      expect((await content.overview({ userId: owner }, lookup)).stale).toBe(false)
       expect(await deliver('push', pushOf(900_032, 'main', [CART_PATH]))).toBe('processed')
-      expect((await library.overview({ userId: owner }, lookup)).stale).toBe(true)
+      expect((await content.overview({ userId: owner }, lookup)).stale).toBe(true)
     })
 
     it('records nothing for a push to another branch', async () => {
@@ -486,9 +489,9 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
     })
 
     it('acknowledges a push to a repository Replo does not know without recording it', async () => {
-      const before = await db.select().from(repoPushEvents)
+      const before = await db.select().from(repositoryPushEvents)
       expect(await deliver('push', pushOf(999_034, 'main', [CART_PATH]))).toBe('skipped')
-      expect(await db.select().from(repoPushEvents)).toHaveLength(before.length)
+      expect(await db.select().from(repositoryPushEvents)).toHaveLength(before.length)
     })
 
     it('rejects a push whose signature does not match the raw body and records nothing', async () => {
@@ -794,7 +797,7 @@ describe.skipIf(DATABASE_URL === '')('GitHub links and webhooks against Postgres
       })
       expect(response.statusCode).toBe(202)
       expect(
-        await db.select().from(repoPushEvents).where(eq(repoPushEvents.repositoryId, repoId)),
+        await db.select().from(repositoryPushEvents).where(eq(repositoryPushEvents.repositoryId, repoId)),
       ).toHaveLength(1)
       await app.close()
     })

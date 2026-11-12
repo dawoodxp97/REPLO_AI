@@ -4,7 +4,7 @@ import { eq, sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { KeyVault } from '../../platform/crypto/key-vault'
-import { authIdentity, session, user } from '../../platform/db/auth-schema'
+import { authIdentities, sessions, users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import type { Outcome } from '../../platform/outcome'
 import { createAuthService, type AuthService } from './auth.service'
@@ -55,7 +55,7 @@ describe.skipIf(DATABASE_URL === '')('auth against Postgres', () => {
   })
 
   beforeEach(async () => {
-    await db.execute(sql`truncate table "user" cascade`)
+    await db.execute(sql`truncate table users cascade`)
   })
 
   describe('password accounts', () => {
@@ -95,13 +95,13 @@ describe.skipIf(DATABASE_URL === '')('auth against Postgres', () => {
     it('stores a scrypt hash of the password and only a hash of the session token', async () => {
       const created = await signUp('ada@example.com')
       const [identityRow] = await db
-        .select({ passwordHash: authIdentity.passwordHash })
-        .from(authIdentity)
-        .where(eq(authIdentity.userId, created.user.id))
+        .select({ passwordHash: authIdentities.passwordHash })
+        .from(authIdentities)
+        .where(eq(authIdentities.userId, created.user.id))
       const [sessionRow] = await db
-        .select({ tokenHash: session.tokenHash })
-        .from(session)
-        .where(eq(session.id, created.sessionId))
+        .select({ tokenHash: sessions.tokenHash })
+        .from(sessions)
+        .where(eq(sessions.id, created.sessionId))
 
       expect(identityRow?.passwordHash?.startsWith('scrypt$')).toBe(true)
       expect(identityRow?.passwordHash).not.toContain('correct horse')
@@ -118,9 +118,9 @@ describe.skipIf(DATABASE_URL === '')('auth against Postgres', () => {
         await auth.signIn({ email: 'ada@example.com', password: 'correct horse' }),
       )
       await db
-        .update(session)
+        .update(sessions)
         .set({ expiresAt: new Date(Date.now() - 1000) })
-        .where(eq(session.id, signedIn.sessionId))
+        .where(eq(sessions.id, signedIn.sessionId))
       expect(await auth.currentSession(signedIn.token)).toBeNull()
     })
 
@@ -154,9 +154,9 @@ describe.skipIf(DATABASE_URL === '')('auth against Postgres', () => {
       expect(signedIn.user.email).toBe('ada@example.com')
       expect(await identity.githubAccessToken(signedIn.user.id)).toBe('gho_first')
       const [row] = await db
-        .select({ ciphertext: authIdentity.accessTokenCiphertext })
-        .from(authIdentity)
-        .where(eq(authIdentity.userId, signedIn.user.id))
+        .select({ ciphertext: authIdentities.accessTokenCiphertext })
+        .from(authIdentities)
+        .where(eq(authIdentities.userId, signedIn.user.id))
       expect(row?.ciphertext).not.toContain('gho_first')
       expect(await identity.signInMethods(signedIn.user.id)).toEqual({
         password: false,
@@ -184,8 +184,8 @@ describe.skipIf(DATABASE_URL === '')('auth against Postgres', () => {
       expect(await identity.githubAccessToken(first.user.id)).toBe('gho_second')
       const rows = await db
         .select()
-        .from(authIdentity)
-        .where(eq(authIdentity.userId, first.user.id))
+        .from(authIdentities)
+        .where(eq(authIdentities.userId, first.user.id))
       expect(rows).toHaveLength(1)
     })
 
@@ -264,7 +264,7 @@ describe.skipIf(DATABASE_URL === '')('auth against Postgres', () => {
       })
 
       expect(linked).toEqual({ kind: 'ok', value: true })
-      const [row] = await db.select().from(user).where(eq(user.id, created.user.id))
+      const [row] = await db.select().from(users).where(eq(users.id, created.user.id))
       expect(row?.emailVerified).toBe(true)
       expect(await identity.signInMethods(created.user.id)).toEqual({
         password: true,

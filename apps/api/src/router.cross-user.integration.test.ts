@@ -7,14 +7,14 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ModelPlan } from '@replo/contracts'
 import { encodeCursor } from './modules/notifications/notifications.cursor'
-import { user } from './platform/db/auth-schema'
+import { users } from './platform/db/auth-schema'
 import { createDb, type Db } from './platform/db/client'
 import {
   generationJobs,
   learningProgress,
   notifications,
   providerKeys,
-  repoSnapshots,
+  repositorySnapshots,
   repositories,
   tutorials,
   tutorialVersions,
@@ -23,7 +23,7 @@ import {
 import { loadConfig } from './platform/config'
 import type { JobQueue } from './platform/queue/job-queue'
 import { createDomainServices, createServices, vaultFrom } from './composition'
-import type { RequestContext, SessionUser } from './context'
+import type { RequestContext, SessionUser } from './request-context'
 import { router } from './router'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -68,7 +68,7 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
   const sessionUser = async (): Promise<SessionUser> => {
     const id = randomUUID()
     seededUsers.push(id)
-    await db.insert(user).values({ id, name: 'Developer', email: `${id}@test.invalid` })
+    await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
     return { id, name: 'Developer', email: `${id}@test.invalid`, image: null }
   }
 
@@ -104,7 +104,7 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
   })
 
   afterAll(async () => {
-    if (seededUsers.length > 0) await db.delete(user).where(inArray(user.id, seededUsers))
+    if (seededUsers.length > 0) await db.delete(users).where(inArray(users.id, seededUsers))
     await pool.end()
   })
 
@@ -298,14 +298,14 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
     await db.insert(userRepositories).values({ userId: ownerId, repositoryId })
 
     const [snapshot] = await db
-      .insert(repoSnapshots)
+      .insert(repositorySnapshots)
       .values({
         repositoryId,
         commitSha: 'b'.repeat(40),
         analyzerVersion: ANALYZER_VERSION,
         status: 'ready',
       })
-      .returning({ id: repoSnapshots.id })
+      .returning({ id: repositorySnapshots.id })
     const snapshotId = snapshot!.id
 
     const [job] = await db
@@ -313,7 +313,6 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
       .values({
         userId: ownerId,
         snapshotId,
-        kind: 'generate',
         status: 'succeeded',
         audience: 'intermediate',
         idempotencyKey: randomUUID(),
@@ -362,7 +361,7 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
         label: 'default',
         ciphertext: 'c2VjcmV0',
         iv: 'aXY=',
-        keyVersion: 1,
+        encryptionKeyVersion: 1,
         last4: '1234',
       })
       .returning({ id: providerKeys.id })

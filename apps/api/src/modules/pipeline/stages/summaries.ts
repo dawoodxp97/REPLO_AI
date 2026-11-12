@@ -1,10 +1,10 @@
-import type { StageContext } from '../../../jobs/generate-tutorial.worker'
-import { dataFiles, rankedPaths } from '../context'
+import type { StageContext } from '../../../worker/generate-tutorial'
+import { dataFiles, rankedPaths } from '../prompt-inputs'
 import { SummariesDraft } from '../drafts'
 import type { SourceIndex } from '../grounding/source-index'
 import { promptFor } from '../prompts'
-import { StoredSummaries, WHOLE_JOB } from '../stored-outputs'
-import { checkpointed, openSession, planOf, sourceWorkspace, type StageDeps } from '../stage-deps'
+import { StoredSummaries, WHOLE_JOB } from '../checkpoints'
+import { checkpointed, openSession, planOf, sourceWorkspace, type StageDeps } from '../stage-tools'
 
 const TOP_FILES = 24
 const BATCH_FILES = 8

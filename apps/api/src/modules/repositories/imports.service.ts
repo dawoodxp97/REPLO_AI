@@ -14,7 +14,7 @@ import type { Db } from '../../platform/db/client'
 import { requireFound } from '../../platform/errors'
 import { ok, refused, type Outcome } from '../../platform/outcome'
 import { toRepositoryMetadata } from '../github/github.events'
-import type { JobService } from '../generation/jobs.service'
+import type { JobService } from '../jobs/jobs.service'
 import type { IndexingService } from '../indexing/indexing.service'
 import type { KeysService } from '../keys/keys.service'
 import type { ModelsService } from '../models/models.service'
@@ -159,7 +159,7 @@ export function createRepositoryImports(deps: RepositoryImportsDeps): Repository
           snapshotId,
           idempotencyKey,
           audience: input.audience,
-          keyId: input.keyId,
+          providerKeyId: input.keyId,
           models: modelPlan,
           budgetMicros,
         })

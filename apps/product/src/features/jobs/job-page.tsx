@@ -7,7 +7,7 @@ import { jobPlan, jobTitle, UNNAMED_JOB_TITLE } from './job-heading'
 import { JobOutcome } from './job-outcome'
 import { JobSummary } from './job-summary'
 import { StageList } from './stage-list'
-import { useJobPage } from './use-job-page'
+import { useJobPage } from './use-job'
 
 const SAVED_NOTE = 'Progress is saved on the server, so you can leave this page and come back.'
 

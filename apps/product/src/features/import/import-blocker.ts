@@ -13,6 +13,7 @@ export function importBlocker(values: unknown): string | null {
   const parsed = ImportRepositoryInput.safeParse(values)
   if (parsed.success) return null
   const field = parsed.error.issues[0]?.path[0]
-  const step = typeof field === 'string' && Object.hasOwn(FIELD_STEPS, field) ? FIELD_STEPS[field] : undefined
+  const step =
+    typeof field === 'string' && Object.hasOwn(FIELD_STEPS, field) ? FIELD_STEPS[field] : undefined
   return step ?? 'Complete the form to start.'
 }
