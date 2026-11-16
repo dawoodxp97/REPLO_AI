@@ -20,9 +20,7 @@
     "format:check": "prettier --check .",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
-    "db:generate": "pnpm --filter @replo/api db:generate",
-    "db:migrate": "pnpm --filter @replo/api db:migrate",
-    "db:check-drift": "pnpm --filter @replo/api db:check-drift",
+    "db:setup": "pnpm --filter @replo/api db:setup",
     "evals": "pnpm --filter @replo/evals start"
   },
   "devDependencies": {

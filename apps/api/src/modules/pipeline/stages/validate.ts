@@ -1,4 +1,4 @@
-import type { StageContext } from '../../../worker/generate-tutorial'
+import type { StageContext } from '../../../worker/generate-course'
 import { JobError } from '../../../worker/errors'
 import { ArchitectureDraft, OutlineDraft } from '../drafts'
 import { buildReport } from '../grounding/report'

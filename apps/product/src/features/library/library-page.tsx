@@ -22,20 +22,20 @@ import {
   type LibraryFilter,
 } from './library-filter'
 import { LibraryToolbar } from './library-toolbar'
-import { TutorialRow } from './tutorial-row'
-import { useTutorialList } from './use-library'
-import { NewTutorialAction } from '@/components/new-tutorial-action'
+import { CourseRow } from './course-row'
+import { useCourseList } from './use-library'
+import { NewCourseAction } from '@/components/new-course-action'
 
 export function LibraryPage() {
-  const list = useTutorialList()
+  const list = useCourseList()
   const [filter, setFilter] = useState<LibraryFilter>(DEFAULT_LIBRARY_FILTER)
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Library"
-        description="Your tutorials, who can read them, and how far you have read."
-        action={<NewTutorialAction />}
+        description="Your courses, who can read them, and how far you have read."
+        action={<NewCourseAction />}
       />
 
       <QueryBoundary query={list} errorTitle="We could not load your library">
@@ -45,7 +45,7 @@ export function LibraryPage() {
             return (
               <Empty>
                 <EmptyHeader>
-                  <EmptyTitle>No tutorials yet</EmptyTitle>
+                  <EmptyTitle>No courses yet</EmptyTitle>
                   <EmptyDescription>
                     Generate one from a repository you have imported.
                   </EmptyDescription>
@@ -65,11 +65,11 @@ export function LibraryPage() {
               {shown.length === 0 ? (
                 <Empty>
                   <EmptyHeader>
-                    <EmptyTitle>No tutorials match</EmptyTitle>
+                    <EmptyTitle>No courses match</EmptyTitle>
                     <EmptyDescription>
                       {list.hasNextPage
-                        ? 'Only the tutorials loaded so far are filtered. Load more, or clear the filters.'
-                        : 'Change or clear the filters to see your tutorials.'}
+                        ? 'Only the courses loaded so far are filtered. Load more, or clear the filters.'
+                        : 'Change or clear the filters to see your courses.'}
                     </EmptyDescription>
                   </EmptyHeader>
                   <EmptyContent>
@@ -80,14 +80,14 @@ export function LibraryPage() {
                 </Empty>
               ) : (
                 <ItemGroup>
-                  {shown.map((tutorial) => (
-                    <TutorialRow key={tutorial.id} tutorial={tutorial} />
+                  {shown.map((course) => (
+                    <CourseRow key={course.id} course={course} />
                   ))}
                 </ItemGroup>
               )}
               {isFiltering(filter) ? (
                 <p role="status" className="text-xs text-muted-foreground">
-                  {shown.length} of {items.length} tutorials shown
+                  {shown.length} of {items.length} courses shown
                 </p>
               ) : null}
               <LoadMore query={list} />

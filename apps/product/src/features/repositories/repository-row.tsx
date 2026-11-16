@@ -7,7 +7,7 @@ import { LinkButton } from '@/components/link-button'
 import { RepoVisibilityBadge } from '@/components/repo-visibility-badge'
 import { JobStatusLink } from '@/features/jobs/job-status-badge'
 import { formatRepoName } from '@/lib/format'
-import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
+import { importPath, NEW_COURSE_LABEL } from '@/lib/import-path'
 import { useRemoveRepository } from './use-repositories'
 
 export function RepositoryRow({ repository }: { repository: RepositoryListItem }) {
@@ -30,13 +30,13 @@ export function RepositoryRow({ repository }: { repository: RepositoryListItem }
           <JobStatusLink jobId={repository.latestJob.jobId} status={repository.latestJob.status} />
         ) : (
           <LinkButton href={importPath(repository)} variant="outline" size="sm">
-            {NEW_TUTORIAL_LABEL}
+            {NEW_COURSE_LABEL}
           </LinkButton>
         )}
         <ConfirmDialog
           triggerLabel="Remove"
           title={`Remove ${name}?`}
-          description={`Replo stops reading ${name} and deletes your tutorials and reading progress for it. Public and link URLs for those tutorials stop working.`}
+          description={`Replo stops reading ${name} and deletes your courses and reading progress for it. Public and link URLs for those courses stop working.`}
           confirmLabel="Remove repository"
           run={() => remove.mutateAsync({ repositoryId: repository.repositoryId })}
           describeError={() => 'The repository could not be removed. Try again.'}

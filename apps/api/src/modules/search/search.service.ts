@@ -1,9 +1,9 @@
 import type { SearchResults } from '@replo/contracts'
 import type { RepositoryLibrary } from '../repositories/library.service'
-import type { TutorialCatalog } from '../tutorials/catalog.service'
+import type { CourseCatalog } from '../courses/catalog.service'
 
 export interface SearchDeps {
-  tutorials: Pick<TutorialCatalog, 'searchOwn'>
+  courses: Pick<CourseCatalog, 'searchOwn'>
   repositories: Pick<RepositoryLibrary, 'searchOwn'>
 }
 
@@ -12,18 +12,18 @@ export interface SearchService {
 }
 
 export function createSearchService(deps: SearchDeps): SearchService {
-  const { tutorials, repositories } = deps
+  const { courses, repositories } = deps
 
   return {
     async own(userId, { q, limit }) {
-      const [repositoryHits, tutorialHits] = await Promise.all([
+      const [repositoryHits, courseHits] = await Promise.all([
         repositories.searchOwn(userId, q, limit),
-        tutorials.searchOwn(userId, q, limit),
+        courses.searchOwn(userId, q, limit),
       ])
       return {
         repositories: repositoryHits,
-        tutorials: tutorialHits.tutorials,
-        lessons: tutorialHits.lessons,
+        courses: courseHits.courses,
+        lessons: courseHits.lessons,
       }
     },
   }

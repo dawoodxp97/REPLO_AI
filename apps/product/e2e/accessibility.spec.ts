@@ -5,7 +5,7 @@ import { JOB_ID } from './fixtures/recorded'
 import { mockRpc } from './support/rpc-mock'
 import { MIN_TOUCH_TARGET, undersizedTouchTargets } from './support/touch-targets'
 
-const TUTORIAL = '/tutorials/acme/widgets/cart-flow'
+const COURSE = '/courses/acme/widgets/cart-flow'
 
 const PAGES = [
   { name: 'sign-in', path: '/login' },
@@ -19,10 +19,10 @@ const PAGES = [
   { name: 'GitHub settings', path: '/settings/github' },
   { name: 'API keys', path: '/settings/keys' },
   { name: 'model settings', path: '/settings/models' },
-  { name: 'tutorial overview', path: TUTORIAL },
-  { name: 'lesson', path: `${TUTORIAL}/learn/ch1/l1` },
-  { name: 'source explorer', path: `${TUTORIAL}/code` },
-  { name: 'progress', path: `${TUTORIAL}/progress` },
+  { name: 'course overview', path: COURSE },
+  { name: 'lesson', path: `${COURSE}/learn/ch1/l1` },
+  { name: 'source explorer', path: `${COURSE}/code` },
+  { name: 'progress', path: `${COURSE}/progress` },
   { name: 'not found', path: '/does-not-exist' },
 ] as const
 

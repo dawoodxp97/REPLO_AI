@@ -149,6 +149,8 @@ export const identityRepo = (db: DbOrTx) => ({
   },
 
   async deleteOtherSessions(userId: string, keepSessionId: string): Promise<void> {
-    await db.delete(sessions).where(and(eq(sessions.userId, userId), ne(sessions.id, keepSessionId)))
+    await db
+      .delete(sessions)
+      .where(and(eq(sessions.userId, userId), ne(sessions.id, keepSessionId)))
   },
 })

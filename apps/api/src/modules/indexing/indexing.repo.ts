@@ -10,7 +10,7 @@ import {
   repositorySnapshots,
   snapshotFiles,
   snapshotSymbols,
-  tutorialVersions,
+  courseVersions,
   type SnapshotAnalysis,
 } from '../../platform/db/schema'
 import type { ArchiveRecord } from './archive'
@@ -73,9 +73,9 @@ export const snapshotsRepo = (db: DbOrTx) => ({
           ),
           notExists(
             db
-              .select({ id: tutorialVersions.id })
-              .from(tutorialVersions)
-              .where(eq(tutorialVersions.snapshotId, repositorySnapshots.id)),
+              .select({ id: courseVersions.id })
+              .from(courseVersions)
+              .where(eq(courseVersions.snapshotId, repositorySnapshots.id)),
           ),
         ),
       )
@@ -138,7 +138,11 @@ export const snapshotsRepo = (db: DbOrTx) => ({
 
   listEdges(snapshotId: string) {
     return db
-      .select({ fromPath: snapshotFileEdges.fromPath, toPath: snapshotFileEdges.toPath, kind: snapshotFileEdges.kind })
+      .select({
+        fromPath: snapshotFileEdges.fromPath,
+        toPath: snapshotFileEdges.toPath,
+        kind: snapshotFileEdges.kind,
+      })
       .from(snapshotFileEdges)
       .where(eq(snapshotFileEdges.snapshotId, snapshotId))
   },
@@ -203,6 +207,9 @@ export const snapshotsRepo = (db: DbOrTx) => ({
       unresolvedImports: index.unresolvedImports,
       parseErrors: index.parseErrors,
     }
-    await db.update(repositorySnapshots).set({ analysis }).where(eq(repositorySnapshots.id, snapshotId))
+    await db
+      .update(repositorySnapshots)
+      .set({ analysis })
+      .where(eq(repositorySnapshots.id, snapshotId))
   },
 })

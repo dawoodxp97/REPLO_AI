@@ -2,11 +2,11 @@ import type { SourceTreeEntry } from '@replo/contracts'
 import { Badge, cn } from '@replo/ui'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import type { TutorialLinks } from '@/lib/tutorial-paths'
+import type { CourseLinks } from '@/lib/course-paths'
 import type { TreeNode } from './file-tree'
 
 export interface FileTreeListProps {
-  links: TutorialLinks
+  links: CourseLinks
   nodes: readonly TreeNode[]
   selectedPath: string | null
 }

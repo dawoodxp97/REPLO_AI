@@ -1,11 +1,9 @@
 import type { ORPCErrorConstructorMap } from '@orpc/server'
-import { OK_RESULT, type planRefusalErrors, type repoRefusalErrors } from '@replo/contracts'
+import { OK_RESULT, type repoRefusalErrors } from '@replo/contracts'
 import { authed } from '../../orpc'
 import type { PreflightRefusal } from './preflight'
-import type { PlanRefusal } from './imports.service'
 
 type RepoErrors = ORPCErrorConstructorMap<typeof repoRefusalErrors>
-type PlanErrors = ORPCErrorConstructorMap<typeof planRefusalErrors>
 
 const raiseRepoRefusal = (errors: RepoErrors, refusal: PreflightRefusal): never => {
   switch (refusal.code) {
@@ -15,25 +13,6 @@ const raiseRepoRefusal = (errors: RepoErrors, refusal: PreflightRefusal): never 
       throw errors.REPO_TOO_LARGE({ data: refusal.data })
     case 'UNSUPPORTED_LANGUAGE':
       throw errors.UNSUPPORTED_LANGUAGE()
-  }
-}
-
-const raisePlanRefusal = (errors: PlanErrors, refusal: PlanRefusal): never => {
-  switch (refusal.code) {
-    case 'FREE_PRESET_REQUIRES_OPENROUTER':
-      throw errors.FREE_PRESET_REQUIRES_OPENROUTER()
-    case 'PRESET_UNAVAILABLE':
-      throw errors.PRESET_UNAVAILABLE({ data: { reason: refusal.reason } })
-    case 'CUSTOM_MODEL_NOT_ALLOWED':
-      throw errors.CUSTOM_MODEL_NOT_ALLOWED({
-        data: { role: refusal.role, modelId: refusal.modelId },
-      })
-    case 'BUDGET_BELOW_ESTIMATE':
-      throw errors.BUDGET_BELOW_ESTIMATE({
-        data: { estimateUsd: refusal.estimateUsd, budgetUsd: refusal.budgetUsd },
-      })
-    default:
-      return raiseRepoRefusal(errors, refusal)
   }
 }
 
@@ -52,10 +31,6 @@ export const repositoriesRouter = {
     )
     return outcome.kind === 'ok' ? outcome.value : raiseRepoRefusal(errors, outcome.refusal)
   }),
-  estimate: authed.repositories.estimate.handler(async ({ input, context, errors }) => {
-    const outcome = await context.services.repositoryImports.estimate(context.user.id, input)
-    return outcome.kind === 'ok' ? outcome.value : raisePlanRefusal(errors, outcome.refusal)
-  }),
   import: authed.repositories.import.handler(async ({ input, context, errors }) => {
     const { idempotencyKey } = context
     if (idempotencyKey === undefined) throw errors.IDEMPOTENCY_KEY_REQUIRED()
@@ -71,8 +46,10 @@ export const repositoriesRouter = {
         throw errors.KEY_INVALID()
       case 'KEY_CHECK_UNAVAILABLE':
         throw errors.KEY_CHECK_UNAVAILABLE()
+      case 'MODEL_NOT_ALLOWED':
+        throw errors.MODEL_NOT_ALLOWED({ data: { modelId: refusal.modelId } })
       default:
-        return raisePlanRefusal(errors, refusal)
+        return raiseRepoRefusal(errors, refusal)
     }
   }),
 }

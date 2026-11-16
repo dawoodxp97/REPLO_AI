@@ -1,21 +1,18 @@
 import { STAGES, type GenerationJobDto } from '@replo/contracts'
 import { AUDIENCE_LABELS } from '@/features/preferences/audience'
-import { capitalize } from '@/lib/format'
 import type { JobProgress } from './job-progress-state'
 import { STAGE_LABELS } from './job-status'
 
-export const UNNAMED_JOB_TITLE = 'Tutorial generation'
+export const UNNAMED_JOB_TITLE = 'Course generation'
 
-type JobHeadingInput = Pick<GenerationJobDto, 'repository' | 'audience' | 'preset'>
+type JobHeadingInput = Pick<GenerationJobDto, 'repository' | 'audience'>
 
 export function jobTitle(job: Pick<GenerationJobDto, 'repository'>): string {
   return job.repository ? `${job.repository.owner}/${job.repository.name}` : UNNAMED_JOB_TITLE
 }
 
 export function jobPlan(job: JobHeadingInput): string {
-  const reader = `${AUDIENCE_LABELS[job.audience].toLowerCase()} readers`
-  if (!job.preset) return `Written for ${reader}.`
-  return `${capitalize(job.preset)} preset, written for ${reader}.`
+  return `Written for ${AUDIENCE_LABELS[job.audience].toLowerCase()} readers.`
 }
 
 export function stageLine(

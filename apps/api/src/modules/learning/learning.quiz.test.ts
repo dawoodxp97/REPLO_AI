@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { TutorialContent } from '@replo/contracts'
+import type { CourseContent } from '@replo/contracts'
 import { gradeAnswer } from './learning.quiz'
 
 const content = {
@@ -21,7 +21,7 @@ const content = {
       ],
     },
   ],
-} as unknown as TutorialContent
+} as unknown as CourseContent
 
 describe('gradeAnswer', () => {
   it('marks the correct choice and returns the explanation', () => {

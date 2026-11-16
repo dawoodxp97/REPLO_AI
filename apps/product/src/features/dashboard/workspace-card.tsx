@@ -8,7 +8,7 @@ import { keyMask } from '@/features/keys/format-key-label'
 import { LLM_PROVIDER_LABELS } from '@/features/keys/providers'
 import { useWorkspaceSetup, type WorkspaceSetup } from '@/features/session/use-workspace-setup'
 import { settingsPath, type SettingsSection } from '@/features/settings/sections'
-import { capitalize, formatCount, formatUsd } from '@/lib/format'
+import { formatCount } from '@/lib/format'
 
 interface SetupRow {
   section: SettingsSection
@@ -22,7 +22,7 @@ const LOADING = { value: 'Checking…', tone: 'neutral' } as const
 function keyRow(keys: WorkspaceSetup['keys']): Pick<SetupRow, 'value' | 'tone'> {
   if (!keys) return LOADING
   const [first, ...rest] = keys
-  if (!first) return { value: 'Add a key to generate tutorials', tone: 'attention' }
+  if (!first) return { value: 'Add a key to generate courses', tone: 'attention' }
   const more = rest.length > 0 ? ` and ${formatCount(rest.length)} more` : ''
   return { value: `${LLM_PROVIDER_LABELS[first.provider]} ${keyMask(first)}${more}`, tone: 'ready' }
 }
@@ -35,9 +35,10 @@ function githubRow(linked: WorkspaceSetup['githubLinked']): Pick<SetupRow, 'valu
 }
 
 function modelsRow(setup: WorkspaceSetup): Pick<SetupRow, 'value' | 'tone'> {
-  if (!setup.preset) return LOADING
-  const budget = setup.defaultBudgetUsd ? `, ${formatUsd(setup.defaultBudgetUsd)} budget` : ''
-  return { value: `${capitalize(setup.preset)} preset${budget}`, tone: 'ready' }
+  if (setup.defaultModel === undefined) return LOADING
+  return setup.defaultModel === null
+    ? { value: 'No default — choose per course', tone: 'neutral' }
+    : { value: `Default: ${setup.defaultModel}`, tone: 'ready' }
 }
 
 function setupRows(setup: WorkspaceSetup): SetupRow[] {
@@ -55,7 +56,7 @@ export function WorkspaceCard() {
     <Card className="gap-3">
       <CardHeader>
         <CardTitle>Workspace</CardTitle>
-        <CardDescription className="text-compact">What a new tutorial will run on.</CardDescription>
+        <CardDescription className="text-compact">What a new course will run on.</CardDescription>
       </CardHeader>
       <CardContent className="px-2.5">
         <ul>

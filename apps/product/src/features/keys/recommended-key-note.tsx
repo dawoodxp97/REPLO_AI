@@ -3,7 +3,7 @@ import { OPENROUTER_KEYS_URL, LLM_PROVIDER_LABELS, RECOMMENDED_PROVIDER } from '
 export function RecommendedKeyNote() {
   return (
     <p className="text-sm text-muted-foreground">
-      Replo runs every tutorial on a key you own, so the bill is your provider’s. We recommend{' '}
+      Replo runs every course on a key you own, so the bill is your provider’s. We recommend{' '}
       {LLM_PROVIDER_LABELS[RECOMMENDED_PROVIDER]}: one key reaches many models, including free ones.{' '}
       <a
         href={OPENROUTER_KEYS_URL}

@@ -3,16 +3,10 @@ import type { Stage } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
 import type { JobQueue } from '../../platform/queue/job-queue'
 import type { NotificationsService } from '../notifications/notifications.service'
-import {
-  jobsRepo,
-  llmCallsRepo,
-  type JobEventInput,
-  type JobFailure,
-  type JobRow,
-} from './jobs.repo'
+import { jobsRepo, type JobEventInput, type JobFailure, type JobRow } from './jobs.repo'
 import type { TerminalStatus } from '../../platform/job-status'
 import { endJob } from './job-ending'
-import { enqueueTutorial } from './jobs.service'
+import { enqueueCourse } from './jobs.service'
 
 export interface JobStore {
   claim(jobId: string): Promise<JobRow | undefined>
@@ -56,30 +50,13 @@ export function createJobRuntime(deps: JobRuntimeDeps): JobRuntime {
         }),
     },
 
-    usageSink: async (record) => {
-      // The call record and the spend update commit together, so a crash cannot keep one
-      // without the other.
-      await db.transaction(async (tx) => {
-        await llmCallsRepo(tx).insert({
-          jobId: record.jobId,
-          stage: record.stage,
-          provider: record.spec.provider,
-          model: record.spec.id,
-          inputTokens: record.inputTokens,
-          outputTokens: record.outputTokens,
-          costMicros: record.costMicros,
-          latencyMs: record.latencyMs,
-          status: 'ok',
-        })
-        await jobsRepo(tx).addSpend(record.jobId, record.costMicros)
-      })
-    },
+    usageSink: async () => {},
 
     // Runs every minute on the worker. Stalled jobs are re-sent, not failed: claim accepts
     // them and finished stages are skipped.
     async requeueStalled() {
       await repo.stallStale()
-      for (const job of await repo.stalledJobs()) await enqueueTutorial(queue, job)
+      for (const job of await repo.stalledJobs()) await enqueueCourse(queue, job)
     },
   }
 }

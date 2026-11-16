@@ -8,13 +8,14 @@ export interface SourceFileRequest {
   shareToken?: string
 }
 
-export function useSourceFile({ versionId, path, shareToken }: SourceFileRequest) {
-  return useQuery(orpc.tutorials.getSource.queryOptions({ input: { versionId, path, shareToken } }))
+export function useSourceFile({ versionId, path }: SourceFileRequest) {
+  return useQuery(orpc.courses.getSource.queryOptions({ input: { versionId, path } }))
 }
 
-export function useSourceTree(versionId: string, shareToken: string | undefined) {
+export function useSourceTree(versionId: string, _shareToken: string | undefined) {
+  void _shareToken
   return useQuery({
-    ...orpc.tutorials.sourceTree.queryOptions({ input: { versionId, shareToken } }),
+    ...orpc.courses.sourceTree.queryOptions({ input: { versionId } }),
     select: (data) => buildFileTree(data.files),
   })
 }

@@ -1,4 +1,4 @@
-import type { QuizResultDto, TutorialContent } from '@replo/contracts'
+import type { QuizResultDto, CourseContent } from '@replo/contracts'
 import { badRequest, notFound } from '../../platform/errors'
 
 interface Answer {
@@ -13,7 +13,7 @@ export interface GradedAnswer {
   result: QuizResultDto
 }
 
-export function gradeAnswer(content: TutorialContent, answer: Answer): GradedAnswer {
+export function gradeAnswer(content: CourseContent, answer: Answer): GradedAnswer {
   const lesson = content.chapters
     .flatMap((chapter) => chapter.lessons)
     .find((entry) => entry.key === answer.lessonKey)

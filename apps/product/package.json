@@ -2,7 +2,7 @@
   "name": "@replo/product",
   "version": "0.0.0",
   "private": true,
-  "description": "The Replo app: import flow, job progress, learning player, public tutorial pages (SSR). No business logic — talks to apps/api through the shared contract.",
+  "description": "The Replo app: import flow, job progress, repository workspace, learning player and course pages. No business logic — talks to apps/api through the shared contract.",
   "scripts": {
     "dev": "next dev --port 7101",
     "build": "next build",

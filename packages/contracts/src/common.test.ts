@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ActivityPage,
-  BudgetUsd,
   HistoryPage,
-  ImportRepositoryInput,
-  MAX_BUDGET_USD,
-  ModelPreferences,
   NotificationCursor,
   NotificationPage,
   OK_RESULT,
@@ -17,28 +13,6 @@ import {
   pageOutput,
 } from './index'
 import { z } from 'zod'
-
-const KEY_ID = '0190f6a2-7c1e-7d4a-8f3b-2a9c4e5d6f70'
-
-describe('BudgetUsd', () => {
-  it('is the single bound for model preferences and repository imports', () => {
-    const over = MAX_BUDGET_USD + 1
-    expect(BudgetUsd.safeParse(MAX_BUDGET_USD).success).toBe(true)
-    expect(BudgetUsd.safeParse(over).success).toBe(false)
-    expect(BudgetUsd.safeParse(0).success).toBe(false)
-    expect(
-      ModelPreferences.safeParse({ preset: 'balanced', customModels: null, defaultBudgetUsd: over })
-        .success,
-    ).toBe(false)
-    expect(
-      ImportRepositoryInput.safeParse({
-        source: { kind: 'public_url', url: 'https://github.com/a/b' },
-        keyId: KEY_ID,
-        budgetUsd: over,
-      }).success,
-    ).toBe(false)
-  })
-})
 
 describe('pageOutput', () => {
   const Page = pageOutput(z.object({ n: z.number() }), z.string().regex(/^\d+$/))

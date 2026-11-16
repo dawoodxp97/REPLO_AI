@@ -33,17 +33,17 @@ test('other sessions are signed out and the result is reported', async ({ page }
   expect(calls.map((call) => call.path)).toContain('auth.revokeOtherSessions')
 })
 
-test('the model preset is saved', async ({ page }) => {
+test('the default model is saved', async ({ page }) => {
   const calls: RpcCall[] = []
   await mockRpc(page, {}, calls)
 
   await page.goto('/settings/models')
-  await page.getByLabel('Preset').selectOption('quality')
-  await page.getByRole('button', { name: 'Save models' }).click()
+  await page.getByLabel('Model').selectOption('claude-haiku-5-5')
+  await page.getByRole('button', { name: 'Save model' }).click()
 
   await expect(page.getByRole('status').filter({ hasText: 'Saved.' })).toBeVisible()
   expect(calls.find((call) => call.path === 'models.setPreferences')?.input).toMatchObject({
-    preset: 'quality',
+    defaultModel: 'claude-haiku-5-5',
   })
 })
 

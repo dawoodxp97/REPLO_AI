@@ -10,10 +10,10 @@ import {
 } from '@replo/ui'
 import { LinkButton } from '@/components/link-button'
 import { LoadMore } from '@/components/load-more'
-import { NewTutorialAction } from '@/components/new-tutorial-action'
+import { NewCourseAction } from '@/components/new-course-action'
 import { PageHeader } from '@/components/page-header'
 import { QueryBoundary } from '@/components/query-boundary'
-import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
+import { importPath, NEW_COURSE_LABEL } from '@/lib/import-path'
 import { pageItems } from '@/lib/paging'
 import { RepositoryRow } from './repository-row'
 import { useRepositoryList } from './use-repositories'
@@ -23,8 +23,8 @@ export function MyRepositories() {
     <div className="space-y-8">
       <PageHeader
         title="Repositories"
-        description="Repositories you have imported, with the state of their latest tutorial job."
-        action={<NewTutorialAction />}
+        description="Repositories you have imported, with the state of their latest course job."
+        action={<NewCourseAction />}
       />
       <RepositoryList />
     </div>
@@ -69,7 +69,7 @@ function NoRepositories() {
       </EmptyHeader>
       <EmptyContent>
         <LinkButton href={importPath()} variant="outline">
-          {NEW_TUTORIAL_LABEL}
+          {NEW_COURSE_LABEL}
         </LinkButton>
       </EmptyContent>
     </Empty>

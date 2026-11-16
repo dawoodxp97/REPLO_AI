@@ -19,22 +19,12 @@ describe('describeImportError', () => {
     expect(describeImportError(error)).toContain('50 MB')
   })
 
-  it('shows the estimate and the ceiling when the budget is too low', () => {
-    const error = new ORPCError('BUDGET_BELOW_ESTIMATE', {
+  it('explains a model that is not allowed', () => {
+    const error = new ORPCError('MODEL_NOT_ALLOWED', {
       status: 422,
-      data: { estimateUsd: 2.4, budgetUsd: 1 },
+      data: { modelId: 'unknown/model' },
     })
-    expect(describeImportError(error)).toBe(
-      'The estimate is $2.40, above your $1.00 ceiling. Raise the ceiling or choose a cheaper preset.',
-    )
-  })
-
-  it('shows the reason a preset is unavailable', () => {
-    const error = new ORPCError('PRESET_UNAVAILABLE', {
-      status: 422,
-      data: { reason: 'No verified free model is on the allow-list yet.' },
-    })
-    expect(describeImportError(error)).toBe('No verified free model is on the allow-list yet.')
+    expect(describeImportError(error)).toContain('not verified')
   })
 
   it('maps a known refusal code to its copy', () => {

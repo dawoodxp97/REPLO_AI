@@ -1,4 +1,4 @@
-import type { LearnerLesson, TutorialOverviewDto } from '@replo/contracts'
+import type { LearnerLesson, CourseOverviewDto } from '@replo/contracts'
 import { describe, expect, it } from 'vitest'
 import {
   collectReferenceIds,
@@ -8,7 +8,7 @@ import {
   nextReference,
 } from './lesson-navigation'
 
-const outline: TutorialOverviewDto['outline'] = [
+const outline: CourseOverviewDto['outline'] = [
   {
     key: 'ch1',
     title: 'Cart',

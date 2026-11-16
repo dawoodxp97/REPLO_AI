@@ -26,7 +26,7 @@ export function ProgressSummary({
           {progress.completed} of {progress.total} lessons complete
         </CardTitle>
         <CardDescription>
-          Progress is kept for this version. Regenerating the tutorial keeps it for lessons that did
+          Progress is kept for this version. Regenerating the course keeps it for lessons that did
           not change.
         </CardDescription>
         {resumeHref ? (

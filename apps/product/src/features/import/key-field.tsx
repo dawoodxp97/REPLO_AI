@@ -74,7 +74,7 @@ function NoKeysNotice() {
       <KeyRound />
       <AlertTitle>Add an API key first</AlertTitle>
       <AlertDescription>
-        <p>A tutorial cannot start without a key to pay for it.</p>
+        <p>A course cannot start without a key to pay for it.</p>
         <RecommendedKeyNote />
         <LinkButton href="/settings/keys" variant="outline" size="sm" className="mt-1">
           Add a key

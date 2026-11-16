@@ -9,7 +9,7 @@ These rules apply to every contributor, human or AI agent. They are short on pur
 3. **Provider keys are decrypted only in the worker, in memory, for one job.** The one exception is transient validation: the API process may decrypt a key in memory to run `keys.validate` and the re-check inside `repositories.import`, through the validate-only vault, and drops it immediately. The platform holds no provider keys. A failing key fails the job; it is never swapped for another key or provider, and models never change silently (ADR-007).
 4. **Every private read goes through a user-scoped service.** Foreign IDs return **404**, not 403. Authorisation lives in the service layer, never only in the UI.
 5. **The model points, the system quotes.** Models never author repo code or line numbers; the validator resolves refs and inserts excerpts. No path around validation for any model.
-6. **No scope creep past the PRD Non-goals** (teams/roles, code execution, chat, embeddings…). Propose in `MEM.md` first.
+6. **No scope creep past the PRD.** Propose in `MEM.md` first.
 7. **No pricing, billing, subscriptions, credits, top-ups, ads or platform-funded AI, ever** (ADR-007). Not behind a flag, not "after validation".
 
 ## 1. Repository and dependency graph
@@ -44,7 +44,6 @@ apps/landing ─▶ ui                     tools/evals ─▶ ai, repo-analysis,
 | Env        | Each process parses `process.env` with Zod at boot and **exits** on failure                             |
 | Jobs       | Payloads carry `v: 1` in a discriminated union; parse at enqueue **and** dequeue                        |
 | LLM output | Structured output + Zod parse; one repair attempt; then fail the stage with the stored validation error |
-| Webhooks   | Verify signature on the **raw** body first, then minimal schema parse                                   |
 | JSONB      | Content carries `schemaVersion`; parse and upgrade on read                                              |
 
 DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services map rows to DTOs defined in `contracts`.
@@ -55,15 +54,15 @@ DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services m
 - **Modules call each other only through services — never another module's tables or repo.**
 - Only `worker/` handlers and `modules/jobs` touch the queue. Enqueue **inside the same DB transaction** as the job row.
 - Every stage handler is **idempotent** and checkpointed. Assume at-least-once delivery.
-- Any counter shared between requests or workers is enforced with atomic SQL (`UPDATE … WHERE used + n <= limit`), never read-then-write. The per-job budget (`Budget`) is in-process and needs no counter table.
+- Any counter shared between requests or workers is enforced with atomic SQL (`UPDATE … WHERE used + n <= limit`), never read-then-write. Per-job limits (wall-clock and tokens) are in-process and need no counter table.
 - Errors: typed oRPC errors from the contract (`errors.REPO_TOO_LARGE(...)`); never leak stack traces or internals to clients.
 - Logging: `pino` with redaction; log IDs and counts, not content.
-- Migrations: `drizzle-kit generate` → commit reviewed SQL → applied by the one-off `migrate` step **before** new code rolls out. Breaking changes use expand → backfill → contract across two deploys. `drizzle-kit push` only on local/preview DBs.
+- Database changes: update the Drizzle table definitions and add a numbered SQL file in `apps/api/db/ddl/`. Commit and run the DDL manually on each existing database. `pnpm db:setup` bootstraps a fresh development database. Breaking changes use expand → backfill → contract across two deploys.
 - Provider base URLs are fixed in code. Users never supply endpoints (SSRF).
 
 ## 5. Frontend (`apps/product`, `apps/landing`)
 
-- Next.js holds **no business logic**. Authenticated screens are client components using TanStack Query via oRPC against the API. Server rendering is for **public tutorial pages** and the landing site.
+- Next.js holds **no business logic**. Authenticated screens are client components using TanStack Query via oRPC against the API. Server rendering is for the landing site and the admin shell's role gate.
 - Landing is a **static export** (`output: 'export'`): no server-only features (no route handlers, no `headers()`/`cookies()`, no ISR).
 - Server state in TanStack Query; URL state (chapter, lesson, ref) in search params/`nuqs`; forms with react-hook-form + Zod resolver. Don't add a global store without a written reason.
 - Styling: Tailwind v4 + tokens from `packages/ui`. **No hard-coded colours or spacing** that bypass tokens. See [`DESIGN.md`](./DESIGN.md).
@@ -74,25 +73,25 @@ DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services m
 
 ## 6. AI and generation
 
-- Business code asks for **roles** (`planner`, `author`, `summarizer`, `judge`), never vendors. Prices and model lists live in config, not code.
+- Business code asks for **roles** (`planner`, `author`, `summarizer`), never vendors. Model lists live in config, not code. One user-chosen model serves the course; roles may share it.
 - Every job runs on the user's key. `modelFor({ provider, decryptedKey }, modelId)` is the only place a key becomes a client.
-- Every LLM call: `budget.reserve` before, `budget.settle` after; record in `job_llm_calls`.
+- Every LLM call checks the per-job wall-clock and token ceiling; there is no dollar budget or spend ledger (D-116).
 - Repo text is wrapped in labelled data sections in prompts; models get only read-only, snapshot-scoped tools. Do not rely on prompts for security.
 - A model enters the registry/allow-list **only after it passes the eval gate**. Evals can drop it, on a run with real answers (MEM D-048).
-- Prompts are versioned; the version and prompt hashes are stored with each `tutorial_version`.
+- Prompts are versioned; the version and prompt hashes are stored with each `course_version`.
 
 ## 7. Testing
 
-| Layer    | Tool                    | Rule                                                                                          |
-| -------- | ----------------------- | --------------------------------------------------------------------------------------------- |
-| Unit     | Vitest                  | Filters, path safety, resolution, validators, cost math — no network                          |
-| Contract | Vitest + test DB        | Inputs/outputs/errors match contracts; **cross-tenant 404** tests for every private procedure |
-| Database | Testcontainers Postgres | Migrations apply; counter atomicity under concurrency                                         |
-| Worker   | Recorded model fixtures | Sequencing, checkpoints, retry/cancel/stall — deterministic, no network                       |
-| Evals    | `tools/evals`           | Grounding, coverage, fabrication, cost; blocks release on regression                          |
-| E2E      | Playwright              | Sign in → import fixture → progress → lesson → quiz → share                                   |
+| Layer    | Tool                    | Rule                                                                                             |
+| -------- | ----------------------- | ------------------------------------------------------------------------------------------------ |
+| Unit     | Vitest                  | Filters, path safety, resolution, validators, graph checks — no network                          |
+| Contract | Vitest + test DB        | Inputs/outputs/errors match contracts; **cross-tenant 404** tests for every private procedure    |
+| Database | Testcontainers Postgres | Migrations apply; counter atomicity under concurrency                                            |
+| Worker   | Recorded model fixtures | Sequencing, checkpoints, retry/cancel/stall — deterministic, no network                          |
+| Evals    | `tools/evals`           | Graph coverage, citation/diagram validity, course and quiz quality; blocks release on regression |
+| E2E      | Playwright              | Sign in → import fixture → workspace → lesson → quiz                                             |
 
-- Security-sensitive code (key vault, HMAC, path safety, budgets) **must** ship with tests in the same PR.
+- Security-sensitive code (key vault, path safety, per-job limits) **must** ship with tests in the same PR.
 - A bug fix includes a regression test. Tests never call real model providers outside `tools/evals`.
 
 ## 8. Dependencies and supply chain
@@ -107,7 +106,7 @@ DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services m
 
 - Branches `feat/…`, `fix/…`, `chore/…`. Conventional Commits (`feat(api): …`). Small PRs; one concern each.
 - PR must: pass `pnpm verify` (lint, typecheck, test, build) · include tests · update docs it touches (`PRD.md`, `docs/*`, `MEM.md`) · note any threat-model impact.
-- CI: install frozen → `turbo run lint typecheck test build --affected` → migration drift check → eval smoke on recorded fixtures.
+- CI: install frozen → `turbo run lint typecheck test build --affected` → eval smoke on recorded fixtures. Database integration tests bootstrap the committed DDL against the CI Postgres service.
 - Never commit `.env*` (except `.env.example`), keys, or fixtures containing real private code.
 
 ## 10. Documentation hygiene

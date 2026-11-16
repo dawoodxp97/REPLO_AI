@@ -2,12 +2,12 @@ import type { Stage } from '@replo/contracts'
 import type PgBoss from 'pg-boss'
 import { z } from 'zod'
 
-export const GENERATE_TUTORIAL = 'generate-tutorial'
+export const GENERATE_COURSE = 'generate-course'
 export const REAP_STALLED_JOBS = 'reap-stalled-jobs'
 export const PURGE_RETENTION = 'purge-retention'
 
-export const GenerateTutorialPayload = z.object({ jobId: z.uuid() })
-export type GenerateTutorialPayload = z.infer<typeof GenerateTutorialPayload>
+export const GenerateCoursePayload = z.object({ jobId: z.uuid() })
+export type GenerateCoursePayload = z.infer<typeof GenerateCoursePayload>
 
 export const PROGRESS: Record<Stage, number> = {
   ingest: 10,
@@ -38,8 +38,8 @@ export const MAX_ATTEMPTS = 4
 const RETRY_DELAY_SECONDS = 30
 
 export async function declareQueues(boss: PgBoss): Promise<void> {
-  await boss.createQueue(GENERATE_TUTORIAL, {
-    name: GENERATE_TUTORIAL,
+  await boss.createQueue(GENERATE_COURSE, {
+    name: GENERATE_COURSE,
     retryLimit: MAX_ATTEMPTS - 1,
     retryDelay: RETRY_DELAY_SECONDS,
     retryBackoff: true,

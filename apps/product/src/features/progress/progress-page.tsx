@@ -1,59 +1,55 @@
 'use client'
 
-import type { TutorialOverviewDto } from '@replo/contracts'
+import type { CourseOverviewDto } from '@replo/contracts'
 import { Skeleton } from '@replo/ui'
 import { LinkButton } from '@/components/link-button'
 import { PageHeader, SectionHeader } from '@/components/page-header'
 import { resolveLessonHref } from '@/features/player/lesson/lesson-navigation'
-import { useTutorialOverview } from '@/features/player/use-tutorial'
+import { useCourseOverview } from '@/features/player/use-course'
 import { formatRepoName } from '@/lib/format'
-import {
-  createTutorialLinks,
-  type TutorialLinkContext,
-  type TutorialRef,
-} from '@/lib/tutorial-paths'
+import { createCourseLinks, type CourseLinkContext, type CourseRef } from '@/lib/course-paths'
 import { LessonHistory } from './lesson-history'
 import { ProgressError } from './progress-error'
 import { ProgressSummary } from './progress-summary'
-import { useTutorialProgress } from './use-progress'
+import { useCourseProgress } from './use-progress'
 
-export function ProgressPage({ tutorial }: { tutorial: TutorialRef }) {
-  const { linkContext, overview } = useTutorialOverview(tutorial)
+export function ProgressPage({ course }: { course: CourseRef }) {
+  const { linkContext, overview } = useCourseOverview(course)
 
   if (overview.isPending) return <Skeleton aria-busy="true" className="h-64 w-full" />
 
   if (overview.data === undefined) {
     return (
-      <ProgressError subject="tutorial" error={overview.error} retry={() => overview.refetch()} />
+      <ProgressError subject="course" error={overview.error} retry={() => overview.refetch()} />
     )
   }
 
-  return <ProgressView tutorial={tutorial} overview={overview.data} linkContext={linkContext} />
+  return <ProgressView course={course} overview={overview.data} linkContext={linkContext} />
 }
 
 function ProgressView({
-  tutorial,
+  course,
   overview,
   linkContext,
 }: {
-  tutorial: TutorialRef
-  overview: TutorialOverviewDto
-  linkContext: TutorialLinkContext
+  course: CourseRef
+  overview: CourseOverviewDto
+  linkContext: CourseLinkContext
 }) {
-  const ids = { tutorialId: overview.tutorial.id, versionId: overview.versionId }
-  const progress = useTutorialProgress(ids)
+  const ids = { courseId: overview.course.id, versionId: overview.versionId }
+  const progress = useCourseProgress(ids)
 
   const header = (
     <PageHeader
-      title={overview.tutorial.title}
+      title={overview.course.title}
       description={
         <>
           Your progress in{' '}
-          <span className="font-mono">{formatRepoName(tutorial.owner, tutorial.repo)}</span>
+          <span className="font-mono">{formatRepoName(course.owner, course.repo)}</span>
         </>
       }
       action={
-        <LinkButton href={createTutorialLinks(tutorial, linkContext).overview()} variant="outline">
+        <LinkButton href={createCourseLinks(course, linkContext).overview()} variant="outline">
           Back to the overview
         </LinkButton>
       }
@@ -80,7 +76,7 @@ function ProgressView({
 
   const { nextLessonKey } = progress.data
   const resumeHref = nextLessonKey
-    ? resolveLessonHref(overview.outline, createTutorialLinks(tutorial, linkContext), nextLessonKey)
+    ? resolveLessonHref(overview.outline, createCourseLinks(course, linkContext), nextLessonKey)
     : null
 
   return (
@@ -90,7 +86,7 @@ function ProgressView({
       <section aria-labelledby="history-heading" className="space-y-3">
         <SectionHeader id="history-heading" title="Lesson history" />
         <LessonHistory
-          tutorial={tutorial}
+          course={course}
           outline={overview.outline}
           ids={ids}
           linkContext={linkContext}

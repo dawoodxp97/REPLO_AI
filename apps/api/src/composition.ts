@@ -33,10 +33,6 @@ import {
 import { createOperatorService, type OperatorService } from './modules/operator/operator.service'
 import { createPipelineService, type PipelineService } from './modules/pipeline/pipeline.service'
 import {
-  createRepositoryChanges,
-  type RepositoryChanges,
-} from './modules/repositories/changes.service'
-import {
   createRepositoryImports,
   type RepositoryImports,
 } from './modules/repositories/imports.service'
@@ -52,17 +48,11 @@ import {
 } from './modules/retention/retention.service'
 import { createSearchService, type SearchService } from './modules/search/search.service'
 import { createSettingsService, type SettingsService } from './modules/settings/settings.service'
-import { createTutorialCatalog, type TutorialCatalog } from './modules/tutorials/catalog.service'
-import {
-  createTutorialContent,
-  type TutorialContentService,
-} from './modules/tutorials/content.service'
-import { createTutorialManager, type TutorialManager } from './modules/tutorials/manager.service'
-import {
-  createTutorialPublisher,
-  type TutorialPublisher,
-} from './modules/tutorials/publisher.service'
-import { createVersionAccess } from './modules/tutorials/version-access.service'
+import { createCourseCatalog, type CourseCatalog } from './modules/courses/catalog.service'
+import { createCourseContent, type CourseContentService } from './modules/courses/content.service'
+import { createCourseManager, type CourseManager } from './modules/courses/manager.service'
+import { createCoursePublisher, type CoursePublisher } from './modules/courses/publisher.service'
+import { createVersionAccess } from './modules/courses/version-access.service'
 
 export interface DomainServices {
   identity: IdentityService
@@ -72,16 +62,15 @@ export interface DomainServices {
   indexing: IndexingService
   repositoryLibrary: RepositoryLibrary
   repositoryImports: RepositoryImports
-  repositoryChanges: RepositoryChanges
   jobs: JobService
   jobRuntime: JobRuntime
   jobHistory: JobHistory
   keys: KeysService
   models: ModelsService
-  tutorialPublisher: TutorialPublisher
-  tutorialCatalog: TutorialCatalog
-  tutorialContent: TutorialContentService
-  tutorialManager: TutorialManager
+  coursePublisher: CoursePublisher
+  courseCatalog: CourseCatalog
+  courseContent: CourseContentService
+  courseManager: CourseManager
   learning: LearningService
   pipeline: PipelineService
   notifications: NotificationsService
@@ -127,27 +116,23 @@ export function createDomainServices(deps: {
   const versionAccess = createVersionAccess(db)
   const catalog = loadCatalog(MODEL_CATALOG)
   const models = createModelsService({ db, catalog })
-  const learning = createLearningService({ db, tutorials: versionAccess })
-  const tutorialCatalog = createTutorialCatalog({ db, learning })
-  const tutorialContent = createTutorialContent({ db, indexing, versionAccess, learning })
-  const tutorialManager = createTutorialManager({
-    db,
-    catalog: tutorialCatalog,
-    productOrigin: config.PRODUCT_ORIGIN,
-  })
-  const account = createAccountService({ db, identity, tutorials: tutorialManager })
-  const tutorialPublisher = createTutorialPublisher(db)
+  const learning = createLearningService({ db, courses: versionAccess })
+  const courseCatalog = createCourseCatalog({ db, learning })
+  const courseContent = createCourseContent({ db, indexing, versionAccess, learning })
+  const courseManager = createCourseManager({ db })
+  const account = createAccountService({ db, identity, courses: courseManager })
+  const coursePublisher = createCoursePublisher(db)
   const repositoryLibrary = createRepositoryLibrary({
     db,
     jobs: jobHistory,
-    tutorials: tutorialManager,
+    courses: courseManager,
   })
   const jobs = createJobService({
     db,
     queue,
     indexing,
     notifications,
-    tutorials: versionAccess,
+    courses: versionAccess,
     repositories: repositoryLibrary,
   })
   const keys = createKeysService({
@@ -162,7 +147,7 @@ export function createDomainServices(deps: {
     keys,
     catalog,
     jobs,
-    tutorials: tutorialPublisher,
+    courses: coursePublisher,
   })
   const repositoryImports = createRepositoryImports({
     db,
@@ -171,10 +156,6 @@ export function createDomainServices(deps: {
     indexing,
     keys,
     models,
-    defaults: {
-      budgetUsd: config.DEFAULT_BYOK_JOB_BUDGET_USD,
-      litePipelineMaxFiles: config.MAX_LITE_PIPELINE_FILES,
-    },
   })
 
   return {
@@ -185,32 +166,30 @@ export function createDomainServices(deps: {
     indexing,
     repositoryLibrary,
     repositoryImports,
-    repositoryChanges: createRepositoryChanges(tutorialManager),
     jobs,
     jobRuntime,
     jobHistory,
     keys,
     models,
-    tutorialPublisher,
-    tutorialCatalog,
-    tutorialContent,
-    tutorialManager,
+    coursePublisher,
+    courseCatalog,
+    courseContent,
+    courseManager,
     learning,
     pipeline,
     notifications,
     settings: createSettingsService({ db }),
     dashboard: createDashboardService({
-      tutorials: tutorialCatalog,
+      courses: courseCatalog,
       jobs: jobHistory,
       learning,
       repositories: repositoryLibrary,
     }),
-    search: createSearchService({ tutorials: tutorialCatalog, repositories: repositoryLibrary }),
+    search: createSearchService({ courses: courseCatalog, repositories: repositoryLibrary }),
     operator: createOperatorService({ db, jobs: jobHistory }),
     retention: createRetentionService({
       jobs: jobHistory,
       indexing,
-      tutorials: tutorialManager,
       notifications,
       sessions,
     }),

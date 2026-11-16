@@ -1,7 +1,7 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { JobProgressFields, JobStatus, Stage } from './jobs'
-import { JobRef, NonNegativeInt, OffsetCursor, Provider, pageInput, pageOutput } from './common'
+import { JobRef, NonNegativeInt, OffsetCursor, pageInput, pageOutput } from './common'
 import { Pipeline } from './models'
 
 export const OperatorJobRow = z.object({
@@ -11,8 +11,6 @@ export const OperatorJobRow = z.object({
   errorCode: z.string().nullable(),
   errorMessage: z.string().nullable(),
   attempts: NonNegativeInt,
-  spentMicros: NonNegativeInt,
-  budgetMicros: NonNegativeInt,
   createdAt: z.iso.datetime(),
   finishedAt: z.iso.datetime().nullable(),
 })
@@ -28,25 +26,21 @@ export const OperatorJobDetail = z.object({
       finishedAt: z.iso.datetime().nullable(),
     }),
   ),
-  llmCalls: z.array(
-    z.object({
-      id: z.uuid(),
-      stage: z.string(),
-      provider: Provider,
-      model: z.string(),
-      inputTokens: NonNegativeInt,
-      outputTokens: NonNegativeInt,
-      costMicros: NonNegativeInt,
-      latencyMs: NonNegativeInt,
-      status: z.string(),
-      createdAt: z.iso.datetime(),
-    }),
-  ),
 })
 export type OperatorJobDetail = z.infer<typeof OperatorJobDetail>
 
 export const OperatorJobPage = pageOutput(OperatorJobRow, OffsetCursor)
 export type OperatorJobPage = z.infer<typeof OperatorJobPage>
+
+export const AdminSummary = z.object({
+  users: NonNegativeInt,
+  repositories: NonNegativeInt,
+  courses: NonNegativeInt,
+  jobsInFlight: NonNegativeInt,
+  jobsFailedLast24h: NonNegativeInt,
+  storageBytes: NonNegativeInt,
+})
+export type AdminSummary = z.infer<typeof AdminSummary>
 
 export const operatorContract = {
   jobs: oc

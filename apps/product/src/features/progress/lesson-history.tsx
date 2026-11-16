@@ -1,6 +1,6 @@
 'use client'
 
-import type { HistoryEntryDto, TutorialOverviewDto } from '@replo/contracts'
+import type { HistoryEntryDto, CourseOverviewDto } from '@replo/contracts'
 import {
   Button,
   Empty,
@@ -21,37 +21,33 @@ import { LoadMore } from '@/components/load-more'
 import { TextLink } from '@/components/text-link'
 import { resolveLessonHref } from '@/features/player/lesson/lesson-navigation'
 import { formatDate } from '@/lib/format'
-import {
-  createTutorialLinks,
-  type TutorialLinkContext,
-  type TutorialRef,
-} from '@/lib/tutorial-paths'
+import { createCourseLinks, type CourseLinkContext, type CourseRef } from '@/lib/course-paths'
 import { useLessonHistory, useUnmarkLesson, type ProgressIds } from './use-progress'
 
 export interface LessonHistoryProps {
-  tutorial: TutorialRef
-  outline: TutorialOverviewDto['outline']
+  course: CourseRef
+  outline: CourseOverviewDto['outline']
   ids: ProgressIds
-  linkContext: TutorialLinkContext
+  linkContext: CourseLinkContext
 }
 
 function HistoryRow({
   entry,
-  tutorial,
+  course,
   outline,
   versionId,
   linkContext,
 }: {
   entry: HistoryEntryDto
-  tutorial: TutorialRef
-  outline: TutorialOverviewDto['outline']
+  course: CourseRef
+  outline: CourseOverviewDto['outline']
   versionId: string
-  linkContext: TutorialLinkContext
+  linkContext: CourseLinkContext
 }) {
   const unmark = useUnmarkLesson()
   const lessonHref = resolveLessonHref(
     outline,
-    createTutorialLinks(tutorial, linkContext),
+    createCourseLinks(course, linkContext),
     entry.lessonKey,
   )
   const completed = entry.status === 'completed'
@@ -95,7 +91,7 @@ function HistoryRow({
   )
 }
 
-export function LessonHistory({ tutorial, outline, ids, linkContext }: LessonHistoryProps) {
+export function LessonHistory({ course, outline, ids, linkContext }: LessonHistoryProps) {
   const { query, entries } = useLessonHistory(ids)
 
   if (query.isPending) return <Skeleton aria-busy="true" className="h-32 w-full" />
@@ -134,7 +130,7 @@ export function LessonHistory({ tutorial, outline, ids, linkContext }: LessonHis
           <HistoryRow
             key={`${entry.lessonKey}-${entry.at}`}
             entry={entry}
-            tutorial={tutorial}
+            course={course}
             outline={outline}
             versionId={ids.versionId}
             linkContext={linkContext}

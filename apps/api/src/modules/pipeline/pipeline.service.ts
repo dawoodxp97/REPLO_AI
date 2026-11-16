@@ -1,11 +1,11 @@
 import type { Catalog, LanguageModel, RunContext } from '@replo/ai'
 import type { Stage } from '@replo/contracts'
-import type { StageHandler } from '../../worker/generate-tutorial'
+import type { StageHandler } from '../../worker/generate-course'
 import type { Db } from '../../platform/db/client'
 import type { JobService } from '../jobs/jobs.service'
 import type { IndexingService } from '../indexing/indexing.service'
 import type { KeysService } from '../keys/keys.service'
-import type { TutorialPublisher } from '../tutorials/publisher.service'
+import type { CoursePublisher } from '../courses/publisher.service'
 import { createCheckpoints } from './checkpoints'
 import type { StageDeps } from './stage-tools'
 import { runLessons } from './stages/lessons'
@@ -20,8 +20,8 @@ export interface PipelineDeps {
   keys: KeysService
   catalog: Catalog
   resolve?: (run: RunContext, modelId: string) => LanguageModel
-  jobs: Pick<JobService, 'linkTutorial' | 'fenceRunning'>
-  tutorials: TutorialPublisher
+  jobs: Pick<JobService, 'linkCourse' | 'fenceRunning'>
+  courses: CoursePublisher
 }
 
 export interface PipelineService {
@@ -36,7 +36,7 @@ export function createPipelineService(deps: PipelineDeps): PipelineService {
     checkpoints,
     llm: { catalog: deps.catalog, keys: deps.keys, resolve: deps.resolve },
     jobs: deps.jobs,
-    tutorials: deps.tutorials,
+    courses: deps.courses,
   }
 
   return {

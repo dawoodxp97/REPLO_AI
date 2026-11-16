@@ -1,8 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
 import Fastify from 'fastify'
 import { inArray } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
@@ -27,9 +26,7 @@ describe.skipIf(DATABASE_URL === '')('notifications stream against Postgres', ()
     const created = createDb(DATABASE_URL, { max: 4 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     app = Fastify({ loggerInstance: createLogger({ level: 'silent', name: 'test' }) })
     registerNotificationsStream(app, {
       auth: stubAuth,

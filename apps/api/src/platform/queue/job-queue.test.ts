@@ -9,11 +9,11 @@ describe('bindPlaceholders', () => {
     const query = dialect.sqlToQuery(
       bindPlaceholders('insert into job (id, name) values ($1, $2) on conflict do nothing', [
         'job-1',
-        'generate-tutorial',
+        'generate-course',
       ]),
     )
     expect(query.sql).toBe('insert into job (id, name) values ($1, $2) on conflict do nothing')
-    expect(query.params).toEqual(['job-1', 'generate-tutorial'])
+    expect(query.params).toEqual(['job-1', 'generate-course'])
   })
 
   it('reuses a placeholder that appears twice', () => {

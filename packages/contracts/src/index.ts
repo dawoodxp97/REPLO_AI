@@ -10,7 +10,7 @@ import { operatorContract } from './operator'
 import { repositoriesContract } from './repositories'
 import { searchContract } from './search'
 import { settingsContract } from './settings'
-import { tutorialsContract } from './tutorials'
+import { coursesContract } from './courses'
 
 export const contract = {
   auth: authContract,
@@ -20,7 +20,7 @@ export const contract = {
   models: modelsContract,
   repositories: repositoriesContract,
   jobs: jobsContract,
-  tutorials: tutorialsContract,
+  courses: coursesContract,
   learning: learningContract,
   settings: settingsContract,
   notifications: notificationsContract,
@@ -38,8 +38,8 @@ export * from './learning'
 export * from './me'
 export * from './models'
 export * from './repositories'
-export * from './tutorials'
-export * from './tutorial/content'
+export * from './courses'
+export * from './course/content'
 export * from './settings'
 export * from './notifications'
 export * from './dashboard'

@@ -4,30 +4,30 @@ import type { DbOrTx } from '../../platform/db/client'
 import { learningProgress, quizAttempts } from '../../platform/db/schema'
 
 export const learningRepo = (db: DbOrTx) => ({
-  forTutorial(userId: string, tutorialId: string) {
+  forCourse(userId: string, courseId: string) {
     return db
       .select()
       .from(learningProgress)
-      .where(and(eq(learningProgress.userId, userId), eq(learningProgress.tutorialId, tutorialId)))
+      .where(and(eq(learningProgress.userId, userId), eq(learningProgress.courseId, courseId)))
   },
 
-  async completedLessonKeys(userId: string, tutorialIds: readonly string[]) {
-    if (tutorialIds.length === 0) return []
+  async completedLessonKeys(userId: string, courseIds: readonly string[]) {
+    if (courseIds.length === 0) return []
     return db
-      .select({ tutorialId: learningProgress.tutorialId, lessonKey: learningProgress.lessonKey })
+      .select({ courseId: learningProgress.courseId, lessonKey: learningProgress.lessonKey })
       .from(learningProgress)
       .where(
         and(
           eq(learningProgress.userId, userId),
           eq(learningProgress.status, 'completed'),
-          inArray(learningProgress.tutorialId, [...tutorialIds]),
+          inArray(learningProgress.courseId, [...courseIds]),
         ),
       )
   },
 
   async historyPage(
     userId: string,
-    tutorialId: string,
+    courseId: string,
     lessonKeys: readonly string[],
     offset: number,
     limit: number,
@@ -44,7 +44,7 @@ export const learningRepo = (db: DbOrTx) => ({
         .where(
           and(
             eq(learningProgress.userId, userId),
-            eq(learningProgress.tutorialId, tutorialId),
+            eq(learningProgress.courseId, courseId),
             inArray(learningProgress.lessonKey, [...lessonKeys]),
           ),
         )
@@ -75,7 +75,7 @@ export const learningRepo = (db: DbOrTx) => ({
               .where(
                 and(
                   eq(done.userId, learningProgress.userId),
-                  eq(done.tutorialId, learningProgress.tutorialId),
+                  eq(done.courseId, learningProgress.courseId),
                   eq(done.lessonKey, learningProgress.lessonKey),
                   eq(done.status, 'completed'),
                 ),
@@ -94,7 +94,7 @@ export const learningRepo = (db: DbOrTx) => ({
       .onConflictDoUpdate({
         target: [learningProgress.userId, learningProgress.versionId, learningProgress.lessonKey],
         set: {
-          tutorialId: row.tutorialId,
+          courseId: row.courseId,
           status: row.status,
           completedAt: row.completedAt,
           updatedAt: row.updatedAt,
@@ -105,21 +105,21 @@ export const learningRepo = (db: DbOrTx) => ({
       })
   },
 
-  async deleteLesson(userId: string, tutorialId: string, lessonKey: string) {
+  async deleteLesson(userId: string, courseId: string, lessonKey: string) {
     await db
       .delete(learningProgress)
       .where(
         and(
           eq(learningProgress.userId, userId),
-          eq(learningProgress.tutorialId, tutorialId),
+          eq(learningProgress.courseId, courseId),
           eq(learningProgress.lessonKey, lessonKey),
         ),
       )
   },
 
   async readingTotals(userId: string, since: Date) {
-    // A lesson finished in two versions of one tutorial is one lesson, hence the distinct pair.
-    const lesson = sql`(${learningProgress.tutorialId}, ${learningProgress.lessonKey})`
+    // A lesson finished in two versions of one course is one lesson, hence the distinct pair.
+    const lesson = sql`(${learningProgress.courseId}, ${learningProgress.lessonKey})`
     const [lessons] = await db
       .select({
         completed: sql<number>`count(distinct ${lesson})::int`,

@@ -43,7 +43,7 @@ function PreferencesForm({ preferences }: { preferences: Preferences }) {
       <Card>
         <CardHeader>
           <CardTitle>Reading</CardTitle>
-          <CardDescription>Defaults for every tutorial you read or generate.</CardDescription>
+          <CardDescription>Defaults for every course you read or generate.</CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup className="gap-5">
@@ -93,7 +93,7 @@ function PreferencesForm({ preferences }: { preferences: Preferences }) {
         <CardContent>
           <PreferenceSwitch
             id="browser-notifications"
-            label="Tell me in this browser when a tutorial is ready"
+            label="Tell me in this browser when a course is ready"
             description="Your browser asks for permission the first time."
             checked={prefs.browserNotifications}
             onChange={(checked) => void setBrowserNotifications(checked)}

@@ -86,7 +86,9 @@ export function createGithubService(deps: {
 
   const tokenCache = new Map<number, CachedToken>()
 
-  const mintInstallationToken = async (installationId: number): Promise<MintedToken | undefined> => {
+  const mintInstallationToken = async (
+    installationId: number,
+  ): Promise<MintedToken | undefined> => {
     const body = await rest.request(
       `/app/installations/${installationId}/access_tokens`,
       InstallationToken,

@@ -10,18 +10,19 @@ import {
   CardHeader,
   CardTitle,
   FormField,
+  NativeSelect,
 } from '@replo/ui'
+import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { useController, useForm, type Control } from 'react-hook-form'
-import { BUDGET_ERROR, BudgetInput } from '@/components/budget-input'
 import { InlineError } from '@/components/inline-error'
 import { RadioCardGroup } from '@/components/radio-card-group'
 import { AUDIENCE_OPTIONS } from '@/features/preferences/audience'
-import { EstimateCard } from './estimate-card'
+import { LLM_PROVIDER_LABELS } from '@/features/keys/providers'
+import { orpc } from '@/lib/orpc'
 import { describeImportError } from './import-errors'
 import { KeyField } from './key-field'
 import { PreflightPanel } from './preflight-panel'
-import { PresetField } from './preset-field'
 import { SourceField } from './source-field'
 import {
   IMPORT_FORM_DEFAULTS,
@@ -37,7 +38,7 @@ export function ImportForm({ initialSource }: { initialSource?: RepositorySource
     defaultValues: { ...IMPORT_FORM_DEFAULTS, source: initialSource },
   })
   useImportDefaults(form)
-  const { canSubmit, blocker, source, estimateInput, settling } = useImportPlan(form.control)
+  const { canSubmit, blocker, source } = useImportPlan(form.control)
   const startImport = useStartImport()
 
   return (
@@ -55,28 +56,23 @@ export function ImportForm({ initialSource }: { initialSource?: RepositorySource
       </ImportSection>
       <ImportSection
         title="Model"
-        description="The key that pays for the run and the models it uses."
+        description="The key that pays for the run and the model it uses."
       >
         <KeyField control={form.control} />
-        <PresetField control={form.control} />
+        <ModelField control={form.control} />
       </ImportSection>
-      <ImportSection
-        title="Tutorial"
-        description="Who it is written for and how much it may spend."
-      >
+      <ImportSection title="Course" description="Who it is written for.">
         <AudienceField control={form.control} />
-        <BudgetField control={form.control} />
       </ImportSection>
-      <EstimateCard input={estimateInput} settling={settling} />
       {startImport.isError ? (
         <InlineError>{describeImportError(startImport.error)}</InlineError>
       ) : null}
       <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-t bg-background/95 py-3 backdrop-blur-sm">
         <Button type="submit" disabled={!canSubmit || startImport.isPending}>
-          {startImport.isPending ? 'Starting…' : 'Generate tutorial'}
+          {startImport.isPending ? 'Starting…' : 'Generate course'}
         </Button>
         <p className="text-sm text-muted-foreground" aria-live="polite">
-          {blocker ?? 'Ready. Check the estimate above, then generate.'}
+          {blocker ?? 'Ready to generate.'}
         </p>
       </div>
     </form>
@@ -107,7 +103,7 @@ function AudienceField({ control }: { control: Control<ImportFormValues> }) {
   return (
     <RadioCardGroup
       name="audience"
-      legend="Who is this tutorial for?"
+      legend="Who is this course for?"
       options={AUDIENCE_OPTIONS}
       value={field.value}
       onChange={field.onChange}
@@ -115,27 +111,33 @@ function AudienceField({ control }: { control: Control<ImportFormValues> }) {
   )
 }
 
-function BudgetField({ control }: { control: Control<ImportFormValues> }) {
-  const { field, fieldState } = useController({ control, name: 'budgetUsd' })
-  const error = fieldState.error ? BUDGET_ERROR : undefined
+function ModelField({ control }: { control: Control<ImportFormValues> }) {
+  const { field } = useController({ control, name: 'modelId' })
+  const catalog = useQuery(orpc.models.catalog.queryOptions())
+  const models = (catalog.data?.models ?? []).filter(
+    (model) => model.verified && model.supportsStructuredOutput,
+  )
 
   return (
     <FormField
-      id="budget"
-      label="Budget ceiling (USD)"
-      hint="Optional. The job stops when it reaches this amount. Leave it empty for the default."
-      error={error}
+      id="model"
+      label="Model"
+      hint="One model runs the whole course. Free models are billed to your provider as $0."
     >
-      <BudgetInput
-        id="budget"
-        error={error}
-        placeholder="Default"
-        className="tabular sm:max-w-48"
-        value={field.value ?? ''}
-        onChange={(event) =>
-          field.onChange(event.target.value === '' ? undefined : event.target.valueAsNumber)
-        }
-      />
+      <NativeSelect
+        id="model"
+        value={field.value}
+        onChange={(event) => field.onChange(event.target.value)}
+        disabled={catalog.isPending}
+      >
+        <option value="">Choose a model</option>
+        {models.map((model) => (
+          <option key={model.id} value={model.id}>
+            {model.label} · {LLM_PROVIDER_LABELS[model.provider]}
+            {model.free ? ' · free' : ''}
+          </option>
+        ))}
+      </NativeSelect>
     </FormField>
   )
 }

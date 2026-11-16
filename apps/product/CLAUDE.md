@@ -1,6 +1,6 @@
 # apps/product — CLAUDE.md
 
-Next.js 16 App Router: dashboard, import, job progress, learning player, public tutorial pages (SSR), library, settings, operator. **No business logic** — talks to `apps/api` through the shared contract. Rules: root `RULES.md` §5; visual rules: `DESIGN.md`.
+Next.js 16 App Router: dashboard, import, job progress, learning player, course pages (SSR), library, settings, operator. **No business logic** — talks to `apps/api` through the shared contract. Rules: root `RULES.md` §5; visual rules: `DESIGN.md`.
 
 ## Layout
 
@@ -9,17 +9,17 @@ src/proxy.ts                         per-request CSP nonce (D-068)
 src/app/(app)/…                      signed-in shell (AuthGate + AppShell sidebar): /, /library, /repositories, /import, /jobs/[jobId], /settings/[section]
 src/app/operator/…                   operator screens; a server check returns 404 to everyone else (D-077)
 src/app/login/                       sign-in page (GitHub, Google, email and password)
-src/app/tutorials/[owner]/[repo]/[slug]/…   public overview (SSR), learn/[chapterKey]/[lessonKey], code (source explorer), progress, opengraph-image (public only)
+src/app/courses/[owner]/[repo]/[slug]/…   overview (SSR), learn/[chapterKey]/[lessonKey], code (source explorer), progress, opengraph-image
 src/components/                      shared composites: app-shell/ (sidebar, AppHeader, UserPill: account popover with theme and settings links), UserAvatar, StatusDot, Brand, PageHeader/SectionHeader, LinkButton,
                                      QueryBoundary, ErrorPanel, LoadMore, ConfirmDialog, RadioCardGroup, Sheet, SafeMarkdown, CopyLinkButton
-src/features/<name>/                 composites: session, import, keys, jobs, notifications, library, search, dashboard, tutorials, diagram, player (blocks/, commands/, lesson/, source/), quiz, progress, repositories, settings, operator
+src/features/<name>/                 composites: session, import, keys, jobs, notifications, library, search, dashboard, courses, diagram, player (blocks/, commands/, lesson/, source/), quiz, progress, repositories, settings, operator
 src/hooks/                           browser hooks (media query, debounce, visibility)
 src/lib/orpc.ts                      typed oRPC client + TanStack Query utils (contract TYPE only); per-call context carries the Idempotency-Key
 src/lib/server-client.ts             oRPC client for server components; forwards the caller's cookies to the API
 src/lib/env.ts, server-env.ts        public env and API_INTERNAL_URL, both parsed with Zod
 src/lib/csp.ts                       Content-Security-Policy builder (pure, tested)
 src/lib/paging.ts                    FIRST_PAGE / nextCursorOf / pageItems for cursor-paged infinite queries
-src/lib/tutorial-paths.ts            tutorial, lesson, progress and code paths; createTutorialLinks / withTutorialContext keep ?version and ?share on every tutorial link
+src/lib/course-paths.ts             course, lesson, progress and code paths; createCourseLinks / withCourseContext keep ?version on every course link
 scripts/start.ts                     runs the standalone server with static assets (use after `next build`)
 e2e/                                 Playwright journeys; fixtures/ and support/ hold the recorded responses and the mock API
                                      (support/serve-mock-api.ts serves the fixtures on :7210 for UI work without a database)
@@ -39,9 +39,11 @@ e2e/                                 Playwright journeys; fixtures/ and support/
 
 ## Status
 
-F0 to F6 are implemented and F7 is in progress. Verified locally (9 Nov 2026): unit tests (205), typecheck, lint, the production build, and 190 Playwright tests on desktop and phone against the standalone production server with the mock API (173 pass, 17 skip by design). `e2e/accessibility.spec.ts` fails on any axe violation on all 16 routes in both themes and on any control under 40 px on the phone project. Not verified: staging, the live API, the GitHub App and sign-in, real provider keys, Lighthouse.
+The app carries the implemented screens: sign-in, import, jobs, library, settings, player, quiz, progress, search, dashboard and the operator screen. [`PRD.md`](../PRD.md) replaces parts of it: the repository workspace (graph/tree/diagram), analytics dashboard and saved dashboards, product-wide search, active generations and the admin surface; sharing and budget/preset UI go away. R4–R5 in [`ROADMAP.md`](../ROADMAP.md) own that work.
 
-Open: notification counts pushed over SSE; the explorer renders the whole tree without virtualisation (MEM D-080). See `ROADMAP.md` (F2–F7) and `MEM.md` (D-074 to D-079).
+Verified locally (9 Nov 2026): unit tests (205), typecheck, lint, the production build, and 190 Playwright tests on desktop and phone against the standalone production server with the mock API (173 pass, 17 skip by design). `e2e/accessibility.spec.ts` fails on any axe violation on all 16 routes in both themes and on any control under 40 px on the phone project. Not verified: staging, the live API, the GitHub App and sign-in, real provider keys, Lighthouse.
+
+Open: notification counts pushed over SSE; the explorer renders the whole tree without virtualisation (MEM D-080). See [`ROADMAP.md`](../ROADMAP.md) (R4) and [`MEM.md`](../MEM.md) (D-074 to D-079).
 
 ## Commands
 

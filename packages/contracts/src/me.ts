@@ -22,7 +22,6 @@ export type MeDto = z.infer<typeof MeDto>
 
 export const DeleteAccountInput = z.object({
   confirm: z.literal('DELETE'),
-  publicTutorials: z.enum(['delete', 'anonymise']).default('delete'),
 })
 export type DeleteAccountInput = z.infer<typeof DeleteAccountInput>
 

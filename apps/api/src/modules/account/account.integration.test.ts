@@ -1,14 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
 import { eq, sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
-import { repositories, tutorials } from '../../platform/db/schema'
-import { fixedProgress } from '../../test/domain'
-import { createTutorialCatalog } from '../tutorials/catalog.service'
-import { createTutorialManager, type TutorialManager } from '../tutorials/manager.service'
+import { repositories, courses } from '../../platform/db/schema'
+import { createCourseManager, type CourseManager } from '../courses/manager.service'
 import { randomBytes } from 'node:crypto'
 import { KeyVault } from '../../platform/crypto/key-vault'
 import { createIdentityService } from '../identity/identity.service'
@@ -21,30 +18,27 @@ const vault = KeyVault.fromEnv(randomBytes(32).toString('base64'), 1)
 describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => {
   let db: Db
   let pool: ReturnType<typeof createDb>['pool']
-  let manager: TutorialManager
+  let manager: CourseManager
   let nextGithubRepoId = 910_000
 
   beforeAll(async () => {
     const created = createDb(DATABASE_URL, { max: 2 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     await db.execute(sql`truncate table users, repositories restart identity cascade`)
-    const catalog = createTutorialCatalog({ db, learning: fixedProgress(null) })
-    manager = createTutorialManager({ db, catalog, productOrigin: 'https://replo.test' })
+    manager = createCourseManager({ db })
   })
 
   afterAll(async () => {
     await pool.end()
   })
 
-  const accountWith = (tutorialsService: Pick<TutorialManager, 'settleOwnerDeletion'>) =>
+  const accountWith = (coursesService: Pick<CourseManager, 'settleOwnerDeletion'>) =>
     createAccountService({
       db,
       identity: createIdentityService({ db, vault }),
-      tutorials: tutorialsService,
+      courses: coursesService,
     })
 
   const seedUser = async () => {
@@ -69,82 +63,53 @@ describe.skipIf(DATABASE_URL === '')('account deletion against Postgres', () => 
     return row.id
   }
 
-  const seedTutorial = async (
-    userId: string,
-    repositoryId: string,
-    visibility: 'private' | 'public',
-  ) => {
+  const seedCourse = async (userId: string, repositoryId: string) => {
     const [row] = await db
-      .insert(tutorials)
+      .insert(courses)
       .values({
         userId,
         repositoryId,
         slug: `walk-${randomUUID().slice(0, 8)}`,
-        title: `${visibility} walk`,
-        visibility,
+        title: 'walk',
       })
-      .returning({ id: tutorials.id })
-    if (!row) throw new Error('tutorial seed failed')
+      .returning({ id: courses.id })
+    if (!row) throw new Error('course seed failed')
     return row.id
   }
 
-  const tutorialRow = (tutorialId: string) =>
+  const courseRow = (courseId: string) =>
     db
-      .select({ id: tutorials.id, userId: tutorials.userId, visibility: tutorials.visibility })
-      .from(tutorials)
-      .where(eq(tutorials.id, tutorialId))
+      .select({ id: courses.id, userId: courses.userId })
+      .from(courses)
+      .where(eq(courses.id, courseId))
 
   const accountExists = async (userId: string) =>
     (await db.select({ id: users.id }).from(users).where(eq(users.id, userId))).length === 1
 
-  it('anonymise keeps public tutorials without an owner and removes private ones', async () => {
+  it('deletes every course with the account', async () => {
     const owner = await seedUser()
-    const publicId = await seedTutorial(owner, await seedRepo(), 'public')
-    const privateId = await seedTutorial(owner, await seedRepo(), 'private')
+    const courseId = await seedCourse(owner, await seedRepo())
 
-    await accountWith(manager).deleteAccount(owner, {
-      confirm: 'DELETE',
-      publicTutorials: 'anonymise',
-    })
+    await accountWith(manager).deleteAccount(owner, { confirm: 'DELETE' })
 
-    expect(await tutorialRow(publicId)).toEqual([
-      { id: publicId, userId: null, visibility: 'public' },
-    ])
-    expect(await tutorialRow(privateId)).toEqual([])
+    expect(await courseRow(courseId)).toEqual([])
     expect(await accountExists(owner)).toBe(false)
   })
 
-  it('delete removes public and private tutorials together with the account', async () => {
+  it('keeps the account and its courses when the settlement fails part-way', async () => {
     const owner = await seedUser()
-    const publicId = await seedTutorial(owner, await seedRepo(), 'public')
-    const privateId = await seedTutorial(owner, await seedRepo(), 'private')
-
-    await accountWith(manager).deleteAccount(owner, {
-      confirm: 'DELETE',
-      publicTutorials: 'delete',
-    })
-
-    expect(await tutorialRow(publicId)).toEqual([])
-    expect(await tutorialRow(privateId)).toEqual([])
-    expect(await accountExists(owner)).toBe(false)
-  })
-
-  it('keeps the account and its tutorials when the settlement fails part-way', async () => {
-    const owner = await seedUser()
-    const publicId = await seedTutorial(owner, await seedRepo(), 'public')
+    const courseId = await seedCourse(owner, await seedRepo())
     const failing = accountWith({
-      settleOwnerDeletion: async (tx, userId, mode) => {
-        await manager.settleOwnerDeletion(tx, userId, mode)
+      settleOwnerDeletion: async (tx, userId) => {
+        await manager.settleOwnerDeletion(tx, userId)
         throw new Error('settlement failed')
       },
     })
 
-    await expect(
-      failing.deleteAccount(owner, { confirm: 'DELETE', publicTutorials: 'anonymise' }),
-    ).rejects.toThrow('settlement failed')
+    await expect(failing.deleteAccount(owner, { confirm: 'DELETE' })).rejects.toThrow(
+      'settlement failed',
+    )
     expect(await accountExists(owner)).toBe(true)
-    expect(await tutorialRow(publicId)).toEqual([
-      { id: publicId, userId: owner, visibility: 'public' },
-    ])
+    expect(await courseRow(courseId)).toEqual([{ id: courseId, userId: owner }])
   })
 })

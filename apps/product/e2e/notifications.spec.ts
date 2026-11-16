@@ -10,7 +10,7 @@ test('the bell shows unread notifications and marks them all read', async ({ pag
   await page.getByRole('button', { name: 'Notifications, 2 unread' }).click()
 
   await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible()
-  await expect(page.getByText('Tutorial ready')).toBeVisible()
+  await expect(page.getByText('Course ready')).toBeVisible()
   await page.getByRole('button', { name: 'Mark all read' }).click()
 
   await expect

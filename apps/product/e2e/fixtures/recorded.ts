@@ -1,10 +1,4 @@
-import type {
-  GenerationJobDto,
-  KeyDto,
-  ModelCatalog,
-  PreflightResult,
-  RunEstimate,
-} from '@replo/contracts'
+import type { GenerationJobDto, KeyDto, ModelCatalog, PreflightResult } from '@replo/contracts'
 
 export const USER = {
   user: { id: 'user-1', name: 'Ada Lovelace', email: 'ada@example.com', image: null },
@@ -23,39 +17,24 @@ export const SAVED_KEY: KeyDto = {
 }
 
 export const MODEL_CATALOG: ModelCatalog = {
-  presets: [
+  models: [
     {
-      preset: 'free',
-      label: 'Free',
-      description: 'Free OpenRouter models. Costs you nothing, needs an OpenRouter key.',
-      routing: { planner: 'free', author: 'free', summarizer: 'free' },
+      id: 'claude-haiku-5-5',
+      provider: 'anthropic',
+      label: 'Claude Haiku',
+      free: false,
+      supportsStructuredOutput: true,
+      verified: true,
     },
     {
-      preset: 'budget',
-      label: 'Budget',
-      description: 'Cheap paid models. Lite pipeline, small bill.',
-      routing: { planner: 'cheap', author: 'cheap', summarizer: 'cheap' },
-    },
-    {
-      preset: 'balanced',
-      label: 'Balanced',
-      description: 'Full pipeline. Good quality for most repos.',
-      routing: { planner: 'mid', author: 'mid', summarizer: 'cheap' },
-    },
-    {
-      preset: 'quality',
-      label: 'Quality',
-      description: 'Strongest models. Full pipeline, highest bill.',
-      routing: { planner: 'frontier', author: 'frontier', summarizer: 'mid' },
-    },
-    {
-      preset: 'custom',
-      label: 'Custom',
-      description: 'Choose a verified model for each role.',
-      routing: { planner: null, author: null, summarizer: null },
+      id: 'anthropic/claude-haiku-5.5',
+      provider: 'openrouter',
+      label: 'Claude Haiku (OpenRouter)',
+      free: false,
+      supportsStructuredOutput: true,
+      verified: true,
     },
   ],
-  models: [],
   freeAllowList: [],
 }
 
@@ -65,7 +44,6 @@ export const PREFLIGHT: PreflightResult = {
     name: 'widgets',
     isPrivate: false,
     defaultBranch: 'main',
-    license: 'MIT',
   },
   commitSha: '3f9c1a2b7d4e8f0a1b2c3d4e5f60718293a4b5c6',
   stats: {
@@ -78,17 +56,6 @@ export const PREFLIGHT: PreflightResult = {
   },
 }
 
-export const ESTIMATE: RunEstimate = {
-  pipeline: 'full',
-  models: { planner: 'mid-planner', author: 'mid-author', summarizer: 'cheap-summarizer' },
-  requests: 38,
-  inputTokens: 412_000,
-  outputTokens: 96_000,
-  estimateUsd: 0.42,
-  budgetUsd: 2,
-  basis: 'static-index-and-catalogue-assumptions',
-}
-
 export const JOB_ID = '7d2e9c10-5a1b-4f6e-8c3d-9a0b1c2d3e4f'
 
 export const JOB: GenerationJobDto = {
@@ -97,13 +64,11 @@ export const JOB: GenerationJobDto = {
   repository: { owner: 'acme', name: 'widgets' },
   commitSha: PREFLIGHT.commitSha,
   audience: 'intermediate',
-  preset: 'balanced',
+  model: 'claude-haiku-5-5',
   status: 'queued',
   stage: null,
   progress: 0,
-  budgetUsd: 2,
-  spentUsd: 0,
-  tutorialId: null,
-  tutorial: null,
+  courseId: null,
+  course: null,
   error: null,
 }

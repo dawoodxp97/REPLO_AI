@@ -4,7 +4,7 @@ import { refIdFor, resolveEvidence } from './evidence'
 import { checkDiagram } from './mermaid'
 import { sanitizeMarkdown, unknownIdentifiers } from './markdown'
 import type { SourceIndex } from './source-index'
-import { lessonRefIds } from '../../tutorials/lesson-content'
+import { lessonRefIds } from '../../courses/lesson-content'
 
 export type FailureCode =
   | 'UNSUPPORTED_CLAIM'

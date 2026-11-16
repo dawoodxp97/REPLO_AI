@@ -25,7 +25,7 @@ export function JobActions({ job, onRetried }: { job: GenerationJobDto; onRetrie
         {canCancel ? (
           <ConfirmDialog
             triggerLabel="Cancel generation"
-            title="Stop generating this tutorial?"
+            title="Stop generating this course?"
             description="The run stops after the current step. What it has spent stays on your provider bill. You can retry later from the last finished stage."
             confirmLabel="Stop generation"
             run={() => cancel.mutateAsync({ jobId: job.jobId })}

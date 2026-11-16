@@ -1,13 +1,5 @@
 import { expect, test } from '@playwright/test'
-import {
-  ESTIMATE,
-  JOB,
-  JOB_ID,
-  MODEL_CATALOG,
-  PREFLIGHT,
-  SAVED_KEY,
-  USER,
-} from './fixtures/recorded'
+import { JOB, JOB_ID, MODEL_CATALOG, PREFLIGHT, SAVED_KEY, USER } from './fixtures/recorded'
 import { mockEventStream, mockRpc, rpcError, type RpcCall } from './support/rpc-mock'
 
 const REPO_URL = 'https://github.com/acme/widgets'
@@ -21,7 +13,7 @@ const stageStarted = `id: 1\nevent: stage_started\ndata: ${JSON.stringify({
   at: '2026-10-23T10:00:00.000Z',
 })}\n\n`
 
-test('a developer checks a public repository and starts a tutorial', async ({ page }) => {
+test('a developer checks a public repository and starts a course', async ({ page }) => {
   const calls: RpcCall[] = []
   await mockRpc(
     page,
@@ -34,7 +26,6 @@ test('a developer checks a public repository and starts a tutorial', async ({ pa
       'keys.list': () => ({ body: [SAVED_KEY] }),
       'models.catalog': () => ({ body: MODEL_CATALOG }),
       'repositories.preflight': () => ({ body: PREFLIGHT }),
-      'repositories.estimate': () => ({ body: ESTIMATE }),
       'repositories.import': () => ({ body: JOB }),
     },
     calls,
@@ -46,9 +37,9 @@ test('a developer checks a public repository and starts a tutorial', async ({ pa
   await page.getByRole('button', { name: 'Check repository' }).click()
   await expect(page.getByText('3f9c1a2')).toBeVisible()
   await expect(page.getByText('Next.js')).toBeVisible()
-  await expect(page.getByText('$0.42')).toBeVisible()
+  await page.getByLabel('Model').selectOption('claude-haiku-5-5')
 
-  await page.getByRole('button', { name: 'Generate tutorial' }).click()
+  await page.getByRole('button', { name: 'Generate course' }).click()
 
   await expect(page).toHaveURL(new RegExp(`/jobs/${JOB_ID}$`))
   const start = calls.find((call) => call.path === 'repositories.import')
@@ -66,7 +57,6 @@ test('a retried import reuses its Idempotency-Key', async ({ page }) => {
       'github.installUrl': () => ({ body: { url: 'https://github.com/apps/replo' } }),
       'keys.list': () => ({ body: [SAVED_KEY] }),
       'models.catalog': () => ({ body: MODEL_CATALOG }),
-      'repositories.estimate': () => ({ body: ESTIMATE }),
       'repositories.import': () => {
         attempts += 1
         return attempts === 1 ? rpcError('KEY_CHECK_UNAVAILABLE', 503) : { body: JOB }
@@ -78,9 +68,10 @@ test('a retried import reuses its Idempotency-Key', async ({ page }) => {
 
   await page.goto('/import')
   await page.getByLabel('GitHub repository URL').fill(REPO_URL)
-  await page.getByRole('button', { name: 'Generate tutorial' }).click()
+  await page.getByLabel('Model').selectOption('claude-haiku-5-5')
+  await page.getByRole('button', { name: 'Generate course' }).click()
   await expect(page.getByText('The provider did not answer the key check.')).toBeVisible()
-  await page.getByRole('button', { name: 'Generate tutorial' }).click()
+  await page.getByRole('button', { name: 'Generate course' }).click()
   await expect(page).toHaveURL(new RegExp(`/jobs/${JOB_ID}$`))
 
   const keys = calls
@@ -100,7 +91,6 @@ test('a repository over the size limit is refused with the limit named', async (
     'models.catalog': () => ({ body: MODEL_CATALOG }),
     'repositories.preflight': () =>
       rpcError('REPO_TOO_LARGE', 422, { metric: 'files', value: 6200, limit: 5000 }),
-    'repositories.estimate': () => ({ body: ESTIMATE }),
   })
 
   await page.goto('/import')

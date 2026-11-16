@@ -1,4 +1,4 @@
-import type { ChapterDto, LearnerLesson, TutorialOverviewDto } from '@replo/contracts'
+import type { ChapterDto, LearnerLesson, CourseOverviewDto } from '@replo/contracts'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import {
@@ -7,13 +7,13 @@ import {
   neighbours,
   type LessonPosition,
 } from './lesson-navigation'
-import type { TutorialLinks } from '@/lib/tutorial-paths'
+import type { CourseLinks } from '@/lib/course-paths'
 
 export interface LessonNavigationInput {
-  overview: TutorialOverviewDto
+  overview: CourseOverviewDto
   chapterData: ChapterDto
   lesson: LearnerLesson
-  links: TutorialLinks
+  links: CourseLinks
 }
 
 export interface LessonNavigation {

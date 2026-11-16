@@ -1,9 +1,8 @@
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
 import { createDb, type Db } from '../../platform/db/client'
@@ -34,9 +33,7 @@ describe.skipIf(DATABASE_URL === '')('indexing against Postgres', () => {
     const created = createDb(DATABASE_URL, { max: 6 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     await db.execute(sql`truncate table users, repositories restart identity cascade`)
     snapshotRoot = await mkdtemp(join(tmpdir(), 'replo-indexing-'))
   })

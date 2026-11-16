@@ -1,12 +1,12 @@
 import { useRouter } from 'next/navigation'
 import type { PaletteItem } from './palette-items'
 import { LESSON_SHORTCUTS } from './shortcuts'
-import type { TutorialLinks } from '@/lib/tutorial-paths'
+import type { CourseLinks } from '@/lib/course-paths'
 import type { LessonNavigation } from '../lesson/use-lesson-navigation'
 
 export interface LessonCommandsInput {
   navigation: LessonNavigation
-  links: TutorialLinks
+  links: CourseLinks
   completed: boolean
   onToggleComplete: () => void
 }

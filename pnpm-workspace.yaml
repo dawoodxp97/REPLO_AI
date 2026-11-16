@@ -32,5 +32,5 @@ catalog:
 minimumReleaseAge: 4320 # minutes (3 days), stricter than the pnpm 11 default of 1 day
 strictDepBuilds: true # install scripts are denied unless allow-listed below
 allowBuilds:
-  esbuild: true # downloads/verifies its platform binary (tsx, tsdown, drizzle-kit, vite/vitest)
+  esbuild: true # downloads/verifies its platform binary (tsx, tsdown, vite/vitest)
   unrs-resolver: false # eslint-config-next's resolver; ships prebuilt napi binaries, its postinstall is not needed

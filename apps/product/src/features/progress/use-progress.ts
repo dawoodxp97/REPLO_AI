@@ -11,11 +11,11 @@ import { cursorPaging, pageItems } from '@/lib/paging'
 const HISTORY_PAGE_SIZE = 25
 
 export interface ProgressIds {
-  tutorialId: string
+  courseId: string
   versionId: string
 }
 
-export function useTutorialProgress(ids: ProgressIds | typeof skipToken) {
+export function useCourseProgress(ids: ProgressIds | typeof skipToken) {
   return useQuery(orpc.learning.getProgress.queryOptions({ input: ids }))
 }
 

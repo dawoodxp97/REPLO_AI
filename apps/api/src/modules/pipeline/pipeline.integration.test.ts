@@ -2,33 +2,32 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { Budget } from '@replo/ai'
 import { scriptedModel, type Scripted } from '@replo/ai/testing'
 import type { ModelPlan } from '@replo/contracts'
 import { ANALYZER_VERSION, DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
 import { and, eq, sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   jobCheckpoints,
-  tutorialLessons,
+  courseLessons,
   repositories,
   repositorySnapshots,
   snapshotFiles,
   snapshotSymbols,
   snapshotFileEdges,
   generationJobs,
-  tutorials,
-  tutorialSourceRefs,
-  tutorialVersions,
+  courses,
+  courseSourceRefs,
+  courseVersions,
 } from '../../platform/db/schema'
 import type { GithubRest } from '../../platform/github/client'
 import { createLogger } from '../../platform/logger'
 import { CanceledError, JobError, StoppedError } from '../../worker/errors'
-import { handleGenerateTutorial } from '../../worker/generate-tutorial'
+import { handleGenerateCourse } from '../../worker/generate-course'
 import { bundledCatalog, fakeKeyChecker, testVault } from '../../test/domain'
 import { FIXTURE_FILES, fixtureData } from '../../test/grounding'
 import { createJobRuntime, type JobRuntime } from '../jobs/job-runtime.service'
@@ -36,8 +35,8 @@ import { createJobService, type JobService } from '../jobs/jobs.service'
 import { createIndexingService, type IndexingService } from '../indexing/indexing.service'
 import { createKeysService, type KeysService } from '../keys/keys.service'
 import { createNotificationsService } from '../notifications/notifications.service'
-import { createTutorialPublisher, type TutorialPublisher } from '../tutorials/publisher.service'
-import { createVersionAccess } from '../tutorials/version-access.service'
+import { createCoursePublisher, type CoursePublisher } from '../courses/publisher.service'
+import { createVersionAccess } from '../courses/version-access.service'
 import type { OutlineDraft } from './drafts'
 import { createPipelineService, type PipelineService } from './pipeline.service'
 
@@ -244,14 +243,14 @@ function respondWith(options: { pipeline: 'lite' | 'full'; judge: boolean }): Sc
   }
 }
 
-describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () => {
+describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
   let db: Db
   let pool: ReturnType<typeof createDb>['pool']
   let jobs: JobService
   let runtime: JobRuntime
   let indexing: IndexingService
   let keys: KeysService
-  let publisher: TutorialPublisher
+  let publisher: CoursePublisher
   let pipelines: PipelineService
   let snapshotRoot: string
   const log = createLogger({ level: 'silent' })
@@ -266,9 +265,7 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     const created = createDb(DATABASE_URL, { max: 4 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     await db.execute(
       sql`truncate table users, repositories, provider_keys restart identity cascade`,
     )
@@ -296,12 +293,12 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
       queue,
       indexing,
       notifications,
-      tutorials: createVersionAccess(db),
+      courses: createVersionAccess(db),
       repositories: { describeLinked: async () => new Map() },
     })
     runtime = createJobRuntime({ db, queue, notifications })
     keys = createKeysService({ db, vault, checker: fakeKeyChecker('valid'), jobs })
-    publisher = createTutorialPublisher(db)
+    publisher = createCoursePublisher(db)
   })
 
   afterAll(async () => {
@@ -324,7 +321,6 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
         name: 'shop',
         isPrivate: false,
         defaultBranch: 'main',
-        license: 'MIT',
       })
       .returning({ id: repositories.id })
     if (!repository) throw new Error('repository seed failed')
@@ -403,12 +399,9 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     snapshotId: string
     keyId: string
     pipeline: 'lite' | 'full'
-    budgetMicros?: number
   }) => {
-    const budgetMicros = input.budgetMicros ?? 2_000_000
     const models: ModelPlan = {
       provider: 'anthropic',
-      preset: input.pipeline === 'lite' ? 'budget' : 'balanced',
       pipeline: input.pipeline,
       models: {
         planner: input.pipeline === 'lite' ? 'claude-haiku-5-5' : 'claude-sonnet-5-5',
@@ -416,7 +409,6 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
         summarizer: null,
         judge: input.pipeline === 'full' ? 'claude-sonnet-5-5' : null,
       },
-      budgetMicros,
     }
     const { job } = await db.transaction((tx) =>
       jobs.createJob(tx, {
@@ -426,7 +418,6 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
         audience: AUDIENCE,
         providerKeyId: input.keyId,
         models,
-        budgetMicros,
       }),
     )
     return job
@@ -444,22 +435,22 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
       catalog: bundledCatalog(),
       resolve: () => scriptedModel(script),
       jobs,
-      tutorials: publisher,
+      courses: publisher,
     })
-    await handleGenerateTutorial(
+    await handleGenerateCourse(
       { v: 1, jobId: job.id, userId: job.userId, snapshotId: job.snapshotId, audience: AUDIENCE },
       {
         jobs: runtime.jobStore,
         log,
         stageHandlers: around ? around(pipelines.stageHandlers) : pipelines.stageHandlers,
-        budgetFor: (row) => new Budget(row.budgetMicros, runtime.usageSink, row.spentMicros),
+        budgetFor: () => new Budget(Number.MAX_SAFE_INTEGER, runtime.usageSink),
         heartbeatMs: 60_000,
       },
     )
     return jobs.getOwnedJob(job.userId, job.id)
   }
 
-  it('publishes a grounded lite tutorial and repairs the one weak lesson', async () => {
+  it('publishes a grounded lite course and repairs the one weak lesson', async () => {
     const owner = await seedUser()
     const keyId = await seedKey(owner)
     const { snapshotId } = await seedSnapshot()
@@ -468,11 +459,11 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     const after = await runWith(job, respondWith({ pipeline: 'lite', judge: false }))
 
     expect(after.status).toBe('succeeded')
-    expect(after.tutorialId).not.toBeNull()
+    expect(after.courseId).not.toBeNull()
 
-    const [tutorial] = await db.select().from(tutorials).where(eq(tutorials.userId, owner))
-    expect(tutorial).toMatchObject({ slug: 'shop', title: 'Shop cart walkthrough' })
-    expect((await jobs.toDto(after)).tutorial).toEqual({
+    const [course] = await db.select().from(courses).where(eq(courses.userId, owner))
+    expect(course).toMatchObject({ slug: 'shop', title: 'Shop cart walkthrough' })
+    expect((await jobs.toDto(after)).course).toEqual({
       owner: 'acme',
       repo: 'shop',
       slug: 'shop',
@@ -480,8 +471,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
 
     const [version] = await db
       .select()
-      .from(tutorialVersions)
-      .where(eq(tutorialVersions.generationJobId, job.id))
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(version).toMatchObject({ status: 'published', versionNo: 1 })
     expect(version?.validationReport).toMatchObject({ repairs: 1, draft: false, judgeScore: null })
     expect(version?.content?.chapters.map((chapter) => chapter.key)).toEqual([
@@ -496,21 +487,18 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
 
     const lessons = await db
       .select()
-      .from(tutorialLessons)
-      .where(eq(tutorialLessons.versionId, version?.id ?? ''))
+      .from(courseLessons)
+      .where(eq(courseLessons.versionId, version?.id ?? ''))
     expect(lessons.map((row) => row.lessonKey).sort()).toEqual(['map', 'review', 'route'])
 
     const refs = await db
       .select()
-      .from(tutorialSourceRefs)
-      .where(eq(tutorialSourceRefs.versionId, version?.id ?? ''))
+      .from(courseSourceRefs)
+      .where(eq(courseSourceRefs.versionId, version?.id ?? ''))
     expect(refs.length).toBe(Object.keys(version?.content?.sourceRefs ?? {}).length)
     expect(refs.length).toBeGreaterThan(0)
 
-    const leftovers = await db
-      .select()
-      .from(jobCheckpoints)
-      .where(eq(jobCheckpoints.jobId, job.id))
+    const leftovers = await db.select().from(jobCheckpoints).where(eq(jobCheckpoints.jobId, job.id))
     expect(leftovers).toEqual([])
   })
 
@@ -534,8 +522,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     expect(after.status).toBe('succeeded')
     const [version] = await db
       .select()
-      .from(tutorialVersions)
-      .where(eq(tutorialVersions.generationJobId, job.id))
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(version).toMatchObject({ status: 'published' })
     const published = JSON.stringify(version?.content)
     for (const fragment of ['evil.example', 'javascript:', 'onerror', '<img', 'curl', '| sh']) {
@@ -555,8 +543,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     expect(after.status).toBe('succeeded')
     const [version] = await db
       .select()
-      .from(tutorialVersions)
-      .where(eq(tutorialVersions.generationJobId, job.id))
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(version?.generator).toMatchObject({ pipeline: 'full', pipelineVersion: 1 })
     expect(version?.validationReport).toMatchObject({ judgeScore: 0.9, draft: false })
   })
@@ -625,8 +613,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     expect(secondRun).toEqual(['judge:Requests', 'judge:Wrap-up'])
     const [version] = await db
       .select()
-      .from(tutorialVersions)
-      .where(eq(tutorialVersions.generationJobId, job.id))
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(version?.validationReport).toMatchObject({ repairs: 1, judgeScore: 0.9 })
   })
 
@@ -673,8 +661,8 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     expect(orientationCalls).toEqual([false, true])
     const [version] = await db
       .select()
-      .from(tutorialVersions)
-      .where(eq(tutorialVersions.generationJobId, job.id))
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(version?.content?.chapters[0]?.lessons.map((lesson) => lesson.key)).toEqual([
       'map',
       'extra',
@@ -700,11 +688,11 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     )
 
     expect(after.status).toBe('canceled')
-    expect(after.tutorialId).toBeNull()
+    expect(after.courseId).toBeNull()
     const versions = await db
       .select()
-      .from(tutorialVersions)
-      .where(eq(tutorialVersions.generationJobId, job.id))
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(versions).toEqual([])
   })
 
@@ -735,11 +723,11 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     await expect(orphan).rejects.toBeInstanceOf(StoppedError)
     const versions = await db
       .select()
-      .from(tutorialVersions)
-      .where(eq(tutorialVersions.generationJobId, job.id))
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(versions).toEqual([])
     const [row] = await db.select().from(generationJobs).where(eq(generationJobs.id, job.id))
-    expect(row?.tutorialId).toBeNull()
+    expect(row?.courseId).toBeNull()
   })
 
   it('writes a chapter whose stored outline names no file from the ranked files', async () => {
@@ -799,28 +787,5 @@ describe.skipIf(DATABASE_URL === '')('tutorial pipeline against Postgres', () =>
     await expect(
       db.transaction((tx) => jobs.fenceRunning(tx, job.id, claimed.attempts)),
     ).rejects.toBeInstanceOf(CanceledError)
-  })
-
-  it('stops at the budget ceiling before any model call', async () => {
-    const owner = await seedUser()
-    const keyId = await seedKey(owner)
-    const { snapshotId } = await seedSnapshot()
-    const job = await startJob({
-      userId: owner,
-      snapshotId,
-      keyId,
-      pipeline: 'lite',
-      budgetMicros: 1,
-    })
-
-    const calls: string[] = []
-    const after = await runWith(job, (prompt) => {
-      calls.push(prompt.slice(0, 20))
-      return LITE_PLAN
-    })
-
-    expect(after.status).toBe('failed')
-    expect(after.errorCode).toBe('BUDGET_EXCEEDED')
-    expect(calls).toEqual([])
   })
 })

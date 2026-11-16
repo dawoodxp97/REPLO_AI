@@ -2,9 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { asc, eq, sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { Budget } from '@replo/ai'
 import { DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
 import PgBoss from 'pg-boss'
@@ -27,9 +26,9 @@ import type { GithubRest } from '../../platform/github/client'
 import { createLogger } from '../../platform/logger'
 import { pgBossQueue } from '../../platform/queue/job-queue'
 import { declareQueues } from '../../worker/job-payload'
-import { GENERATE_TUTORIAL } from '../../worker/job-payload'
+import { GENERATE_COURSE } from '../../worker/job-payload'
 import { JobError } from '../../worker/errors'
-import { handleGenerateTutorial, type StageHandler } from '../../worker/generate-tutorial'
+import { handleGenerateCourse, type StageHandler } from '../../worker/generate-course'
 import { createIndexingService } from '../indexing/indexing.service'
 import { createKeysService } from '../keys/keys.service'
 import { createModelsService } from '../models/models.service'
@@ -105,11 +104,9 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     const created = createDb(DATABASE_URL, { max: 4 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     await db.execute(
-      sql`truncate table users, repositories, github_installations, webhook_deliveries, provider_keys restart identity cascade`,
+      sql`truncate table users, repositories, github_installations, provider_keys restart identity cascade`,
     )
     boss = new PgBoss({ connectionString: DATABASE_URL, supervise: false, schedule: false })
     await boss.start()
@@ -150,11 +147,11 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
       queue,
       indexing,
       notifications,
-      tutorials: { refOf: async () => undefined },
+      courses: { refOf: async () => undefined },
       repositories: createRepositoryLibrary({
         db,
         jobs: createJobHistory(db),
-        tutorials: { removeForRepository: async () => undefined },
+        courses: { removeForRepository: async () => undefined },
       }),
     })
     runtime = createJobRuntime({ db, queue, notifications })
@@ -165,7 +162,6 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
       indexing,
       keys: createKeysService({ db, vault, checker: fakeKeyChecker('valid'), jobs }),
       models: createModelsService({ db, catalog: bundledCatalog() }),
-      defaults: { budgetUsd: 2, litePipelineMaxFiles: 300 },
     })
   })
 
@@ -201,27 +197,26 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     userId: string,
     keyId: string,
     idempotencyKey = randomUUID(),
-    preset: 'balanced' | 'free' = 'balanced',
+    modelId = 'claude-haiku-5-5',
   ) =>
     imports.importRepository(userId, idempotencyKey, {
       source: { kind: 'public_url', url: 'https://github.com/acme/shop' },
       audience: 'intermediate',
       keyId,
-      preset,
+      modelId,
     })
 
   it('imports a repo as a queued job and enqueues it in pg-boss', async () => {
     const owner = await seedUser()
     const keyId = await seedKey(owner, 'anthropic')
-    const before = await boss.getQueueSize(GENERATE_TUTORIAL)
+    const before = await boss.getQueueSize(GENERATE_COURSE)
     const outcome = await importFor(owner, keyId)
     if (outcome.kind !== 'ok') throw new Error(`expected ok, got ${outcome.refusal.code}`)
     expect(outcome.value.status).toBe('queued')
     expect(outcome.value.commitSha).toBe(SHA)
     expect(outcome.value.repository).toEqual({ owner: 'acme', name: 'shop' })
     expect(outcome.value.audience).toBe('intermediate')
-    expect(outcome.value.preset).toBe('balanced')
-    expect(await boss.getQueueSize(GENERATE_TUTORIAL)).toBe(before + 1)
+    expect(await boss.getQueueSize(GENERATE_COURSE)).toBe(before + 1)
   })
 
   it('returns the same job for a repeated Idempotency-Key without new work', async () => {
@@ -234,15 +229,6 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     expect(second.value.jobId).toBe(first.value.jobId)
   })
 
-  it('refuses the free preset on a key that is not OpenRouter', async () => {
-    const owner = await seedUser()
-    const keyId = await seedKey(owner, 'anthropic')
-    expect(await importFor(owner, keyId, undefined, 'free')).toEqual({
-      kind: 'refused',
-      refusal: { code: 'FREE_PRESET_REQUIRES_OPENROUTER' },
-    })
-  })
-
   it('leaves neither a job row nor a queue message when the transaction rolls back', async () => {
     const owner = await seedUser()
     const keyId = await seedKey(owner, 'anthropic')
@@ -250,7 +236,7 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     if (first.kind !== 'ok') throw new Error('expected ok')
     const existing = await jobs.getOwnedJob(owner, first.value.jobId)
 
-    const before = await boss.getQueueSize(GENERATE_TUTORIAL)
+    const before = await boss.getQueueSize(GENERATE_COURSE)
     await expect(
       db.transaction(async (tx) => {
         await jobs.createJob(tx, {
@@ -261,17 +247,14 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
           providerKeyId: keyId,
           models: {
             provider: 'openrouter',
-            preset: 'balanced',
             pipeline: 'lite',
             models: { planner: '', author: '', summarizer: null, judge: null },
-            budgetMicros: 2_000_000,
           },
-          budgetMicros: 2_000_000,
         })
         throw new Error('rollback')
       }),
     ).rejects.toThrow('rollback')
-    expect(await boss.getQueueSize(GENERATE_TUTORIAL)).toBe(before)
+    expect(await boss.getQueueSize(GENERATE_COURSE)).toBe(before)
     expect(await jobs.findByIdempotencyKey(owner, 'never-used')).toBeUndefined()
   })
 
@@ -282,12 +265,12 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     if (outcome.kind !== 'ok') throw new Error('expected ok')
     const job = await jobs.getOwnedJob(owner, outcome.value.jobId)
 
-    await handleGenerateTutorial(
+    await handleGenerateCourse(
       { v: 1, jobId: job.id, userId: owner, snapshotId: job.snapshotId, audience: job.audience },
       {
         jobs: runtime.jobStore,
         log,
-        budgetFor: (row) => new Budget(row.budgetMicros, runtime.usageSink, row.spentMicros),
+        budgetFor: () => new Budget(Number.MAX_SAFE_INTEGER, runtime.usageSink),
         stageHandlers: {
           ingest: ({ job: claimed, signal }) =>
             indexing.ingest({ userId: claimed.userId, snapshotId: claimed.snapshotId, signal }),
@@ -327,7 +310,11 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
       { key: 'src/index.ts#main', kind: 'variable' },
     ])
     const edgeRows = await db
-      .select({ from: snapshotFileEdges.fromPath, to: snapshotFileEdges.toPath, kind: snapshotFileEdges.kind })
+      .select({
+        from: snapshotFileEdges.fromPath,
+        to: snapshotFileEdges.toPath,
+        kind: snapshotFileEdges.kind,
+      })
       .from(snapshotFileEdges)
       .where(eq(snapshotFileEdges.snapshotId, job.snapshotId))
     expect(edgeRows).toEqual([{ from: 'src/index.ts', to: 'src/cart.ts', kind: 'import' }])
@@ -404,71 +391,22 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     await db
       .update(repositorySnapshots)
       .set({ status: 'pending' })
-      .where(eq(repositorySnapshots.id, (await jobs.getOwnedJob(owner, outcome.value.jobId)).snapshotId))
+      .where(
+        eq(repositorySnapshots.id, (await jobs.getOwnedJob(owner, outcome.value.jobId)).snapshotId),
+      )
 
     const failed = await jobs.getOwnedJob(owner, outcome.value.jobId)
     await runtime.jobStore.finish(failed.id, 'failed', { code: 'NETWORK' })
-    const queuedBefore = await boss.getQueueSize(GENERATE_TUTORIAL)
+    const queuedBefore = await boss.getQueueSize(GENERATE_COURSE)
     const retried = await jobs.retry(owner, failed.id)
     expect(retried.status).toBe('queued')
     expect(retried.error).toBeNull()
-    expect(await boss.getQueueSize(GENERATE_TUTORIAL)).toBe(queuedBefore + 1)
+    expect(await boss.getQueueSize(GENERATE_COURSE)).toBe(queuedBefore + 1)
 
     const canceled = await jobs.cancel(owner, failed.id)
     expect(canceled.status).toBe('canceled')
     const sent = await db.select().from(notifications).where(eq(notifications.userId, owner))
     expect(sent.map((n) => n.kind).sort()).toEqual(['job_canceled', 'job_failed'])
-  })
-
-  it('estimates a run from the static index and refuses a budget below the estimate', async () => {
-    const owner = await seedUser()
-    const keyId = await seedKey(owner, 'anthropic')
-    const estimate = await imports.estimate(owner, {
-      source: { kind: 'public_url', url: 'https://github.com/acme/shop' },
-      audience: 'intermediate',
-      keyId,
-      preset: 'budget',
-      customModels: undefined,
-      budgetUsd: 2,
-    })
-    if (estimate.kind !== 'ok') throw new Error(`expected ok, got ${estimate.refusal.code}`)
-    expect(estimate.value).toMatchObject({
-      pipeline: 'lite',
-      models: {
-        planner: 'claude-haiku-5-5',
-        author: 'claude-haiku-5-5',
-        summarizer: 'claude-haiku-5-5',
-      },
-      basis: 'static-index-and-catalogue-assumptions',
-      budgetUsd: 2,
-    })
-    expect(estimate.value.estimateUsd).toBeGreaterThan(0)
-
-    expect(
-      await imports.estimate(owner, {
-        source: { kind: 'public_url', url: 'https://github.com/acme/shop' },
-        audience: 'intermediate',
-        keyId,
-        preset: 'budget',
-        customModels: undefined,
-        budgetUsd: 0.000001,
-      }),
-    ).toMatchObject({ kind: 'refused', refusal: { code: 'BUDGET_BELOW_ESTIMATE' } })
-  })
-
-  it('refuses an OpenRouter key on the free preset until a model passes the eval gate', async () => {
-    const owner = await seedUser()
-    const keyId = await seedKey(owner, 'openrouter')
-    expect(
-      await imports.estimate(owner, {
-        source: { kind: 'public_url', url: 'https://github.com/acme/shop' },
-        audience: 'intermediate',
-        keyId,
-        preset: 'free',
-        customModels: undefined,
-        budgetUsd: 2,
-      }),
-    ).toMatchObject({ kind: 'refused', refusal: { code: 'PRESET_UNAVAILABLE' } })
   })
 
   it('reports another user’s job as not found for cancel and retry', async () => {

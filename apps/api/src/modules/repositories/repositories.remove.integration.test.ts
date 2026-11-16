@@ -1,15 +1,12 @@
 import { randomUUID } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
 import { and, eq, sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
-import { repositories, tutorials, userRepositories } from '../../platform/db/schema'
+import { repositories, courses, userRepositories } from '../../platform/db/schema'
 import { createJobHistory } from '../jobs/job-history.service'
-import { fixedProgress } from '../../test/domain'
-import { createTutorialCatalog } from '../tutorials/catalog.service'
-import { createTutorialManager } from '../tutorials/manager.service'
+import { createCourseManager } from '../courses/manager.service'
 import { createRepositoryLibrary, type RepositoryLibrary } from './library.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -24,15 +21,12 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
     const created = createDb(DATABASE_URL, { max: 2 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     await db.execute(sql`truncate table users, repositories restart identity cascade`)
-    const catalog = createTutorialCatalog({ db, learning: fixedProgress(null) })
     repositoriesService = createRepositoryLibrary({
       db,
       jobs: createJobHistory(db),
-      tutorials: createTutorialManager({ db, catalog, productOrigin: 'https://replo.test' }),
+      courses: createCourseManager({ db }),
     })
   })
 
@@ -65,20 +59,19 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
   const link = (userId: string, repositoryId: string) =>
     db.insert(userRepositories).values({ userId, repositoryId, githubInstallationId: null })
 
-  const seedTutorial = (userId: string, repositoryId: string, slug: string) =>
-    db.insert(tutorials).values({
+  const seedCourse = (userId: string, repositoryId: string, slug: string) =>
+    db.insert(courses).values({
       userId,
       repositoryId,
       slug,
       title: `${slug} walk`,
-      visibility: 'private',
     })
 
-  const tutorialsOf = (userId: string, repositoryId: string) =>
+  const coursesOf = (userId: string, repositoryId: string) =>
     db
-      .select({ slug: tutorials.slug })
-      .from(tutorials)
-      .where(and(eq(tutorials.userId, userId), eq(tutorials.repositoryId, repositoryId)))
+      .select({ slug: courses.slug })
+      .from(courses)
+      .where(and(eq(courses.userId, userId), eq(courses.repositoryId, repositoryId)))
 
   const linkOf = async (userId: string, repositoryId: string) => {
     const [row] = await db
@@ -90,32 +83,32 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
     return row
   }
 
-  it('revokes the caller link and deletes the caller tutorials for that repository', async () => {
+  it('revokes the caller link and deletes the caller courses for that repository', async () => {
     const owner = await seedUser()
     const repoId = await seedRepo('remove-own')
     await link(owner, repoId)
-    await seedTutorial(owner, repoId, 'own-walk')
+    await seedCourse(owner, repoId, 'own-walk')
 
     await repositoriesService.remove(owner, repoId)
 
     expect((await linkOf(owner, repoId))?.revokedAt).toBeInstanceOf(Date)
-    expect(await tutorialsOf(owner, repoId)).toEqual([])
+    expect(await coursesOf(owner, repoId)).toEqual([])
     expect((await repositoriesService.list(owner, { limit: 25 })).items).toEqual([])
   })
 
-  it('keeps another user’s tutorials and link for the same repository', async () => {
+  it('keeps another user’s courses and link for the same repository', async () => {
     const owner = await seedUser()
     const other = await seedUser()
     const repoId = await seedRepo('remove-shared')
     await link(owner, repoId)
     await link(other, repoId)
-    await seedTutorial(owner, repoId, 'owner-walk')
-    await seedTutorial(other, repoId, 'other-walk')
+    await seedCourse(owner, repoId, 'owner-walk')
+    await seedCourse(other, repoId, 'other-walk')
 
     await repositoriesService.remove(owner, repoId)
 
-    expect(await tutorialsOf(owner, repoId)).toEqual([])
-    expect(await tutorialsOf(other, repoId)).toEqual([{ slug: 'other-walk' }])
+    expect(await coursesOf(owner, repoId)).toEqual([])
+    expect(await coursesOf(other, repoId)).toEqual([{ slug: 'other-walk' }])
     expect((await linkOf(other, repoId))?.revokedAt).toBeNull()
     expect(
       (await repositoriesService.list(other, { limit: 25 })).items.map((item) => item.repositoryId),
@@ -127,13 +120,13 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
     const stranger = await seedUser()
     const repoId = await seedRepo('remove-guarded')
     await link(owner, repoId)
-    await seedTutorial(owner, repoId, 'guarded-walk')
+    await seedCourse(owner, repoId, 'guarded-walk')
 
     await expect(repositoriesService.remove(stranger, repoId)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
     expect((await linkOf(owner, repoId))?.revokedAt).toBeNull()
-    expect(await tutorialsOf(owner, repoId)).toEqual([{ slug: 'guarded-walk' }])
+    expect(await coursesOf(owner, repoId)).toEqual([{ slug: 'guarded-walk' }])
   })
 
   it('treats a second removal of the same repository as not found', async () => {

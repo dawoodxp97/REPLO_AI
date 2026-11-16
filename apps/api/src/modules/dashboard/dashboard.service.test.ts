@@ -2,7 +2,7 @@ import type { ActivityItem, ActivityPage } from '@replo/contracts'
 import { describe, expect, it, vi } from 'vitest'
 import type { InFlightJob, RecentJob } from '../jobs/job-history.service'
 import type { ReadingStats, ResumeTarget } from '../learning/learning.service'
-import type { TutorialCounts } from '../tutorials/catalog.service'
+import type { CourseCounts } from '../courses/catalog.service'
 import { createDashboardService, type DashboardDeps } from './dashboard.service'
 
 const USER = 'user-1'
@@ -35,7 +35,7 @@ interface Fixtures {
   published?: ActivityItem[]
   jobs?: RecentJob[]
   inFlight?: InFlightJob[]
-  counts?: TutorialCounts
+  counts?: CourseCounts
   resume?: ResumeTarget | null
   reading?: ReadingStats
 }
@@ -59,7 +59,7 @@ function stubs(fixtures: Fixtures = {}) {
   )
   const inFlightFor = vi.fn(async (_userId: string, _limit: number) => inFlightRows)
   const deps: DashboardDeps = {
-    tutorials: { counts: async () => counts, recentPublished },
+    courses: { counts: async () => counts, recentPublished },
     jobs: { inFlightFor, recentFor },
     learning: { resumeTarget: async () => resume, readingStats: async () => reading },
     repositories: { describeLinked, linkedIds: async () => LINKED_IDS },
@@ -70,11 +70,11 @@ function stubs(fixtures: Fixtures = {}) {
 function publishedItem(id: string, at: string): ActivityItem {
   return {
     id,
-    kind: 'tutorial_published',
+    kind: 'course_published',
     title: `Published ${id}`,
     localDate: at.slice(0, 10),
     at,
-    link: `/tutorials/${id}`,
+    link: `/courses/${id}`,
   }
 }
 
@@ -117,7 +117,7 @@ describe('dashboard summary', () => {
     expect((await createDashboardService(deps).summary(USER)).reading).toEqual(reading)
   })
 
-  it('maps the tutorial counts', async () => {
+  it('maps the course counts', async () => {
     const counts = { total: 5, draft: 2, private: 1, link: 1, public: 1 }
     const { deps } = stubs({ counts })
     expect((await createDashboardService(deps).summary(USER)).counts).toEqual(counts)
@@ -159,7 +159,7 @@ describe('dashboard summary', () => {
 
   it('maps the resume target to the contract shape', async () => {
     const target: ResumeTarget = {
-      tutorialId: 'tutorial-1',
+      courseId: 'course-1',
       versionId: 'version-1',
       lessonKey: 'lesson-2',
       lessonTitle: 'Routing',
@@ -268,7 +268,7 @@ describe('dashboard recent activity', () => {
     })
   })
 
-  it('passes tutorial activity through unchanged', async () => {
+  it('passes course activity through unchanged', async () => {
     const { deps } = stubs({ published: publishedRows })
     const page = await createDashboardService(deps).recent(USER, { zone: ZONE, limit: 10 })
     expect(page.items).toEqual(publishedRows)

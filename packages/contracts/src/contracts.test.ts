@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ImportRepositoryInput, TutorialContent } from './index'
+import { ImportRepositoryInput, CourseContent, upcastCourseContent } from './index'
 
 const KEY_ID = '0190f6a2-7c1e-7d4a-8f3b-2a9c4e5d6f70'
 
@@ -8,9 +8,10 @@ describe('ImportRepositoryInput', () => {
     const parsed = ImportRepositoryInput.parse({
       source: { kind: 'public_url', url: 'https://github.com/vercel/next.js' },
       keyId: KEY_ID,
+      modelId: 'anthropic/claude-sonnet-5.5',
     })
     expect(parsed.audience).toBe('intermediate')
-    expect(parsed.preset).toBe('balanced')
+    expect(parsed.modelId).toBe('anthropic/claude-sonnet-5.5')
   })
 
   it('rejects non-GitHub hosts (SSRF guard)', () => {
@@ -29,9 +30,9 @@ describe('ImportRepositoryInput', () => {
   })
 })
 
-describe('TutorialContent', () => {
+describe('CourseContent', () => {
   it('parses a minimal grounded lesson', () => {
-    const content = TutorialContent.parse({
+    const content = upcastCourseContent({
       schemaVersion: 1,
       meta: {
         title: 'Shopfront',
@@ -90,7 +91,7 @@ describe('TutorialContent', () => {
   })
 
   const questionSchema =
-    TutorialContent.shape.chapters.element.shape.lessons.element.shape.quiz.unwrap().element
+    CourseContent.shape.chapters.element.shape.lessons.element.shape.quiz.unwrap().element
 
   it('rejects a multiple choice question with fewer than 3 options', () => {
     const result = questionSchema.safeParse({

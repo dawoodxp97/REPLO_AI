@@ -3,13 +3,13 @@ import type { Db } from '../../platform/db/client'
 import { containsPattern } from '../../platform/db/query-helpers'
 import { notFound } from '../../platform/errors'
 import type { JobHistory } from '../jobs/job-history.service'
-import type { TutorialManager } from '../tutorials/manager.service'
+import type { CourseManager } from '../courses/manager.service'
 import { repositoriesRepo } from './repositories.repo'
 
 interface RepositoryLibraryDeps {
   db: Db
   jobs: Pick<JobHistory, 'latestByRepository'>
-  tutorials: Pick<TutorialManager, 'removeForRepository'>
+  courses: Pick<CourseManager, 'removeForRepository'>
 }
 
 export interface RepositoryLibrary {
@@ -28,7 +28,7 @@ export interface RepositoryLibrary {
 }
 
 export function createRepositoryLibrary(deps: RepositoryLibraryDeps): RepositoryLibrary {
-  const { db, jobs, tutorials } = deps
+  const { db, jobs, courses } = deps
 
   return {
     async list(userId, input) {
@@ -58,7 +58,7 @@ export function createRepositoryLibrary(deps: RepositoryLibraryDeps): Repository
     async remove(userId, repositoryId) {
       await db.transaction(async (tx) => {
         if (!(await repositoriesRepo(tx).revokeLink(userId, repositoryId))) notFound('Repository')
-        await tutorials.removeForRepository(tx, userId, repositoryId)
+        await courses.removeForRepository(tx, userId, repositoryId)
       })
     },
 

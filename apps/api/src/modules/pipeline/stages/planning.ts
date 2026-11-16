@@ -1,4 +1,4 @@
-import type { StageContext } from '../../../worker/generate-tutorial'
+import type { StageContext } from '../../../worker/generate-course'
 import { FALLBACK_FILES, normaliseOutline, rankedPaths, repoMap } from '../prompt-inputs'
 import { ArchitectureAndOutlineDraft, ArchitectureDraft, OutlineDraft } from '../drafts'
 import { dataSection, promptFor } from '../prompts'

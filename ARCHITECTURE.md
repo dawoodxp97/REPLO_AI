@@ -10,15 +10,15 @@ How Replo fits together. Requirements live in [`PRD.md`](./PRD.md); research and
 replo/
 ├── apps/
 │   ├── landing/    Next.js 16 — static export (Cloudflare Pages): marketing, key guide, docs
-│   ├── product/    Next.js 16 — the app, learning player, public tutorial pages (SSR)
+│   ├── product/    Next.js 16 — the app: workspace, course player, dashboard, admin
 │   └── api/        Fastify 5 + oRPC + own auth — entrypoints: main.http.ts, main.worker.ts
 ├── packages/
-│   ├── contracts/      Zod 4 schemas + oRPC contract + error codes + tutorial content schema
-│   ├── ai/             AI SDK wrapper, role→model registry, budgets, provider resolution
-│   ├── repo-analysis/  filters, path safety, (later) tree-sitter, symbols, import graph, chunking
+│   ├── contracts/      Zod 4 schemas + oRPC contract + error codes + course content and diagram schemas
+│   ├── ai/             AI SDK wrapper, role→model resolution, provider clients (no budgets)
+│   ├── repo-analysis/  filters, path safety, tree-sitter, symbols, import graph, layers, tours
 │   ├── ui/             Base UI primitives, Tailwind v4 tokens, globals.css
 │   └── config/         tsconfig bases, ESLint flat config (incl. boundary rules)
-└── tools/evals/        golden-repo suite, grounding/cost reports (private workspace package)
+└── tools/evals/        golden-repo suite: graph, citation, diagram and course quality reports
 ```
 
 ### Dependency graph (enforced in lint)
@@ -47,20 +47,19 @@ flowchart LR
   CF -->|app. / api.| CA[Caddy]
   subgraph VPS["One VPS · 2 vCPU / 4 GB · Docker Compose"]
     CA --> P[apps/product<br/>Next standalone]
-    CA --> A[API process<br/>Fastify + oRPC + own auth<br/>webhooks, SSE]
+    CA --> A[API process<br/>Fastify + oRPC + own auth + SSE]
     W[Worker process<br/>pg-boss handlers]
     PG[(Postgres 17<br/>records + queue)]
     P --> A
     A --> PG
     W --> PG
   end
-  GH[GitHub] -- signed webhooks --> CA
-  W -- repo-scoped token --> GH
+  W -- installation token, on demand --> GH[GitHub]
   W --> R2[(R2 blobs + backups)]
   W --> UK[User's own provider key<br/>OpenRouter · OpenAI · Google AI Studio · Anthropic]
 ```
 
-Only the **worker** talks to GitHub for content, model providers and R2. The product app talks only to the API.
+Only the **worker** talks to GitHub for content, model providers and R2. The product app talks only to the API. There are **no inbound webhooks** (D-114).
 
 ### Memory budget on 4 GB (+2 GB swap)
 
@@ -69,28 +68,29 @@ Postgres ~0.6–1.0 · worker 0.5–1.5 peak (concurrency 1–2) · product ~0.2
 ## 3. Backend layout (`apps/api/src`)
 
 ```
-main.http.ts        Fastify + oRPC router + auth routes + webhooks + SSE + /healthz /readyz
-main.worker.ts      pg-boss workers (generate-tutorial, reaper, retention purge); only HTTP is /healthz
+main.http.ts        Fastify + oRPC router + auth routes + SSE + /healthz /readyz
+main.worker.ts      pg-boss workers (generate-course, reaper, retention purge); only HTTP is /healthz
 composition.ts      builds every service from its dependencies
 request-context.ts  RequestContext + Services, built per request
-worker/             generate-tutorial handler, job-payload (queue names, payload, timeouts, retry policy), error classification
+worker/             generate-course handler, job-payload (queue names, payload, timeouts, retry policy), error classification
 platform/           config(env), db, queue, logger, crypto (key vault), errors, http guards, sse
 modules/
   identity/         sign-up and sign-in, OAuth (Google, GitHub), sessions, current user
-  github/           app installs, token minting, webhooks, access checks
-  repositories/     repos, snapshots, pre-flight, cost estimate, import
-  indexing/         orchestrates packages/repo-analysis, stores the index
+  github/           app installs, token minting, access checks (no webhooks)
+  repositories/     repos, snapshots, pre-flight, import, rerun
+  indexing/         orchestrates packages/repo-analysis, stores the structural graph
   jobs/             generation_jobs lifecycle: create, cancel, retry, claim, heartbeat, reaper, SSE progress
-  pipeline/         stage handlers, checkpoints, prompt inputs, grounding, via packages/ai
-  keys/, models/    BYOK keys, model catalogue, presets
-  tutorials/        catalog, content, version access, publishing, visibility, share links
+  pipeline/         stage handlers (index, enrich, graph-review, tours, diagrams, outline, lessons, validate), checkpoints, prompts, grounding
+  keys/, models/    BYOK keys, model catalogue, default model
+  courses/          catalog, content, version access, publishing, workspace reads, delete
   learning/         progress, quiz attempts
-  account/, notifications/, settings/, search/, dashboard/, operator/, retention/
+  analytics/        event recording, aggregates for the dashboard
+  account/, notifications/, settings/, search/, dashboard/, admin/, retention/
 ```
 
 Per module: `*.service.ts` (public API) · `*.router.ts` (implements its contract slice) · `*.repo.ts` (private data access). **Modules call each other only through services.**
 
-One tutorial from the Generate click to the published page, file by file: [`docs/HOW_GENERATION_WORKS.md`](./docs/HOW_GENERATION_WORKS.md).
+One course from the Generate click to the published workspace, file by file: [`docs/HOW_GENERATION_WORKS.md`](./docs/HOW_GENERATION_WORKS.md).
 
 ## 4. Contract-first API
 
@@ -103,25 +103,25 @@ packages/contracts ──type──▶ apps/product (client)
 
 ## 5. Generation pipeline
 
-| #   | Stage                          | Kind                                    | Model tier | Output                                      |
-| --- | ------------------------------ | --------------------------------------- | ---------- | ------------------------------------------- |
-| 0   | Pre-flight                     | Deterministic                           | —          | accept/refuse + estimate                    |
-| 1   | Ingest                         | Deterministic                           | —          | files on disk, `snapshot_files`             |
-| 2   | Static index                   | Deterministic                           | —          | symbols, edges, routes, stack profile       |
-| 3   | File summaries (central files) | LLM                                     | small      | `FileSummary[]` cached by blob SHA          |
-| 4   | Architecture model             | LLM + checks                            | strong     | `ArchitectureModel` with evidence           |
-| 5   | Outline                        | LLM + checks                            | strong     | `Outline` (chapters, objectives, prereqs)   |
-| 6   | Context packing                | Deterministic                           | —          | token-budgeted excerpts per chapter         |
-| 7   | Lessons + quiz                 | LLM, bounded read-only tools            | mid        | chapter blocks with claim→evidence links    |
-| 8   | Diagrams                       | Deterministic (structure) + LLM (flows) | mid        | Mermaid + node→symbol map                   |
-| 9   | Validation & repair            | Deterministic + LLM judge sample        | small/mid  | validation report; ≤ 1 repair               |
-| 10  | Publish                        | Deterministic, one transaction          | —          | `tutorial_versions`, `tutorial_source_refs` |
+| #   | Stage                    | Kind                            | Model tier | Output                                                                                    |
+| --- | ------------------------ | ------------------------------- | ---------- | ----------------------------------------------------------------------------------------- |
+| 0   | Pre-flight               | Deterministic                   | —          | accept/refuse + limits                                                                    |
+| 1   | Ingest                   | Deterministic                   | —          | files on disk, `snapshot_files`                                                           |
+| 2   | Index (structural graph) | Deterministic (tree-sitter)     | —          | symbols, edges, routes, stack profile                                                     |
+| 3   | Enrich (semantic graph)  | LLM, batched + checkpointed     | small/mid  | summaries, layers, domains, flows, concepts                                               |
+| 4   | Graph review             | Deterministic + one repair pass | —          | coverage and referential-integrity report                                                 |
+| 5   | Tours                    | LLM + checks                    | strong     | dependency-ordered tours with objectives and steps                                        |
+| 6   | Diagrams                 | System-built + LLM + validation | mid        | `DiagramSpec[]` (architecture, tree, class, ERD, sequence, workflow, dataflow, lifecycle) |
+| 7   | Outline                  | LLM + checks                    | strong     | `Outline` (chapters, objectives, prereqs) from graph/tours                                |
+| 8   | Lessons + quiz           | LLM, bounded read-only tools    | mid        | chapter blocks with claim→evidence links                                                  |
+| 9   | Validation & repair      | Deterministic                   | —          | validation report; ≤ 1 repair                                                             |
+| 10  | Publish                  | Deterministic, one transaction  | —          | `course_versions`, `course_source_refs`, `course_lessons`, `diagram_specs`                |
 
-`STAGES` in code: `ingest, index, summaries, architecture, outline, lessons, validate, publish`. Critical path 2 → 4 → 5. Parallel: 3 and 7–9 under per-job concurrency cap. **Lite pipeline** (presets `free` and `budget`) merges 4+5, skips LLM summaries, ≤ 5 chapters.
+`STAGES` in code: `ingest, index, enrich, graph-review, tours, diagrams, outline, lessons, validate, publish`. Critical path 2 → 3 → 5/6/7 → 8 → 9. Parallel: 3, 5, 6 and 8 under the per-job concurrency cap. **Lite path** for small repos and free models: deterministic summaries, merged enrich+outline, system-built diagrams only, ≤ 5 chapters.
 
 ### Grounding — "the model points, the system quotes"
 
-The validator resolves `symbolKey`/anchor quotes to `(path, startLine, endLine, blobSha)` and inserts the excerpt; fabricated identifiers, nonexistent flow hops, stack contradictions, bad diagrams and unsafe Markdown are caught deterministically. Observed claims need ≥ 1 verified ref. Details: PRD §4.5, blueprint §8.3.
+The validator resolves `symbolKey`/anchor quotes to `(path, startLine, endLine, blobSha)` and inserts the excerpt; fabricated identifiers, nonexistent flow hops, bad diagrams and unsafe Markdown are caught deterministically. Observed claims need ≥ 1 verified ref. Every diagram node and edge must resolve to graph nodes or verified refs, and the system lays out the diagram — never the model. There is no LLM judge and no confidence score (D-113). Details: PRD §4.5.
 
 ## 6. Jobs, queue and reliability
 
@@ -129,53 +129,55 @@ The validator resolves `symbolKey`/anchor quotes to `(path, startLine, endLine, 
 - States: `queued → running → succeeded | failed | canceled`, with `waiting_retry`, `stalled`, `canceling` transitional.
 - Claim = conditional update (`queued|waiting_retry|stalled → running`); anything else is a no-op (duplicate delivery).
 - Heartbeat every ~15 s; reaper every minute marks stale `running` jobs `stalled` and re-sends them; completed stages are skipped on resume.
-- One `AbortSignal` threads into every LLM and HTTP call; cancel flips `canceling`, the heartbeat observes it and aborts. No platform quota is involved (ADR-007).
-- Errors classified retryable (429/5xx/overloaded/timeouts) vs terminal (access revoked, too large, budget exceeded, invalid input); backoff with jitter; `retry-after` respected.
+- One `AbortSignal` threads into every LLM and HTTP call; cancel flips `canceling`, the heartbeat observes it and aborts. No dollar budget is involved (D-116).
+- Errors classified retryable (429/5xx/overloaded/timeouts) vs terminal (access revoked, too large, limit exceeded, invalid input); backoff with jitter; `retry-after` respected.
 - One active job per user, so one user's key is not hit by parallel runs. Queue priority is flat: every job runs on a user's own key.
 - **Triggers to add Redis/BullMQ or durable execution:** queue latency above SLO, polling load visible in DB CPU, need for distributed rate limiting, multi-step workflows with long waits.
 
 ### Progress delivery
 
-SSE at `GET /jobs/:id/events`. Event `id = job_events.id`; reconnect replays via `Last-Event-ID`; API polls new rows ~1/s per stream (or `LISTEN/NOTIFY` on a direct connection); comment heartbeat every ~15 s; client falls back to TanStack Query polling.
+SSE at `GET /jobs/:id/events`. Event `id = job_events.id`; reconnect replays via `Last-Event-ID`; API polls new rows ~1/s per stream (or `LISTEN/NOTIFY` on a direct connection); comment heartbeat every ~15 s; client falls back to TanStack Query polling. The active-generations page and the notification bell use the same transport.
 
 ## 7. Keys and model resolution
 
-`packages/ai` exposes **roles**, not vendors. `modelFor({ provider, decryptedKey }, modelId)` picks the client for a job:
+`packages/ai` exposes **roles**, not vendors. `modelFor({ provider, decryptedKey }, modelId)` picks the client for a job. One user-chosen model serves the course; roles may share it.
 
-| Provider | Client |
-| --- | --- |
+| Provider                   | Client                                                               |
+| -------------------------- | -------------------------------------------------------------------- |
 | `openrouter` (recommended) | OpenRouter with the user's key. `:free` models cost the user nothing |
-| `openai` | OpenAI SDK with the user's key |
-| `google` | Google AI Studio (Gemini API) with the user's key |
-| `anthropic` | Anthropic SDK with the user's key |
+| `openai`                   | OpenAI SDK with the user's key                                       |
+| `google`                   | Google AI Studio (Gemini API) with the user's key                    |
+| `anthropic`                | Anthropic SDK with the user's key                                    |
 
 Base URLs are fixed per provider. There are no platform-owned keys, so a failing key fails the job and is never swapped for another (PRD FR-RUN-4, ADR-007).
 
-Every call: `budget.reserve → generate → budget.settle` (writes `job_llm_calls`, updates `spent_micros`). Fallback models only for retryable provider errors, and only models that passed evals.
+Every call checks the job's wall-clock and token ceiling; there is no spend ledger, dollar estimate or budget (D-116). Model fallback only for retryable provider errors, and only models that passed evals.
 
 ## 8. Repository ingestion and code understanding
 
-GitHub App (Contents + Metadata, read-only) → resolve ref to SHA → Git Trees pre-flight → one tarball per SHA → safe extraction on a `noexec` volume → deterministic index: inventory → manifests → tree-sitter (WASM) parse → module resolution → framework adapters (Next.js, React Router, Express/Fastify/Hono, stores, API call sites) → entry points → tests → docs → graph analytics → cached summaries (by blob SHA). **Dependencies are never installed.** Retrieval = graph expansion + lexical (BM25/trigram) + model-guided selection; embeddings are deferred (ADR-003).
+GitHub App (Contents + Metadata, read-only) → resolve ref to SHA → Git Trees pre-flight → one tarball per SHA → safe extraction on a `noexec` volume → deterministic index: inventory → manifests → tree-sitter (WASM) parse → module resolution → framework adapters (Next.js, React Router, Express/Fastify/Hono, stores, API call sites) → entry points → tests → docs → graph analytics. The same snapshot then gets semantic enrichment (summaries, layers, domains, flows, concepts), graph review and guided tours. **Dependencies are never installed.** Retrieval = graph expansion + lexical (BM25/trigram) + model-guided selection; embeddings are deferred (ADR-003).
+
+A snapshot is taken once per generation. There is no commit tracking and no push subscription; a rerun takes a fresh snapshot and publishes a new course version linked to the previous one (D-114).
 
 ## 9. Data
 
-Postgres 17 is the system of record (+ queue). Immutable, schema-versioned JSONB tutorial documents + normalised refs/progress. Blobs addressed by git blob SHA in R2. See [`docs/DATABASE.md`](./docs/DATABASE.md).
+Postgres 17 is the system of record (+ queue). Immutable, schema-versioned JSONB course documents (graph, tours, diagrams, chapters) + normalised refs/lessons/progress. Blobs addressed by git blob SHA in R2. See [`docs/DATABASE.md`](./docs/DATABASE.md).
 
 ## 10. Security architecture (summary)
 
-Least-privilege read-only GitHub access · strict per-user scoping with cross-user CI tests · repo content is data not instructions · read-only snapshot-scoped model tools · schema-validated model output + system-inserted excerpts · envelope-encrypted BYOK keys decrypted only in the worker · non-root, read-only-FS, egress-allow-listed worker · strict CSP + allow-list Markdown. Full threat model: [`SECURITY.md`](./SECURITY.md).
+Least-privilege read-only GitHub access · strict per-user scoping with cross-user CI tests · repo content is data not instructions · read-only snapshot-scoped model tools · schema-validated model output + system-inserted excerpts · envelope-encrypted BYOK keys decrypted only in the worker · non-root, read-only-FS, egress-allow-listed worker · strict CSP + allow-list Markdown · admin metadata-only access behind a server-side role gate. Full threat model: [`SECURITY.md`](./SECURITY.md).
 
 ## 11. Deployment and environments
 
 | Environment | Where                                                             | Notes                                                  |
 | ----------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
-| Local       | `docker compose` for Postgres/MinIO + `pnpm dev` on host          | Your own key (OpenRouter recommended)                            |
+| Local       | `docker compose` for Postgres/MinIO + `pnpm dev` on host          | Your own key (OpenRouter recommended)                  |
 | Staging     | Same VPS, separate Compose project, DB and GitHub App, basic auth | Skip until real users                                  |
 | Production  | The VPS                                                           | Nightly encrypted backups to R2, monthly restore drill |
 
-CI/CD: PR → install frozen → `turbo run lint typecheck test build --affected` → migration drift → eval smoke (recorded fixtures). Main → build images (arm64 if Arm VPS) → GHCR → SSH deploy (`compose pull && run --rm migrate && up -d`). Landing → Cloudflare Pages on push. Nightly → eval suite on free-model allow-list + one paid preset.
+CI/CD: PR → install frozen → `turbo run lint typecheck test build --affected` (database integration tests bootstrap the committed DDL) → eval smoke (recorded fixtures). Main → build images (arm64 if Arm VPS) → GHCR → SSH deploy. Apply new DDL manually before deploying code that depends on it. Landing → Cloudflare Pages on push. Nightly → eval suite on the free-model allow-list + one paid model (D-121).
 
-Observability: pino JSON → stdout (rotated), Sentry free tier, admin dashboard page reading job and LLM-call tables, scheduled alerts (failure rate > 20%/h, oldest queued > 15 min, disk > 80%, backup failed, key-validation failure spike).
+Observability: pino JSON → stdout (rotated), Sentry free tier, admin UI reading user/job/stage/queue tables, scheduled alerts (failure rate > 20%/h, oldest queued > 15 min, disk > 80%, backup failed, key-validation failure spike).
 
 ## 12. When to split further
 

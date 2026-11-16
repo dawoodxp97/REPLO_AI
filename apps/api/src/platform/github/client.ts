@@ -130,7 +130,10 @@ export function createGithubRest(deps: GithubRestDeps = {}): GithubRest {
 
   return {
     async request(path, schema, { token, method = 'GET' } = {}) {
-      const response = unwrapResponse(await send(path, { method, token, timeoutMs: REQUEST_TIMEOUT_MS }), path)
+      const response = unwrapResponse(
+        await send(path, { method, token, timeoutMs: REQUEST_TIMEOUT_MS }),
+        path,
+      )
       if (!response) return undefined
       const parsed = schema.safeParse(await response.json())
       if (!parsed.success) throw new GithubApiError(502, path)

@@ -12,8 +12,7 @@ import {
 import { CircleAlert } from 'lucide-react'
 import { DescriptionItem } from '@/components/description-item'
 import { JobStatusBadge } from '@/features/jobs/job-status-badge'
-import { formatDateTime, formatMicros } from '@/lib/format'
-import { OperatorLlmCallsTable } from './operator-llm-calls-table'
+import { formatDateTime } from '@/lib/format'
 import { OperatorStagesTable } from './operator-stages-table'
 
 export function OperatorJobDetailView({ detail }: { detail: OperatorJobDetail }) {
@@ -52,9 +51,6 @@ export function OperatorJobDetailView({ detail }: { detail: OperatorJobDetail })
             <DescriptionItem label="Progress" className="tabular font-mono">
               {job.progress}%
             </DescriptionItem>
-            <DescriptionItem label="Spent" className="tabular font-mono">
-              {formatMicros(job.spentMicros)} of {formatMicros(job.budgetMicros)}
-            </DescriptionItem>
             <DescriptionItem label="Created">{formatDateTime(job.createdAt)}</DescriptionItem>
             <DescriptionItem label="Finished">
               {job.finishedAt ? formatDateTime(job.finishedAt) : '—'}
@@ -64,7 +60,6 @@ export function OperatorJobDetailView({ detail }: { detail: OperatorJobDetail })
       </Card>
 
       <OperatorStagesTable stages={detail.stages} />
-      <OperatorLlmCallsTable calls={detail.llmCalls} />
     </div>
   )
 }

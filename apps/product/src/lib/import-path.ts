@@ -1,6 +1,6 @@
 import type { RepositorySource } from '@replo/contracts'
 
-export const NEW_TUTORIAL_LABEL = 'New tutorial'
+export const NEW_COURSE_LABEL = 'New course'
 
 const REPO_PARAM = /^[\w.-]+\/[\w.-]+$/
 

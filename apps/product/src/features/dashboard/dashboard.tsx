@@ -1,7 +1,7 @@
 'use client'
 
 import { Skeleton } from '@replo/ui'
-import { NewTutorialAction } from '@/components/new-tutorial-action'
+import { NewCourseAction } from '@/components/new-course-action'
 import { PageHeader } from '@/components/page-header'
 import { QueryBoundary } from '@/components/query-boundary'
 import { GettingStarted } from './getting-started'
@@ -11,7 +11,7 @@ import { ReadingStats } from './reading-stats'
 import { RecentActivity } from './recent-activity'
 import { RepositoryShortlist } from './repository-shortlist'
 import { ResumeCard } from './resume-card'
-import { TutorialShelf } from './tutorial-shelf'
+import { CourseShelf } from './course-shelf'
 import { useDashboardSummary } from './use-dashboard'
 import { WorkspaceCard } from './workspace-card'
 
@@ -22,8 +22,8 @@ export function Dashboard() {
     <div className="space-y-8">
       <PageHeader
         title="Home"
-        description="Pick up where you left off, or start a tutorial for a new repository."
-        action={<NewTutorialAction />}
+        description="Pick up where you left off, or start a course for a new repository."
+        action={<NewCourseAction />}
       />
 
       <QueryBoundary
@@ -37,7 +37,7 @@ export function Dashboard() {
             <div className="min-w-0 space-y-8">
               {data.resume ? <ResumeCard resume={data.resume} /> : null}
               <JobsInFlight jobs={data.jobsInFlight} />
-              {data.counts.total === 0 ? <GettingStarted /> : <TutorialShelf />}
+              {data.counts.total === 0 ? <GettingStarted /> : <CourseShelf />}
               <RecentActivity />
             </div>
             <aside aria-label="Workspace summary" className="space-y-4">

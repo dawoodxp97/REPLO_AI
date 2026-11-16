@@ -11,7 +11,7 @@ import { operatorRouter } from './modules/operator/operator.router'
 import { repositoriesRouter } from './modules/repositories/repositories.router'
 import { searchRouter } from './modules/search/search.router'
 import { settingsRouter } from './modules/settings/settings.router'
-import { tutorialsRouter } from './modules/tutorials/tutorials.router'
+import { coursesRouter } from './modules/courses/courses.router'
 import { os } from './orpc'
 
 export const router = os.router({
@@ -22,7 +22,7 @@ export const router = os.router({
   models: modelsRouter,
   repositories: repositoriesRouter,
   jobs: jobsRouter,
-  tutorials: tutorialsRouter,
+  courses: coursesRouter,
   learning: learningRouter,
   settings: settingsRouter,
   notifications: notificationsRouter,

@@ -5,12 +5,10 @@ import {
   formatDate,
   formatDateTime,
   formatLatency,
-  formatMicros,
   formatRepoName,
   shortSha,
   formatMinutes,
   formatPercent,
-  formatUsd,
 } from './format'
 
 describe('formatBytes', () => {
@@ -21,20 +19,6 @@ describe('formatBytes', () => {
   it('keeps one decimal below ten units and rounds above', () => {
     expect(formatBytes(1536)).toBe('1.5 KB')
     expect(formatBytes(50 * 1024 * 1024)).toBe('50 MB')
-  })
-})
-
-describe('formatUsd', () => {
-  it('shows cents for ordinary amounts', () => {
-    expect(formatUsd(2)).toBe('$2.00')
-  })
-
-  it('keeps precision for sub-cent estimates', () => {
-    expect(formatUsd(0.0042)).toBe('$0.0042')
-  })
-
-  it('shows nothing spent as whole cents', () => {
-    expect(formatUsd(0)).toBe('$0.00')
   })
 })
 
@@ -69,17 +53,6 @@ describe('formatPercent', () => {
   it('rounds a ratio to a whole percent', () => {
     expect(formatPercent(0.333)).toBe('33%')
     expect(formatPercent(1)).toBe('100%')
-  })
-})
-
-describe('formatMicros', () => {
-  it('converts micro-USD to dollars', () => {
-    expect(formatMicros(1_500_000)).toBe('$1.50')
-    expect(formatMicros(0)).toBe('$0.00')
-  })
-
-  it('keeps four decimals for sub-cent amounts', () => {
-    expect(formatMicros(2_500)).toBe('$0.0025')
   })
 })
 

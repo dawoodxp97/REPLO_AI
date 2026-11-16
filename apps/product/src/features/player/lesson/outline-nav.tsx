@@ -1,13 +1,13 @@
-import type { LessonStatus, TutorialOverviewDto } from '@replo/contracts'
+import type { LessonStatus, CourseOverviewDto } from '@replo/contracts'
 import { cn } from '@replo/ui'
 import { Check, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { ROW_LINK_CLASS } from '@/components/row-link'
-import type { TutorialLinks } from '@/lib/tutorial-paths'
+import type { CourseLinks } from '@/lib/course-paths'
 
 export interface OutlineNavProps {
-  links: TutorialLinks
-  outline: TutorialOverviewDto['outline']
+  links: CourseLinks
+  outline: CourseOverviewDto['outline']
   activeLessonKey: string
   lessonStatus: Readonly<Record<string, LessonStatus | undefined>>
 }

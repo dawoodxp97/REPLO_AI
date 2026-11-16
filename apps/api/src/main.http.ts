@@ -5,8 +5,6 @@ import { RPCHandler } from '@orpc/server/fastify'
 import Fastify from 'fastify'
 import { createDomainServices, createServices, vaultFrom } from './composition'
 import { registerJobEventsRoute } from './modules/jobs/job-events.route'
-import { createGithubWebhookService } from './modules/github/github.webhook.service'
-import { registerGithubWebhook } from './modules/github/github.webhook.route'
 import { registerGithubSetup } from './modules/github/github.setup.route'
 import { registerAuthRoutes } from './modules/identity/auth.route'
 import { createOAuthClients } from './modules/identity/oauth'
@@ -37,7 +35,6 @@ const vault = vaultFrom(config)
 const oauth = createOAuthClients(config)
 const domain = createDomainServices({ config, db, queue: pgBossQueue(boss), vault })
 const services = createServices({ config, db, domain, oauth, vault })
-const githubWebhooks = createGithubWebhookService({ db, sink: domain.repositoryChanges })
 const secureCookies = config.NODE_ENV === 'production'
 const sessionCookie = createSessionCookie({
   secure: secureCookies,
@@ -58,7 +55,7 @@ await app.register(rateLimit, { max: GLOBAL_REQUESTS_PER_MINUTE, timeWindow: '1 
 
 registerGuards(app, {
   productOrigin: config.PRODUCT_ORIGIN,
-  exemptFromOrigin: ['/webhooks/github'],
+  exemptFromOrigin: [],
   rules: buildRateRules({
     userIdOf: async (request) =>
       (await sessionFromRequest(services.auth, request))?.user.id ?? null,
@@ -83,7 +80,6 @@ registerAuthRoutes(app, {
   apiPublicUrl: config.API_PUBLIC_URL,
   secure: secureCookies,
 })
-registerGithubWebhook(app, { secret: config.GITHUB_WEBHOOK_SECRET, webhooks: githubWebhooks, log })
 registerGithubSetup(app, {
   auth: services.auth,
   identity: services.identity,
@@ -98,8 +94,10 @@ registerNotificationsStream(app, {
 })
 
 await app.register(async (scope) => {
-  scope.addContentTypeParser('*', { parseAs: 'buffer', bodyLimit: BODY_LIMIT_BYTES }, (_req, _body, done) =>
-    done(null, undefined),
+  scope.addContentTypeParser(
+    '*',
+    { parseAs: 'buffer', bodyLimit: BODY_LIMIT_BYTES },
+    (_req, _body, done) => done(null, undefined),
   )
   const handler = new RPCHandler(router)
 

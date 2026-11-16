@@ -1,4 +1,4 @@
-import type { StageContext } from '../../../worker/generate-tutorial'
+import type { StageContext } from '../../../worker/generate-course'
 import { dataFiles, rankedPaths } from '../prompt-inputs'
 import { SummariesDraft } from '../drafts'
 import type { SourceIndex } from '../grounding/source-index'

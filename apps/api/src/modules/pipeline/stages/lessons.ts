@@ -1,4 +1,4 @@
-import type { StageContext } from '../../../worker/generate-tutorial'
+import type { StageContext } from '../../../worker/generate-course'
 import { JobError } from '../../../worker/errors'
 import { dataFiles, fallbackFocusPaths, focusPathsOf } from '../prompt-inputs'
 import {

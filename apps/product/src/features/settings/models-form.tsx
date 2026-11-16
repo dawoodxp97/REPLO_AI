@@ -1,6 +1,6 @@
 'use client'
 
-import type { CustomModels, ModelCatalog, ModelPreferences } from '@replo/contracts'
+import type { ModelCatalog, ModelPreferences } from '@replo/contracts'
 import {
   Button,
   Card,
@@ -13,26 +13,15 @@ import {
   FormField,
   NativeSelect,
 } from '@replo/ui'
-import { BudgetInput } from '@/components/budget-input'
 import { InlineError } from '@/components/inline-error'
 import { LLM_PROVIDER_LABELS } from '@/features/keys/providers'
 import { createErrorDescriber } from '@/lib/error-copy'
 import { useModelsForm } from './use-models-form'
 
 const describeModelError = createErrorDescriber({
-  CUSTOM_MODEL_NOT_ALLOWED: 'That model is not verified for this role. Pick another one.',
-  BAD_REQUEST: 'Enter a budget from $0.01 to $50, or leave it empty.',
+  MODEL_NOT_ALLOWED: 'That model is not verified for this product. Pick another one.',
+  BAD_REQUEST: 'Pick a model from the list.',
 })
-
-const ROLES: readonly { role: keyof CustomModels; label: string }[] = [
-  { role: 'planner', label: 'Planner' },
-  { role: 'author', label: 'Author' },
-  { role: 'summarizer', label: 'Summarizer' },
-]
-
-function parsePreset(value: string, catalog: ModelCatalog): ModelPreferences['preset'] {
-  return catalog.presets.find((item) => item.preset === value)?.preset ?? 'balanced'
-}
 
 export function ModelsForm({
   catalog,
@@ -50,61 +39,27 @@ export function ModelsForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Models and budget</CardTitle>
+        <CardTitle>Default model</CardTitle>
         <CardDescription>
-          Replo never picks a model for you silently. Pick a preset, or one verified model per role.
+          The model pre-filled for every new course. You can change it per course at import.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <FieldGroup className="gap-5">
-          <FormField id="preset" label="Preset">
+          <FormField id="default-model" label="Model">
             <NativeSelect
-              id="preset"
-              value={form.preset}
-              onChange={(event) => form.setPreset(parsePreset(event.target.value, catalog))}
+              id="default-model"
+              value={form.model}
+              onChange={(event) => form.setModel(event.target.value)}
             >
-              {catalog.presets.map((item) => (
-                <option key={item.preset} value={item.preset}>
-                  {item.label}
+              <option value="">No default — choose per course</option>
+              {verified.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.label} · {LLM_PROVIDER_LABELS[model.provider]}
+                  {model.free ? ' · free' : ''}
                 </option>
               ))}
             </NativeSelect>
-          </FormField>
-
-          {form.preset === 'custom' ? (
-            <div className="grid gap-5 sm:grid-cols-3">
-              {ROLES.map(({ role, label }) => (
-                <FormField key={role} id={`model-${role}`} label={label}>
-                  <NativeSelect
-                    id={`model-${role}`}
-                    value={form.custom[role] ?? ''}
-                    onChange={(event) => form.setCustomModel(role, event.target.value)}
-                  >
-                    <option value="">Use the preset&apos;s choice</option>
-                    {verified.map((model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.label} · {LLM_PROVIDER_LABELS[model.provider]}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </FormField>
-              ))}
-            </div>
-          ) : null}
-
-          <FormField
-            id="budget"
-            label="Default budget ceiling (USD)"
-            hint="Each job stops at this amount. Leave it empty to use the default."
-            error={form.budgetError}
-          >
-            <BudgetInput
-              id="budget"
-              error={form.budgetError}
-              value={form.budget}
-              onChange={(event) => form.setBudget(event.target.value)}
-              className="max-w-40 font-mono tabular"
-            />
           </FormField>
 
           {save.isError ? <InlineError>{describeModelError(save.error)}</InlineError> : null}
@@ -112,7 +67,7 @@ export function ModelsForm({
       </CardContent>
       <CardFooter className="gap-3">
         <Button disabled={save.isPending} onClick={form.submit}>
-          {save.isPending ? 'Saving…' : 'Save models'}
+          {save.isPending ? 'Saving…' : 'Save model'}
         </Button>
         {save.isSuccess ? (
           <span role="status" className="text-sm text-muted-foreground">

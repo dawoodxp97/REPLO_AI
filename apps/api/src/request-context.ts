@@ -15,9 +15,9 @@ import type { RepositoryLibrary } from './modules/repositories/library.service'
 import type { RepositoryImports } from './modules/repositories/imports.service'
 import type { SearchService } from './modules/search/search.service'
 import type { SettingsService } from './modules/settings/settings.service'
-import type { TutorialCatalog } from './modules/tutorials/catalog.service'
-import type { TutorialContentService } from './modules/tutorials/content.service'
-import type { TutorialManager } from './modules/tutorials/manager.service'
+import type { CourseCatalog } from './modules/courses/catalog.service'
+import type { CourseContentService } from './modules/courses/content.service'
+import type { CourseManager } from './modules/courses/manager.service'
 import type { SessionCookie } from './modules/identity/session'
 import { sessionFromRequest } from './modules/identity/session-request'
 
@@ -31,9 +31,9 @@ export interface Services {
   jobs: JobService
   keys: KeysService
   models: ModelsService
-  tutorialCatalog: TutorialCatalog
-  tutorialContent: TutorialContentService
-  tutorialManager: TutorialManager
+  courseCatalog: CourseCatalog
+  courseContent: CourseContentService
+  courseManager: CourseManager
   learning: LearningService
   settings: SettingsService
   notifications: NotificationsService

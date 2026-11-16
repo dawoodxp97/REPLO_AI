@@ -1,7 +1,7 @@
 import type { DeleteAccountInput } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
 import type { IdentityService } from '../identity/identity.service'
-import type { TutorialManager } from '../tutorials/manager.service'
+import type { CourseManager } from '../courses/manager.service'
 
 export interface AccountService {
   deleteAccount(userId: string, input: DeleteAccountInput): Promise<void>
@@ -10,15 +10,15 @@ export interface AccountService {
 export interface AccountDeps {
   db: Db
   identity: Pick<IdentityService, 'deleteUser'>
-  tutorials: Pick<TutorialManager, 'settleOwnerDeletion'>
+  courses: Pick<CourseManager, 'settleOwnerDeletion'>
 }
 
 export function createAccountService(deps: AccountDeps): AccountService {
-  const { db, identity, tutorials } = deps
+  const { db, identity, courses } = deps
   return {
-    deleteAccount(userId, input) {
+    deleteAccount(userId) {
       return db.transaction(async (tx) => {
-        await tutorials.settleOwnerDeletion(tx, userId, input.publicTutorials)
+        await courses.settleOwnerDeletion(tx, userId)
         await identity.deleteUser(tx, userId)
       })
     },

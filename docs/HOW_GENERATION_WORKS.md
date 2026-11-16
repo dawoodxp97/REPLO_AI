@@ -1,5 +1,7 @@
 # How generation works
 
+> **Target:** [`PRD.md`](../PRD.md) §4.4 and §6. This page is rewritten in R3; do not build against the stage names below.
+
 This page follows one tutorial from the moment a user clicks Generate to the moment the browser shows it as published. Paths are under `apps/api/src`. For the overall shape of the system see [`ARCHITECTURE.md`](../ARCHITECTURE.md); for the tables see [`DATABASE.md`](./DATABASE.md).
 
 Two processes take part. The HTTP process (`main.http.ts`) accepts the request, writes the job and streams progress. The worker process (`main.worker.ts`) does the work. They share nothing but Postgres: `generation_jobs` is the durable record of every run, and pg-boss (also in Postgres) only delivers "please run job X" messages, at least once.

@@ -7,7 +7,7 @@ describe('completionPercent', () => {
     expect(completionPercent(2, 3)).toBe(67)
   })
 
-  it('is zero for an empty tutorial', () => {
+  it('is zero for an empty course', () => {
     expect(completionPercent(0, 0)).toBe(0)
   })
 

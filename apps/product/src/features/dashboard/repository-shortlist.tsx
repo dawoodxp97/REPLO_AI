@@ -61,13 +61,13 @@ export function RepositoryShortlist() {
                         href={importPath(repository)}
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`New tutorial for ${name}`}
+                        aria-label={`New course for ${name}`}
                       />
                     }
                   >
                     <Plus />
                   </TooltipTrigger>
-                  <TooltipContent>New tutorial</TooltipContent>
+                  <TooltipContent>New course</TooltipContent>
                 </Tooltip>
               </li>
             )

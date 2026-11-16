@@ -3,7 +3,7 @@ import { BookOpen, FileText, FolderGit2, type LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { formatRepoName } from '@/lib/format'
-import { lessonPath, tutorialPath } from '@/lib/tutorial-paths'
+import { lessonPath, coursePath } from '@/lib/course-paths'
 
 const HIT_CLASS =
   'flex items-start gap-2.5 rounded-md px-2 py-1.5 hover:bg-accent focus-visible:bg-accent focus-visible:-outline-offset-2'
@@ -48,25 +48,16 @@ function Hit({
 }
 
 export function SearchGroups({ results, onPick }: { results: SearchResults; onPick: () => void }) {
-  const empty =
-    results.tutorials.length + results.lessons.length + results.repositories.length === 0
+  const empty = results.courses.length + results.lessons.length + results.repositories.length === 0
   if (empty) return <p className="px-2 text-muted-foreground">Nothing in your library matches.</p>
 
   return (
     <>
-      {results.tutorials.length > 0 ? (
-        <Group label="Tutorials">
-          {results.tutorials.map((tutorial) => (
-            <Hit
-              key={tutorial.tutorialId}
-              icon={BookOpen}
-              href={tutorialPath(tutorial)}
-              onPick={onPick}
-            >
-              <HitText
-                title={tutorial.title}
-                meta={formatRepoName(tutorial.owner, tutorial.repo)}
-              />
+      {results.courses.length > 0 ? (
+        <Group label="Courses">
+          {results.courses.map((course) => (
+            <Hit key={course.courseId} icon={BookOpen} href={coursePath(course)} onPick={onPick}>
+              <HitText title={course.title} meta={formatRepoName(course.owner, course.repo)} />
             </Hit>
           ))}
         </Group>
@@ -80,7 +71,7 @@ export function SearchGroups({ results, onPick }: { results: SearchResults; onPi
               href={lessonPath(lesson, lesson.chapterKey, lesson.lessonKey)}
               onPick={onPick}
             >
-              <HitText title={lesson.title} meta={lesson.tutorialTitle} />
+              <HitText title={lesson.title} meta={lesson.courseTitle} />
             </Hit>
           ))}
         </Group>

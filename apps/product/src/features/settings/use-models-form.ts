@@ -1,9 +1,8 @@
 'use client'
 
-import type { CustomModels, ModelPreferences } from '@replo/contracts'
+import type { ModelPreferences } from '@replo/contracts'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { BUDGET_ERROR, isValidBudget } from '@/components/budget-input'
 import { orpc } from '@/lib/orpc'
 
 export function useModelsForm(initial: ModelPreferences) {
@@ -13,43 +12,16 @@ export function useModelsForm(initial: ModelPreferences) {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.models.key() }),
     }),
   )
-  const { reset: resetSave } = save
-  const [preset, setPresetValue] = useState(initial.preset)
-  const [budget, setBudgetValue] = useState(
-    initial.defaultBudgetUsd === null ? '' : String(initial.defaultBudgetUsd),
-  )
-  const [budgetError, setBudgetError] = useState<string | undefined>()
-  const [custom, setCustomValue] = useState<CustomModels>(initial.customModels ?? {})
+  const [model, setModelValue] = useState(initial.defaultModel ?? '')
 
-  function setPreset(next: ModelPreferences['preset']) {
-    resetSave()
-    setPresetValue(next)
-  }
-
-  function setBudget(next: string) {
-    resetSave()
-    setBudgetError(undefined)
-    setBudgetValue(next)
-  }
-
-  function setCustomModel(role: keyof CustomModels, modelId: string) {
-    resetSave()
-    setCustomValue((current) => ({ ...current, [role]: modelId === '' ? undefined : modelId }))
+  function setModel(next: string) {
+    save.reset()
+    setModelValue(next)
   }
 
   function submit() {
-    const trimmed = budget.trim()
-    const defaultBudgetUsd = trimmed === '' ? null : Number(trimmed)
-    if (defaultBudgetUsd !== null && !isValidBudget(defaultBudgetUsd)) {
-      setBudgetError(BUDGET_ERROR)
-      return
-    }
-    save.mutate({
-      preset,
-      customModels: preset === 'custom' ? custom : null,
-      defaultBudgetUsd,
-    })
+    save.mutate({ defaultModel: model === '' ? null : model })
   }
 
-  return { preset, budget, budgetError, custom, setPreset, setBudget, setCustomModel, save, submit }
+  return { model, setModel, save, submit }
 }

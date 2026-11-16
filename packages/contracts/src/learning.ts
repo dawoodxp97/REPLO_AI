@@ -7,7 +7,7 @@ export const LessonStatus = z.enum(LESSON_STATUSES)
 export type LessonStatus = z.infer<typeof LessonStatus>
 
 export const ProgressDto = z.object({
-  tutorialId: z.uuid(),
+  courseId: z.uuid(),
   versionId: z.uuid(),
   lessons: z.record(z.string(), LessonStatus),
   completed: NonNegativeInt,
@@ -37,12 +37,12 @@ export type HistoryPage = z.infer<typeof HistoryPage>
 
 export const learningContract = {
   getProgress: oc
-    .route({ method: 'GET', path: '/learning/{tutorialId}/progress' })
-    .input(z.object({ tutorialId: z.uuid(), versionId: z.uuid().optional() }))
+    .route({ method: 'GET', path: '/learning/{courseId}/progress' })
+    .input(z.object({ courseId: z.uuid(), versionId: z.uuid().optional() }))
     .output(ProgressDto),
   history: oc
-    .route({ method: 'GET', path: '/learning/{tutorialId}/history' })
-    .input(pageInput(OffsetCursor).extend({ tutorialId: z.uuid(), versionId: z.uuid().optional() }))
+    .route({ method: 'GET', path: '/learning/{courseId}/history' })
+    .input(pageInput(OffsetCursor).extend({ courseId: z.uuid(), versionId: z.uuid().optional() }))
     .output(HistoryPage),
   markLesson: oc
     .route({ method: 'POST', path: '/learning/lessons' })

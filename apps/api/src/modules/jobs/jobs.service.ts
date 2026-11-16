@@ -1,10 +1,4 @@
-import {
-  MICROS_PER_USD,
-  ModelPreset,
-  type Audience,
-  type GenerationJobDto,
-  type ModelPlan,
-} from '@replo/contracts'
+import type { Audience, GenerationJobDto, ModelPlan } from '@replo/contracts'
 import { CanceledError, StoppedError } from '../../worker/errors'
 import type { Db, Tx } from '../../platform/db/client'
 import { conflict, requireFound } from '../../platform/errors'
@@ -13,26 +7,26 @@ import type { IndexingService } from '../indexing/indexing.service'
 import type { KeyJobs } from '../keys/keys.service'
 import type { NotificationsService } from '../notifications/notifications.service'
 import type { RepositoryLibrary } from '../repositories/library.service'
-import type { VersionAccess } from '../tutorials/version-access.service'
-import {
-  KEY_REMOVED,
-  jobsRepo,
-  type JobRow,
-} from './jobs.repo'
+import type { VersionAccess } from '../courses/version-access.service'
+import { KEY_REMOVED, jobsRepo, type JobRow } from './jobs.repo'
 import { RETRYABLE_STATUSES, TERMINAL_STATUSES, isStatusIn } from '../../platform/job-status'
 import { announceJobEnd } from './job-ending'
-import { GENERATE_TUTORIAL } from '../../worker/job-payload'
+import { GENERATE_COURSE } from '../../worker/job-payload'
 
 const CANCEL_ATTEMPTS = 2
 const SETTLED_STATUSES = [...TERMINAL_STATUSES, 'canceling'] as const
 
 // Sent through the caller's transaction, so the job row and its queue message commit
 // or roll back together (no dual write).
-export const enqueueTutorial = (queue: JobQueue, job: JobRow, tx?: Tx) =>
-  queue.send(GENERATE_TUTORIAL, { jobId: job.id }, {
-    singletonKey: job.id,
-    ...(tx ? { tx } : {}),
-  })
+export const enqueueCourse = (queue: JobQueue, job: JobRow, tx?: Tx) =>
+  queue.send(
+    GENERATE_COURSE,
+    { jobId: job.id },
+    {
+      singletonKey: job.id,
+      ...(tx ? { tx } : {}),
+    },
+  )
 
 export interface NewJob {
   userId: string
@@ -41,7 +35,6 @@ export interface NewJob {
   audience: Audience
   providerKeyId: string
   models: ModelPlan
-  budgetMicros: number
 }
 
 export interface JobServiceDeps {
@@ -49,7 +42,7 @@ export interface JobServiceDeps {
   queue: JobQueue
   indexing: Pick<IndexingService, 'snapshotRef'>
   notifications: NotificationsService
-  tutorials: Pick<VersionAccess, 'refOf'>
+  courses: Pick<VersionAccess, 'refOf'>
   repositories: Pick<RepositoryLibrary, 'describeLinked'>
 }
 
@@ -60,12 +53,12 @@ export interface JobService extends KeyJobs {
   createJob(tx: Tx, input: NewJob): Promise<{ job: JobRow; created: boolean }>
   cancel(userId: string, jobId: string): Promise<GenerationJobDto>
   retry(userId: string, jobId: string): Promise<GenerationJobDto>
-  linkTutorial(tx: Tx, jobId: string, tutorialId: string): Promise<void>
+  linkCourse(tx: Tx, jobId: string, courseId: string): Promise<void>
   fenceRunning(tx: Tx, jobId: string, attempt: number): Promise<void>
 }
 
 export function createJobService(deps: JobServiceDeps): JobService {
-  const { db, queue, indexing, notifications, tutorials, repositories } = deps
+  const { db, queue, indexing, notifications, courses, repositories } = deps
 
   const getOwnedJob: JobService['getOwnedJob'] = async (userId, jobId) => {
     const job = await jobsRepo(db).findOwned(jobId, userId)
@@ -74,8 +67,8 @@ export function createJobService(deps: JobServiceDeps): JobService {
 
   const toDto: JobService['toDto'] = async (job) => {
     const snapshot = requireFound(await indexing.snapshotRef(job.snapshotId), 'Snapshot')
-    const [tutorial, names] = await Promise.all([
-      job.tutorialId ? tutorials.refOf({ userId: job.userId }, job.tutorialId) : undefined,
+    const [course, names] = await Promise.all([
+      job.courseId ? courses.refOf({ userId: job.userId }, job.courseId) : undefined,
       repositories.describeLinked(job.userId, [snapshot.repositoryId]),
     ])
     return {
@@ -84,14 +77,12 @@ export function createJobService(deps: JobServiceDeps): JobService {
       repository: names.get(snapshot.repositoryId) ?? null,
       commitSha: snapshot.commitSha,
       audience: job.audience,
-      preset: ModelPreset.safeParse(job.models.preset).data ?? null,
+      model: job.models.models.author,
       status: job.status,
       stage: job.stage,
       progress: job.progress,
-      budgetUsd: job.budgetMicros / MICROS_PER_USD,
-      spentUsd: job.spentMicros / MICROS_PER_USD,
-      tutorialId: job.tutorialId,
-      tutorial: tutorial ?? null,
+      courseId: job.courseId,
+      course: course ?? null,
       error: job.errorCode ? { code: job.errorCode } : null,
     }
   }
@@ -115,7 +106,7 @@ export function createJobService(deps: JobServiceDeps): JobService {
         return { job: existing, created: false }
       }
       await repo.emit(job.id, { type: 'queued' })
-      await enqueueTutorial(queue, job, tx)
+      await enqueueCourse(queue, job, tx)
       return { job, created: true }
     },
 
@@ -149,15 +140,15 @@ export function createJobService(deps: JobServiceDeps): JobService {
         const reset = await repo.resetForRetry(job.id)
         if (!reset) return undefined
         await repo.emit(reset.id, { type: 'queued' })
-        await enqueueTutorial(queue, reset, tx)
+        await enqueueCourse(queue, reset, tx)
         return reset
       })
       if (!retried) conflict('Job changed state; reload and try again')
       return toDto(retried)
     },
 
-    async linkTutorial(tx, jobId, tutorialId) {
-      await jobsRepo(tx).linkTutorial(jobId, tutorialId)
+    async linkCourse(tx, jobId, courseId) {
+      await jobsRepo(tx).linkCourse(jobId, courseId)
     },
 
     // Publish commits while holding this row lock. If the user canceled, the key was

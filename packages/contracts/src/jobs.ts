@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { Audience, CommitSha, JobRef, ModelPreset, Progress, TutorialRef } from './common'
+import { Audience, CommitSha, JobRef, Progress, CourseRef } from './common'
 
 export const JOB_STATUSES = [
   'queued',
@@ -44,12 +44,10 @@ export const GenerationJobDto = z.object({
   repository: JobRepository.nullable().default(null),
   commitSha: CommitSha,
   audience: Audience.default('intermediate'),
-  preset: ModelPreset.nullable().default(null),
+  model: z.string().nullable().default(null),
   progress: Progress.default(0),
-  budgetUsd: z.number(),
-  spentUsd: z.number(),
-  tutorialId: z.uuid().nullable().default(null),
-  tutorial: TutorialRef.nullable().default(null),
+  courseId: z.uuid().nullable().default(null),
+  course: CourseRef.nullable().default(null),
   error: z.object({ code: z.string() }).nullable().default(null),
 })
 export type GenerationJobDto = z.infer<typeof GenerationJobDto>

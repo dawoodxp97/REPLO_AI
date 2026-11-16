@@ -13,13 +13,11 @@ describe('importBlocker', () => {
     expect(importBlocker({ source: SOURCE })).toBe('Choose the key that pays for the run.')
   })
 
-  it('names a bad budget', () => {
-    expect(importBlocker({ source: SOURCE, keyId: KEY_ID, budgetUsd: -1 })).toBe(
-      'Fix the budget ceiling.',
-    )
+  it('asks for a model once the key is set', () => {
+    expect(importBlocker({ source: SOURCE, keyId: KEY_ID })).toBe('Choose a model.')
   })
 
   it('is clear when the plan is complete', () => {
-    expect(importBlocker({ source: SOURCE, keyId: KEY_ID })).toBeNull()
+    expect(importBlocker({ source: SOURCE, keyId: KEY_ID, modelId: 'claude-haiku-5-5' })).toBeNull()
   })
 })

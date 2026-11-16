@@ -11,7 +11,6 @@ export const RATE_LIMITED_PATHS = {
   keysValidate: ['/rpc/keys/validate'],
   gated: [
     '/rpc/repositories/preflight',
-    '/rpc/repositories/estimate',
     '/rpc/github/listRepos',
     '/rpc/search/own',
     '/rpc/me/deleteAccount',

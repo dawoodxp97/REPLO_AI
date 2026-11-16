@@ -1,5 +1,5 @@
-import type { LearnerLesson, TutorialOverviewDto } from '@replo/contracts'
-import type { TutorialLinks } from '@/lib/tutorial-paths'
+import type { LearnerLesson, CourseOverviewDto } from '@replo/contracts'
+import type { CourseLinks } from '@/lib/course-paths'
 
 export interface LessonPosition {
   chapterKey: string
@@ -8,7 +8,7 @@ export interface LessonPosition {
   lessonTitle: string
 }
 
-export function flattenLessons(outline: TutorialOverviewDto['outline']): LessonPosition[] {
+export function flattenLessons(outline: CourseOverviewDto['outline']): LessonPosition[] {
   return outline.flatMap((chapter) =>
     chapter.lessons.map((lesson) => ({
       chapterKey: chapter.key,
@@ -52,15 +52,15 @@ export function collectReferenceIds(lesson: LearnerLesson): string[] {
 }
 
 export function findChapterKey(
-  outline: TutorialOverviewDto['outline'],
+  outline: CourseOverviewDto['outline'],
   lessonKey: string,
 ): string | undefined {
   return outline.find((chapter) => chapter.lessons.some((lesson) => lesson.key === lessonKey))?.key
 }
 
 export function resolveLessonHref(
-  outline: TutorialOverviewDto['outline'],
-  links: TutorialLinks,
+  outline: CourseOverviewDto['outline'],
+  links: CourseLinks,
   lessonKey: string,
 ): string | null {
   const chapterKey = findChapterKey(outline, lessonKey)

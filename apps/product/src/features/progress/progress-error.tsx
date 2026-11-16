@@ -3,7 +3,7 @@ import { ErrorPanel } from '@/components/error-panel'
 import { LinkButton } from '@/components/link-button'
 import { isApiErrorCode } from '@/lib/api-error'
 
-export type ProgressErrorSubject = 'tutorial' | 'progress'
+export type ProgressErrorSubject = 'course' | 'progress'
 
 export interface ProgressErrorProps {
   subject: ProgressErrorSubject
@@ -20,15 +20,15 @@ function RetryButton({ retry }: { retry: () => unknown }) {
 }
 
 export function ProgressError({ subject, error, retry }: ProgressErrorProps) {
-  if (subject === 'tutorial') {
+  if (subject === 'course') {
     return isApiErrorCode(error, 'NOT_FOUND') ? (
       <ErrorPanel
-        title="This tutorial is not available"
-        description="Check the link, or return to the tutorial overview."
+        title="This course is not available"
+        description="Check the link, or return to the course overview."
       />
     ) : (
       <ErrorPanel
-        title="The tutorial could not be loaded"
+        title="The course could not be loaded"
         description="Check your connection, then try again."
         action={<RetryButton retry={retry} />}
       />
@@ -38,7 +38,7 @@ export function ProgressError({ subject, error, retry }: ProgressErrorProps) {
   return isApiErrorCode(error, 'UNAUTHORIZED') ? (
     <ErrorPanel
       title="Sign in to see your progress"
-      description="Progress is saved to your account for each tutorial."
+      description="Progress is saved to your account for each course."
       action={
         <LinkButton href="/login" variant="outline" size="sm">
           Sign in

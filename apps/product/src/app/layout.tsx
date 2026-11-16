@@ -17,7 +17,7 @@ const serif = Newsreader({
 
 export const metadata: Metadata = {
   title: { default: 'Replo', template: '%s · Replo' },
-  description: 'Grounded, chaptered tutorials for any GitHub repository.',
+  description: 'Grounded, chaptered courses for any GitHub repository.',
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

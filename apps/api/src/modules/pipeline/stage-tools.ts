@@ -1,11 +1,11 @@
 import { ModelPlan, type Stage } from '@replo/contracts'
 import type { z } from 'zod'
-import type { StageContext } from '../../worker/generate-tutorial'
+import type { StageContext } from '../../worker/generate-course'
 import { JobError } from '../../worker/errors'
 import type { Db } from '../../platform/db/client'
 import type { JobService } from '../jobs/jobs.service'
 import type { IndexingService, SnapshotView } from '../indexing/indexing.service'
-import type { TutorialPublisher } from '../tutorials/publisher.service'
+import type { CoursePublisher } from '../courses/publisher.service'
 import { sourceIndexOf } from './prompt-inputs'
 import type { SourceIndex } from './grounding/source-index'
 import { openLlm, type LlmDeps, type LlmSession } from './llm'
@@ -17,8 +17,8 @@ export interface StageDeps {
   indexing: IndexingService
   checkpoints: Checkpoints
   llm: LlmDeps
-  jobs: Pick<JobService, 'linkTutorial' | 'fenceRunning'>
-  tutorials: TutorialPublisher
+  jobs: Pick<JobService, 'linkCourse' | 'fenceRunning'>
+  courses: CoursePublisher
 }
 
 export interface SourceWorkspace {

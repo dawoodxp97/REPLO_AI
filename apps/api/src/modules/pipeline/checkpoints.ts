@@ -1,4 +1,4 @@
-import { TutorialContent, ValidationReport, type Stage } from '@replo/contracts'
+import { CourseContent, ValidationReport, type Stage } from '@replo/contracts'
 import { z } from 'zod'
 import type { Db } from '../../platform/db/client'
 import { checkpointsRepo } from './checkpoints.repo'
@@ -19,7 +19,7 @@ export type StoredRepair = z.infer<typeof StoredRepair>
 export const StoredJudge = z.object({ score: z.number().min(0).max(1) })
 export type StoredJudge = z.infer<typeof StoredJudge>
 
-export const StoredValidation = z.object({ content: TutorialContent, report: ValidationReport })
+export const StoredValidation = z.object({ content: CourseContent, report: ValidationReport })
 export type StoredValidation = z.infer<typeof StoredValidation>
 
 export interface Checkpoints {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { StageContext } from '../../../worker/generate-tutorial'
+import type { StageContext } from '../../../worker/generate-course'
 import type { StageDeps } from '../stage-tools'
 import { runPublish } from './publish'
 
@@ -8,7 +8,7 @@ describe('runPublish', () => {
     const clear = vi.fn(async () => undefined)
     const read = vi.fn()
     const deps = {
-      tutorials: { versionForJob: vi.fn(async () => ({ id: 'version' })) },
+      courses: { versionForJob: vi.fn(async () => ({ id: 'version' })) },
       checkpoints: { clear, read },
     } as unknown as StageDeps
     const ctx = { job: { id: 'job-1' } } as unknown as StageContext

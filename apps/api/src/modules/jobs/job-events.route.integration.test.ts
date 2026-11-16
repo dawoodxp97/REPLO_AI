@@ -1,14 +1,18 @@
 import { randomUUID } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
 import Fastify from 'fastify'
 import { ANALYZER_VERSION } from '@replo/repo-analysis'
 import { eq, inArray } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ModelPlan } from '@replo/contracts'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
-import { generationJobs, jobEvents, repositorySnapshots, repositories } from '../../platform/db/schema'
+import {
+  generationJobs,
+  jobEvents,
+  repositorySnapshots,
+  repositories,
+} from '../../platform/db/schema'
 import type { App } from '../../platform/http'
 import { createLogger } from '../../platform/logger'
 import {
@@ -25,7 +29,6 @@ const ORIGIN = 'http://localhost:7101'
 
 const models: ModelPlan = {
   provider: 'anthropic',
-  preset: 'budget',
   pipeline: 'lite',
   models: {
     planner: 'claude-haiku-5-5',
@@ -33,7 +36,6 @@ const models: ModelPlan = {
     summarizer: null,
     judge: null,
   },
-  budgetMicros: 2_000_000,
 }
 
 describe.skipIf(DATABASE_URL === '')('job events stream against Postgres', () => {
@@ -47,9 +49,7 @@ describe.skipIf(DATABASE_URL === '')('job events stream against Postgres', () =>
     const created = createDb(DATABASE_URL, { max: 4 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     app = Fastify({ loggerInstance: createLogger({ level: 'silent', name: 'test' }) })
     registerJobEventsRoute(app, {
       db,
@@ -103,7 +103,6 @@ describe.skipIf(DATABASE_URL === '')('job events stream against Postgres', () =>
         audience: 'intermediate',
         idempotencyKey: randomUUID(),
         models,
-        budgetMicros: 2_000_000,
       })
       .returning({ id: generationJobs.id })
     return job!.id

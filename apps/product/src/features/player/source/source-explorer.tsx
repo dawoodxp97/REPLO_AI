@@ -1,6 +1,6 @@
 'use client'
 
-import type { TutorialOverviewDto } from '@replo/contracts'
+import type { CourseOverviewDto } from '@replo/contracts'
 import { Skeleton } from '@replo/ui'
 import type { UseQueryResult } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
@@ -8,25 +8,25 @@ import { LinkButton } from '@/components/link-button'
 import { PageHeader } from '@/components/page-header'
 import { QueryBoundary } from '@/components/query-boundary'
 import { shortSha } from '@/lib/format'
-import type { TutorialLinks, TutorialRef } from '@/lib/tutorial-paths'
-import { useTutorialLinks, useTutorialOverview } from '../use-tutorial'
+import type { CourseLinks, CourseRef } from '@/lib/course-paths'
+import { useCourseLinks, useCourseOverview } from '../use-course'
 import { defaultSourcePath, type TreeNode } from './file-tree'
 import { FileTreeList } from './file-tree-list'
 import { NoSourceShown } from './reference-source'
 import { SourceView } from './source-view'
 import { useSourceTree } from './use-source'
 
-export function SourceExplorer({ tutorial }: { tutorial: TutorialRef }) {
+export function SourceExplorer({ course }: { course: CourseRef }) {
   const selectedPath = useSearchParams().get('path')
-  const { shareToken, linkContext, overview } = useTutorialOverview(tutorial)
-  const links = useTutorialLinks(tutorial, linkContext)
+  const { shareToken, linkContext, overview } = useCourseOverview(course)
+  const links = useCourseLinks(course, linkContext)
 
   return (
     <div className="space-y-8">
       <QueryBoundary
         query={overview}
-        errorTitle="This tutorial is not available"
-        errorDescription="Check the link, or return to the tutorial overview."
+        errorTitle="This course is not available"
+        errorDescription="Check the link, or return to the course overview."
         loading={<Skeleton aria-busy="true" className="h-96 w-full" />}
       >
         {(data) => (
@@ -43,8 +43,8 @@ export function SourceExplorer({ tutorial }: { tutorial: TutorialRef }) {
 }
 
 interface ExplorerLayoutProps {
-  overview: TutorialOverviewDto
-  links: TutorialLinks
+  overview: CourseOverviewDto
+  links: CourseLinks
   selectedPath: string | null
   shareToken: string | undefined
 }
@@ -59,13 +59,13 @@ function ExplorerLayout({ overview, links, selectedPath, shareToken }: ExplorerL
         title="Source explorer"
         description={
           <>
-            {overview.tutorial.title}, at commit{' '}
+            {overview.course.title}, at commit{' '}
             <span className="font-mono">{shortSha(overview.commitSha)}</span>.
           </>
         }
         action={
           <LinkButton href={links.overview()} variant="outline" size="sm">
-            Back to the tutorial
+            Back to the course
           </LinkButton>
         }
       />
@@ -94,7 +94,7 @@ function ExplorerLayout({ overview, links, selectedPath, shareToken }: ExplorerL
 
 interface FileTreePanelProps {
   tree: UseQueryResult<TreeNode[]>
-  links: TutorialLinks
+  links: CourseLinks
   shownPath: string | null
 }
 

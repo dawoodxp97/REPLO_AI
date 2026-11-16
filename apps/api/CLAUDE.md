@@ -11,16 +11,16 @@ src/composition.ts     builds every service (`createDomainServices`, `createServ
 src/orpc.ts            `os` (base) and `authed` builders — implement(contract)
 src/router.ts          composes module routers
 src/request-context.ts RequestContext + Services types and `buildRequestContext`
-src/worker/            generate-tutorial handler (stage loop, heartbeat, retry), job-payload (queue names, payload, timeouts), errors, with-timeout
-src/platform/          config (Zod env), db (schema, client, migrate, query-helpers), logger (redaction), crypto/key-vault, errors, http guards, sse
+src/worker/            generate-course handler (stage loop, heartbeat, retry), job-payload (queue names, payload, timeouts), errors, with-timeout
+src/platform/          config (Zod env), db (schema, client, query-helpers), logger (redaction), crypto/key-vault, errors, http guards, sse
 src/modules/jobs/      generation_jobs lifecycle: create/cancel/retry, claim/heartbeat/reaper store, job ending, history, SSE route
 src/modules/pipeline/  stage handlers (summaries → publish), checkpoints, prompt inputs, grounding (pure)
-src/modules/tutorials/ catalog, content (overview/chapter/source), version-access, publisher, manager
+src/modules/courses/  catalog, content (overview/chapter/source), version-access, publisher, manager
 src/modules/<m>/       *.service.ts (public API) · *.router.ts · *.repo.ts (private)
-drizzle/               generated SQL migrations (commit; review)
+db/ddl/                numbered PostgreSQL DDL files, applied manually
 ```
 
-How one tutorial is generated, step by step: [`docs/HOW_GENERATION_WORKS.md`](../../docs/HOW_GENERATION_WORKS.md).
+How one course is generated, step by step: [`docs/HOW_GENERATION_WORKS.md`](../../docs/HOW_GENERATION_WORKS.md).
 
 ## Do / don't
 
@@ -35,10 +35,11 @@ How one tutorial is generated, step by step: [`docs/HOW_GENERATION_WORKS.md`](..
 
 ## Status (see ROADMAP.md)
 
-✅ env/config, logger redaction, key vault, schema + one baseline migration (`0000_baseline`), webhook HMAC + dedupe (installation, repository and push events), SSE route, worker with checkpoint/retry/cancel, `me.get`, `me.deleteAccount` (public-tutorial choice), GitHub App install and listing, `repositories.preflight|list|import|estimate|remove`, `jobs.get|cancel|retry`, ingest and index stages, BYOK keys and model catalogue, notifications writer and reader, settings, search, dashboard, operator read endpoints.
-✅ generation pipeline (B6): summaries, architecture, outline, lessons, validate, publish; checkpoints in `job_checkpoints` (`modules/pipeline/checkpoints.ts`); grounding and one repair per lesson (B7); tutorial library, visibility, share links, delete, report (B8); learning progress, history, quiz (B8).
-✅ unread count over `GET /notifications/stream`; 90-day notification purge; a procedure-wide cross-user sweep (`router.cross-user.integration.test.ts`).
-🟡 still open: a worker-kill chaos run; live verification (GitHub App deliveries, real provider keys, live Google and GitHub sign-in, staging).
+The code carries the implemented backend: config and logging, key vault, one DDL baseline, SSE, worker with checkpoint/retry/cancel, auth including account deletion, GitHub App install and listing, repositories, jobs, ingest and index, BYOK keys and catalogue, notifications, settings, search, dashboard, operator read endpoints, the generation pipeline and learning progress.
+
+[`PRD.md`](../PRD.md) restructures the pipeline and data model: graph-first generation, the `course*` rename, snapshots instead of webhooks, no spend ledger, and the admin surface. R1–R3 in [`ROADMAP.md`](../ROADMAP.md) replace the affected modules; do not add code against the old stage names or a removed feature.
+
+Still open: a worker-kill chaos run; live verification (GitHub App, real provider keys, live Google and GitHub sign-in, staging).
 Rules for new code: grounding (`modules/pipeline/grounding`) stays pure, with no database or network access. Stages reach the database and the model only through the services and the LLM session they are given.
 DB suites (`*.integration.test.ts`) run only with `TEST_DATABASE_URL` set to a disposable Postgres. They truncate shared tables, so parallel runs need separate databases. `vitest.config.ts` runs files serially for that reason.
 
@@ -46,5 +47,5 @@ DB suites (`*.integration.test.ts`) run only with `TEST_DATABASE_URL` set to a d
 
 ```bash
 pnpm --filter @replo/api dev | dev:worker | test | typecheck | lint | build
-pnpm --filter @replo/api db:generate | db:migrate | db:check-drift
+pnpm --filter @replo/api db:setup
 ```

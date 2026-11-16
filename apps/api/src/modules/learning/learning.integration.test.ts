@@ -1,9 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
 import { and, eq, sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { TutorialContent, ValidationReport } from '@replo/contracts'
+import type { CourseContent, ValidationReport } from '@replo/contracts'
 import { ANALYZER_VERSION } from '@replo/repo-analysis'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
@@ -14,8 +13,8 @@ import {
   repositories,
   repositorySnapshots,
 } from '../../platform/db/schema'
-import { createTutorialPublisher, type TutorialPublisher } from '../tutorials/publisher.service'
-import { createVersionAccess } from '../tutorials/version-access.service'
+import { createCoursePublisher, type CoursePublisher } from '../courses/publisher.service'
+import { createVersionAccess } from '../courses/version-access.service'
 import { learningRepo } from './learning.repo'
 import { createLearningService, type LearningService } from './learning.service'
 
@@ -23,7 +22,7 @@ const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 const SHA = 'c'.repeat(40)
 const BLOB = 'b'.repeat(40)
 
-type Chapter = TutorialContent['chapters'][number]
+type Chapter = CourseContent['chapters'][number]
 type Question = NonNullable<Chapter['lessons'][number]['quiz']>[number]
 interface Seed {
   repositoryId: string
@@ -129,8 +128,11 @@ const revisedChapters: Chapter[] = [
   },
 ]
 
-const tutorialContent = (name: string, chapters: Chapter[]): TutorialContent => ({
-  schemaVersion: 1,
+const courseContent = (name: string, chapters: Chapter[]): CourseContent => ({
+  schemaVersion: 2,
+  graph: { nodes: [], edges: [] },
+  tours: [],
+  diagrams: [],
   meta: {
     title: 'Cart tour',
     repo: { owner: 'acme', name, commitSha: SHA },
@@ -147,7 +149,7 @@ const tutorialContent = (name: string, chapters: Chapter[]): TutorialContent => 
 describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () => {
   let db: Db
   let pool: ReturnType<typeof createDb>['pool']
-  let publisher: TutorialPublisher
+  let publisher: CoursePublisher
   let learning: LearningService
   let nextGithubId = 9_300_000
 
@@ -155,12 +157,10 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     const created = createDb(DATABASE_URL, { max: 4 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     await db.execute(sql`truncate table users, repositories restart identity cascade`)
-    publisher = createTutorialPublisher(db)
-    learning = createLearningService({ db, tutorials: createVersionAccess(db) })
+    publisher = createCoursePublisher(db)
+    learning = createLearningService({ db, courses: createVersionAccess(db) })
   })
 
   afterAll(async () => {
@@ -211,7 +211,6 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
         idempotencyKey: randomUUID(),
         models: {
           provider: 'anthropic',
-          preset: 'budget',
           pipeline: 'lite',
           models: {
             planner: 'claude-haiku-5-5',
@@ -219,9 +218,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
             summarizer: null,
             judge: null,
           },
-          budgetMicros: 2_000_000,
         },
-        budgetMicros: 2_000_000,
       })
       .returning({ id: generationJobs.id })
     if (!job) throw new Error('job seed failed')
@@ -237,7 +234,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
         snapshotId: seed.snapshotId,
         jobId,
         audience: 'intermediate',
-        content: tutorialContent(seed.name, chapters),
+        content: courseContent(seed.name, chapters),
         report,
         generator,
       }),
@@ -246,10 +243,10 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
 
   it('counts completed lessons and points at the next unfinished one', async () => {
     const owner = await seedUser()
-    const { tutorialId, versionId } = await publish(owner, await seedRepo(), cartChapters)
+    const { courseId, versionId } = await publish(owner, await seedRepo(), cartChapters)
 
-    expect(await learning.progress(owner, { tutorialId })).toEqual({
-      tutorialId,
+    expect(await learning.progress(owner, { courseId })).toEqual({
+      courseId,
       versionId,
       lessons: {},
       completed: 0,
@@ -260,8 +257,8 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
 
     await learning.markLesson(owner, { versionId, lessonKey: 'map', status: 'completed' })
     await learning.markLesson(owner, { versionId, lessonKey: 'cart', status: 'in_progress' })
-    expect(await learning.progress(owner, { tutorialId, versionId })).toEqual({
-      tutorialId,
+    expect(await learning.progress(owner, { courseId, versionId })).toEqual({
+      courseId,
       versionId,
       lessons: { map: 'completed', cart: 'in_progress' },
       completed: 1,
@@ -272,7 +269,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
 
     await learning.markLesson(owner, { versionId, lessonKey: 'cart', status: 'completed' })
     await learning.markLesson(owner, { versionId, lessonKey: 'checkout', status: 'completed' })
-    expect(await learning.progress(owner, { tutorialId })).toMatchObject({
+    expect(await learning.progress(owner, { courseId })).toMatchObject({
       completed: 3,
       total: 3,
       nextLessonKey: null,
@@ -295,9 +292,9 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     })
 
     const second = await publish(owner, seed, revisedChapters)
-    expect(second.tutorialId).toBe(first.tutorialId)
-    expect(await learning.progress(owner, { tutorialId: second.tutorialId })).toEqual({
-      tutorialId: second.tutorialId,
+    expect(second.courseId).toBe(first.courseId)
+    expect(await learning.progress(owner, { courseId: second.courseId })).toEqual({
+      courseId: second.courseId,
       versionId: second.versionId,
       lessons: { map: 'completed' },
       completed: 1,
@@ -307,7 +304,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     })
     expect(await learning.completionRatio({ userId: owner }, second.versionId)).toBeCloseTo(1 / 3)
     const batched = await learning.completionRatios(owner, [
-      { tutorialId: second.tutorialId, versionId: second.versionId },
+      { courseId: second.courseId, versionId: second.versionId },
     ])
     expect(batched.get(second.versionId)).toBeCloseTo(1 / 3)
   })
@@ -346,7 +343,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
 
   it('grades a quiz answer and keeps the attempts', async () => {
     const owner = await seedUser()
-    const { tutorialId, versionId } = await publish(owner, await seedRepo(), cartChapters)
+    const { courseId, versionId } = await publish(owner, await seedRepo(), cartChapters)
 
     expect(
       await learning.submitQuiz(owner, {
@@ -381,7 +378,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
         { choiceKey: 'true', correct: true },
       ]),
     )
-    expect(await learning.progress(owner, { tutorialId })).toMatchObject({ quizAttempts: 2 })
+    expect(await learning.progress(owner, { courseId })).toMatchObject({ quizAttempts: 2 })
   })
 
   it('totals reading across versions: a lesson finished twice counts once, per user', async () => {
@@ -459,19 +456,19 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     expect(await db.select().from(quizAttempts).where(eq(quizAttempts.userId, owner))).toEqual([])
   })
 
-  it('reports another user private tutorial as not found and leaves it untouched', async () => {
+  it('reports another user private course as not found and leaves it untouched', async () => {
     const owner = await seedUser()
     const stranger = await seedUser()
-    const { tutorialId, versionId } = await publish(owner, await seedRepo(), cartChapters)
+    const { courseId, versionId } = await publish(owner, await seedRepo(), cartChapters)
     await learning.markLesson(owner, { versionId, lessonKey: 'map', status: 'completed' })
 
-    await expect(learning.progress(stranger, { tutorialId })).rejects.toMatchObject({
+    await expect(learning.progress(stranger, { courseId })).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
-    await expect(learning.progress(stranger, { tutorialId, versionId })).rejects.toMatchObject({
+    await expect(learning.progress(stranger, { courseId, versionId })).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
-    await expect(learning.history(stranger, { tutorialId, limit: 25 })).rejects.toMatchObject({
+    await expect(learning.history(stranger, { courseId, limit: 25 })).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
     await expect(
@@ -489,7 +486,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
       }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' })
     expect(await learning.completionRatio({ userId: stranger }, versionId)).toBeNull()
-    const foreign = await learning.completionRatios(stranger, [{ tutorialId, versionId }])
+    const foreign = await learning.completionRatios(stranger, [{ courseId, versionId }])
     expect(foreign.get(versionId)).toBeNull()
     expect(await learning.resumeTarget(stranger)).toBeNull()
 
@@ -499,19 +496,19 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     expect(await db.select().from(quizAttempts).where(eq(quizAttempts.userId, stranger))).toEqual(
       [],
     )
-    expect(await learning.progress(owner, { tutorialId })).toMatchObject({
+    expect(await learning.progress(owner, { courseId })).toMatchObject({
       lessons: { map: 'completed' },
       completed: 1,
     })
   })
 
-  it('reports no completion ratio for a tutorial without lessons', async () => {
+  it('reports no completion ratio for a course without lessons', async () => {
     const owner = await seedUser()
-    const { tutorialId, versionId } = await publish(owner, await seedRepo(), [])
+    const { courseId, versionId } = await publish(owner, await seedRepo(), [])
 
     expect(await learning.completionRatio({ userId: owner }, versionId)).toBeNull()
-    expect(await learning.progress(owner, { tutorialId })).toEqual({
-      tutorialId,
+    expect(await learning.progress(owner, { courseId })).toEqual({
+      courseId,
       versionId,
       lessons: {},
       completed: 0,
@@ -523,7 +520,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
 
   it('pages the lesson history with an offset cursor, newest first', async () => {
     const owner = await seedUser()
-    const { tutorialId, versionId } = await publish(owner, await seedRepo(), cartChapters)
+    const { courseId, versionId } = await publish(owner, await seedRepo(), cartChapters)
     for (const lessonKey of ['map', 'cart', 'checkout']) {
       await learning.markLesson(owner, { versionId, lessonKey, status: 'completed' })
     }
@@ -539,7 +536,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
         .where(and(eq(learningProgress.userId, owner), eq(learningProgress.lessonKey, lessonKey)))
     }
 
-    const firstPage = await learning.history(owner, { tutorialId, limit: 2 })
+    const firstPage = await learning.history(owner, { courseId, limit: 2 })
     expect(firstPage).toEqual({
       items: [
         { lessonKey: 'checkout', title: 'Checkout', status: 'completed', at: stamps.checkout },
@@ -549,7 +546,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     })
 
     const secondPage = await learning.history(owner, {
-      tutorialId,
+      courseId,
       limit: 2,
       cursor: firstPage.nextCursor ?? undefined,
     })
@@ -576,7 +573,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     const second = await publish(owner, seed, revisedChapters)
 
     const page = await learning.history(owner, {
-      tutorialId: second.tutorialId,
+      courseId: second.courseId,
       versionId: second.versionId,
       limit: 25,
     })
@@ -611,7 +608,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
         .where(and(eq(learningProgress.userId, owner), eq(learningProgress.lessonKey, lessonKey)))
     }
     const second = await publish(owner, seed, revisedChapters)
-    const query = { tutorialId: second.tutorialId, versionId: second.versionId }
+    const query = { courseId: second.courseId, versionId: second.versionId }
 
     const firstPage = await learning.history(owner, { ...query, limit: 1 })
     expect(firstPage.items.map((item) => item.lessonKey)).toEqual(['checkout'])
@@ -669,7 +666,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     const second = await publish(owner, seed, revisedChapters)
     await db.insert(learningProgress).values({
       userId: owner,
-      tutorialId: second.tutorialId,
+      courseId: second.courseId,
       versionId: second.versionId,
       lessonKey: 'map',
       status: 'in_progress',
@@ -687,29 +684,29 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
   it('resumes the latest in-progress lesson and skips rows it cannot resolve', async () => {
     const owner = await seedUser()
     const other = await seedUser()
-    const ownerTutorial = await publish(owner, await seedRepo(), cartChapters)
+    const ownerCourse = await publish(owner, await seedRepo(), cartChapters)
     const otherSeed = await seedRepo()
-    const otherTutorial = await publish(other, otherSeed, cartChapters)
+    const otherCourse = await publish(other, otherSeed, cartChapters)
     expect(await learning.resumeTarget(other)).toBeNull()
 
     await learning.markLesson(other, {
-      versionId: otherTutorial.versionId,
+      versionId: otherCourse.versionId,
       lessonKey: 'map',
       status: 'in_progress',
     })
     await db.insert(learningProgress).values([
       {
         userId: other,
-        tutorialId: ownerTutorial.tutorialId,
-        versionId: ownerTutorial.versionId,
+        courseId: ownerCourse.courseId,
+        versionId: ownerCourse.versionId,
         lessonKey: 'cart',
         status: 'in_progress',
         updatedAt: new Date('2031-01-01T00:00:00.000Z'),
       },
       {
         userId: other,
-        tutorialId: otherTutorial.tutorialId,
-        versionId: otherTutorial.versionId,
+        courseId: otherCourse.courseId,
+        versionId: otherCourse.versionId,
         lessonKey: 'retired',
         status: 'in_progress',
         updatedAt: new Date('2032-01-01T00:00:00.000Z'),
@@ -717,8 +714,8 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     ])
 
     expect(await learning.resumeTarget(other)).toEqual({
-      tutorialId: otherTutorial.tutorialId,
-      versionId: otherTutorial.versionId,
+      courseId: otherCourse.courseId,
+      versionId: otherCourse.versionId,
       lessonKey: 'map',
       lessonTitle: 'The map',
       owner: 'acme',
@@ -737,7 +734,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
       ghostKeys.flatMap((lessonKey, index) => [
         {
           userId: owner,
-          tutorialId: first.tutorialId,
+          courseId: first.courseId,
           versionId: first.versionId,
           lessonKey,
           status: 'completed' as const,
@@ -746,7 +743,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
         },
         {
           userId: owner,
-          tutorialId: second.tutorialId,
+          courseId: second.courseId,
           versionId: second.versionId,
           lessonKey,
           status: 'in_progress' as const,
@@ -756,7 +753,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     )
     await db.insert(learningProgress).values({
       userId: owner,
-      tutorialId: second.tutorialId,
+      courseId: second.courseId,
       versionId: second.versionId,
       lessonKey: 'recap',
       status: 'in_progress',
@@ -779,7 +776,7 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     const now = new Date()
     await learningRepo(db).upsert({
       userId: owner,
-      tutorialId: version.tutorialId,
+      courseId: version.courseId,
       versionId: version.versionId,
       lessonKey: 'map',
       status: 'in_progress',

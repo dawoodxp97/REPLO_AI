@@ -5,7 +5,7 @@ export function invalidateGenerationQueries(queryClient: QueryClient): Promise<u
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: orpc.dashboard.key() }),
     queryClient.invalidateQueries({ queryKey: orpc.repositories.list.key() }),
-    queryClient.invalidateQueries({ queryKey: orpc.tutorials.list.key() }),
+    queryClient.invalidateQueries({ queryKey: orpc.courses.list.key() }),
     queryClient.invalidateQueries({ queryKey: orpc.notifications.key() }),
   ])
 }

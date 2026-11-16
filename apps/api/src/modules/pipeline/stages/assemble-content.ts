@@ -1,12 +1,12 @@
 import {
   CONTENT_SCHEMA_VERSION,
-  TutorialContent,
+  CourseContent,
   type Audience,
   type DiagramBlock,
   type SourceRef,
 } from '@replo/contracts'
 import type { ArchitectureDraft, OutlineDraft } from '../drafts'
-import type { GroundedDraft, GroundedTutorial } from './ground-chapters'
+import type { GroundedDraft, GroundedCourse } from './ground-chapters'
 
 const MAX_OPEN_QUESTIONS = 12
 
@@ -16,13 +16,13 @@ export interface ContentInputs {
   outline: OutlineDraft
   architecture: ArchitectureDraft
   diagram: DiagramBlock | undefined
-  grounded: GroundedTutorial
+  grounded: GroundedCourse
 }
 
-export function assembleContent(inputs: ContentInputs): TutorialContent {
+export function assembleContent(inputs: ContentInputs): CourseContent {
   const { repo, audience, outline, architecture, diagram, grounded } = inputs
   const { overview, chapters } = grounded
-  return TutorialContent.parse({
+  return CourseContent.parse({
     schemaVersion: CONTENT_SCHEMA_VERSION,
     meta: {
       title: outline.title,
@@ -32,6 +32,9 @@ export function assembleContent(inputs: ContentInputs): TutorialContent {
       prerequisites: outline.prerequisites,
     },
     architecture: diagram ? { diagram, blocks: overview.grounded.lesson.blocks } : undefined,
+    graph: { nodes: [], edges: [] },
+    tours: [],
+    diagrams: [],
     chapters: chapters.map((chapter) => ({
       key: chapter.spec.key,
       title: chapter.spec.title,

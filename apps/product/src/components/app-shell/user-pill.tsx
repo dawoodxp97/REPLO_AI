@@ -18,7 +18,7 @@ import { useThemePreference } from '@/features/session/use-theme-preference'
 import { useWorkspaceSetup, type WorkspaceSetup } from '@/features/session/use-workspace-setup'
 import { THEME_LABELS } from '@/features/settings/preference-labels'
 import { SETTINGS_SECTIONS, settingsPath, type SettingsSection } from '@/features/settings/sections'
-import { capitalize, formatCount } from '@/lib/format'
+import { formatCount } from '@/lib/format'
 import { useSignOut } from './use-sign-out'
 
 const THEME_ICONS: Record<Theme, LucideIcon> = { system: Monitor, light: Sun, dark: Moon }
@@ -32,7 +32,7 @@ function sectionStatus(section: SettingsSection, setup: WorkspaceSetup): string 
       if (setup.githubLinked === undefined) return undefined
       return setup.githubLinked ? 'Connected' : 'Not connected'
     case 'models':
-      return setup.preset ? capitalize(setup.preset) : undefined
+      return setup.defaultModel ? setup.defaultModel : 'No default'
     default:
       return undefined
   }

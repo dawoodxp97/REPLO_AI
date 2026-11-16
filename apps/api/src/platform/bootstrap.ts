@@ -34,7 +34,11 @@ export async function bootstrap(
     onPoolError: (err) => log.error({ err }, 'idle pg client error'),
   })
 
-  const boss = new PgBoss({ max: BOSS_POOL_MAX, ...bossOptions, connectionString: config.DATABASE_URL })
+  const boss = new PgBoss({
+    max: BOSS_POOL_MAX,
+    ...bossOptions,
+    connectionString: config.DATABASE_URL,
+  })
   boss.on('error', (err) => log.error({ err }, 'pg-boss error'))
   await boss.start()
   await declareQueues(boss)

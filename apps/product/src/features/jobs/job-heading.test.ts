@@ -15,15 +15,9 @@ describe('jobTitle', () => {
 })
 
 describe('jobPlan', () => {
-  it('states the preset and the audience', () => {
-    expect(jobPlan({ ...named, preset: 'balanced', audience: 'intermediate' })).toBe(
-      'Balanced preset, written for intermediate readers.',
-    )
-  })
-
-  it('omits an unknown preset', () => {
-    expect(jobPlan({ ...named, preset: null, audience: 'expert' })).toBe(
-      'Written for expert readers.',
+  it('states the audience', () => {
+    expect(jobPlan({ ...named, audience: 'intermediate' })).toBe(
+      'Written for intermediate readers.',
     )
   })
 })

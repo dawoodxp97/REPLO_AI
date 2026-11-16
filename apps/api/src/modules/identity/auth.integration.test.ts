@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
 import { eq, sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { KeyVault } from '../../platform/crypto/key-vault'
 import { authIdentities, sessions, users } from '../../platform/db/auth-schema'
@@ -43,10 +42,13 @@ describe.skipIf(DATABASE_URL === '')('auth against Postgres', () => {
     const created = createDb(DATABASE_URL, { max: 2 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
+    await applyDdl(pool)
+    auth = createAuthService({
+      db,
+      vault,
+      sessions: createSessionService(db),
+      enabled: { google: true, github: true },
     })
-    auth = createAuthService({ db, vault, sessions: createSessionService(db), enabled: { google: true, github: true } })
     identity = createIdentityService({ db, vault })
   })
 

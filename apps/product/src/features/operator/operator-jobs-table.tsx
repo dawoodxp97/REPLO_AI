@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { DataTable, type DataColumn } from '@/components/data-table'
 import { LinkButton } from '@/components/link-button'
 import { JobStatusBadge } from '@/features/jobs/job-status-badge'
-import { formatDateTime, formatMicros } from '@/lib/format'
+import { formatDateTime } from '@/lib/format'
 
 const COLUMNS: readonly DataColumn<OperatorJobRow>[] = [
   {
@@ -29,11 +29,6 @@ const COLUMNS: readonly DataColumn<OperatorJobRow>[] = [
         </span>
       </div>
     ),
-  },
-  {
-    header: 'Spent',
-    cell: (row) => `${formatMicros(row.spentMicros)} of ${formatMicros(row.budgetMicros)}`,
-    className: 'tabular font-mono text-xs whitespace-nowrap',
   },
   {
     header: 'Created',

@@ -29,7 +29,7 @@ export interface NotificationsService {
 }
 
 const MESSAGES: Record<TerminalStatus, { kind: NotificationKind; title: string }> = {
-  succeeded: { kind: 'job_succeeded', title: 'Tutorial ready' },
+  succeeded: { kind: 'job_succeeded', title: 'Course ready' },
   failed: { kind: 'job_failed', title: 'Generation failed' },
   canceled: { kind: 'job_canceled', title: 'Generation canceled' },
 }

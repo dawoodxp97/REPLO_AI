@@ -1,15 +1,14 @@
-import type { TutorialSummaryDto } from '@replo/contracts'
+import type { CourseSummaryDto } from '@replo/contracts'
 import { describe, expect, it } from 'vitest'
 import { applyLibraryFilter, DEFAULT_LIBRARY_FILTER, isFiltering } from './library-filter'
 
-function tutorial(overrides: Partial<TutorialSummaryDto>): TutorialSummaryDto {
+function course(overrides: Partial<CourseSummaryDto>): CourseSummaryDto {
   return {
     id: '00000000-0000-4000-8000-000000000000',
     slug: 'tour',
     title: 'Tour',
     owner: 'acme',
     repo: 'widgets',
-    visibility: 'private',
     audience: 'intermediate',
     currentVersionNo: 1,
     updatedAt: '2026-10-01T00:00:00.000Z',
@@ -18,18 +17,17 @@ function tutorial(overrides: Partial<TutorialSummaryDto>): TutorialSummaryDto {
   }
 }
 
-const cart = tutorial({ title: 'How the cart works', visibility: 'public', progress: 1 })
-const auth = tutorial({
+const cart = course({ title: 'How the cart works', progress: 1 })
+const auth = course({
   title: 'Auth flow',
   repo: 'gateway',
-  visibility: 'link',
   progress: 0.4,
   updatedAt: '2026-11-01T00:00:00.000Z',
 })
-const build = tutorial({ title: 'Build pipeline', updatedAt: '2026-10-15T00:00:00.000Z' })
+const build = course({ title: 'Build pipeline', updatedAt: '2026-10-15T00:00:00.000Z' })
 const ALL = [cart, auth, build]
 
-const titles = (rows: readonly TutorialSummaryDto[]) => rows.map((row) => row.title)
+const titles = (rows: readonly CourseSummaryDto[]) => rows.map((row) => row.title)
 
 describe('applyLibraryFilter', () => {
   it('lists everything, newest first, by default', () => {
@@ -49,10 +47,7 @@ describe('applyLibraryFilter', () => {
     ).toEqual(['Auth flow'])
   })
 
-  it('keeps one visibility and can hide finished tutorials', () => {
-    expect(
-      titles(applyLibraryFilter(ALL, { ...DEFAULT_LIBRARY_FILTER, visibility: 'link' })),
-    ).toEqual(['Auth flow'])
+  it('can hide finished courses', () => {
     expect(
       titles(applyLibraryFilter(ALL, { ...DEFAULT_LIBRARY_FILTER, hideFinished: true })),
     ).toEqual(['Auth flow', 'Build pipeline'])

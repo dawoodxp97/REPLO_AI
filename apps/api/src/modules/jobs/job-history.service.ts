@@ -90,18 +90,6 @@ export function createJobHistory(db: Db): JobHistory {
           attempt: stage.attempt,
           finishedAt: isoOrNull(stage.finishedAt),
         })),
-        llmCalls: detail.calls.map((call) => ({
-          id: call.id,
-          stage: call.stage,
-          provider: call.provider,
-          model: call.model,
-          inputTokens: call.inputTokens,
-          outputTokens: call.outputTokens,
-          costMicros: call.costMicros,
-          latencyMs: call.latencyMs,
-          status: call.status,
-          createdAt: call.createdAt.toISOString(),
-        })),
       }
     },
 
@@ -124,8 +112,6 @@ function toOperatorRow(job: JobRow): OperatorJobRow {
     errorCode: job.errorCode,
     errorMessage: job.errorDetail?.message ?? null,
     attempts: job.attempts,
-    spentMicros: job.spentMicros,
-    budgetMicros: job.budgetMicros,
     createdAt: job.createdAt.toISOString(),
     finishedAt: isoOrNull(job.finishedAt),
   }

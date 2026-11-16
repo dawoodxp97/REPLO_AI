@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ROW_LINK_CLASS } from '@/components/row-link'
-import type { TutorialLinks } from '@/lib/tutorial-paths'
+import type { CourseLinks } from '@/lib/course-paths'
 import { LessonBlocks } from '../blocks/lesson-blocks'
 import { KeyCombo } from '../commands/command-palette'
 import { LESSON_SHORTCUT_HINTS } from '../commands/shortcuts'
@@ -12,7 +12,7 @@ import type { SourceRefMap } from '../source/source-refs'
 import type { LessonPosition } from './lesson-navigation'
 
 export interface LessonBodyProps {
-  links: TutorialLinks
+  links: CourseLinks
   versionId: string
   shareToken?: string
   chapterTitle: string
@@ -88,7 +88,7 @@ export function LessonBody({
 interface LessonNeighbourLinkProps {
   direction: 'previous' | 'next'
   position: LessonPosition | null
-  links: TutorialLinks
+  links: CourseLinks
 }
 
 function LessonNeighbourLink({ direction, position, links }: LessonNeighbourLinkProps) {

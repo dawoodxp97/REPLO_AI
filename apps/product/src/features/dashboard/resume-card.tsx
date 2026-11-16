@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from '@replo/ui'
 import { LinkButton } from '@/components/link-button'
 import { formatRepoName } from '@/lib/format'
-import { tutorialPath } from '@/lib/tutorial-paths'
+import { coursePath } from '@/lib/course-paths'
 
 export function ResumeCard({ resume }: { resume: NonNullable<DashboardSummary['resume']> }) {
   return (
@@ -15,7 +15,7 @@ export function ResumeCard({ resume }: { resume: NonNullable<DashboardSummary['r
           {formatRepoName(resume.owner, resume.repo)}
         </CardDescription>
         <CardAction>
-          <LinkButton href={`${tutorialPath(resume)}?resume`} variant="outline">
+          <LinkButton href={`${coursePath(resume)}?resume`} variant="outline">
             Resume
             <ArrowRight aria-hidden="true" />
           </LinkButton>

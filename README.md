@@ -1,10 +1,10 @@
 # Replo
 
-Grounded, chaptered tutorials for any GitHub repository. Paste a repo and get a sequenced learning path where every explanation links to the exact file and line at a pinned commit, checked by machine before you read it.
+Graph-first understanding for any GitHub repository. Paste a repo and get a knowledge graph, interactive diagrams and a sequenced course where every explanation links to the exact file and line at a pinned commit.
 
 Free for everyone. Bring your own provider key (BYOK) only. Built for individual developers.
 
-> **Status:** the backend (phases B0–B9) and the frontend (F0–F7) are implemented and pass their local tests. The landing site is built, but its policy pages are drafts until they are reviewed. Not yet verified: the GitHub App round trip, real provider keys, staging and production deployment. See [`ROADMAP.md`](./ROADMAP.md) and [`docs/adr/007-byok-only-no-billing.md`](./docs/adr/007-byok-only-no-billing.md).
+> **Status:** Release 1 is in build; the sequence is R0–R9 in [`ROADMAP.md`](./ROADMAP.md). Not yet verified: the GitHub App round trip, real provider keys, staging and production deployment. See [`docs/adr/007-byok-only-no-billing.md`](./docs/adr/007-byok-only-no-billing.md).
 
 ## Contents
 
@@ -63,15 +63,15 @@ openssl rand -base64 32    # KEY_ENCRYPTION_KEY (must decode to exactly 32 bytes
 
 Variables you will most likely change:
 
-| File                      | Variable                                                           | Default                                          | Purpose                                                                     |
-| ------------------------- | ------------------------------------------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------- |
-| `apps/api/.env`           | `DATABASE_URL`                                                     | `postgres://app:app@localhost:5432/replo`        | Postgres connection                                                         |
-| `apps/api/.env`           | `KEY_ENCRYPTION_KEY`                                               | none, you must set it                            | AES-256-GCM key for stored provider keys (base64 of 32 bytes)               |
-| `apps/api/.env`           | `API_PUBLIC_URL`, `PRODUCT_ORIGIN`                                 | `http://localhost:7200`, `http://localhost:7101` | Where the API and the app are served (OAuth callbacks use `API_PUBLIC_URL`) |
-| `apps/api/.env`           | `GOOGLE_CLIENT_*`, `GITHUB_APP_CLIENT_*`                           | empty                                            | Optional, for Google and GitHub sign-in (email and password needs nothing)  |
-| `apps/api/.env`           | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` | empty                                            | Optional, for GitHub App installs and repository webhooks                   |
-| `apps/product/.env.local` | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_URL`, `API_INTERNAL_URL`   | local ports                                      | Used at build time (`NEXT_PUBLIC_*`) and at runtime (`API_INTERNAL_URL`)    |
-| `apps/landing/.env.local` | `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`                      | local ports                                      | Links to the app and the canonical site URL                                 |
+| File                      | Variable                                                         | Default                                          | Purpose                                                                     |
+| ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------- |
+| `apps/api/.env`           | `DATABASE_URL`                                                   | `postgres://app:app@localhost:5432/replo`        | Postgres connection                                                         |
+| `apps/api/.env`           | `KEY_ENCRYPTION_KEY`                                             | none, you must set it                            | AES-256-GCM key for stored provider keys (base64 of 32 bytes)               |
+| `apps/api/.env`           | `API_PUBLIC_URL`, `PRODUCT_ORIGIN`                               | `http://localhost:7200`, `http://localhost:7101` | Where the API and the app are served (OAuth callbacks use `API_PUBLIC_URL`) |
+| `apps/api/.env`           | `GOOGLE_CLIENT_*`, `GITHUB_APP_CLIENT_*`                         | empty                                            | Optional, for Google and GitHub sign-in (email and password needs nothing)  |
+| `apps/api/.env`           | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`                        | empty                                            | Optional, for GitHub App installs (private repositories)                    |
+| `apps/product/.env.local` | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_APP_URL`, `API_INTERNAL_URL` | local ports                                      | Used at build time (`NEXT_PUBLIC_*`) and at runtime (`API_INTERNAL_URL`)    |
+| `apps/landing/.env.local` | `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`                    | local ports                                      | Links to the app and the canonical site URL                                 |
 
 Never commit a real `.env` file. Only the `.env.example` files belong in git.
 
@@ -87,10 +87,10 @@ This starts PostgreSQL only. The legacy MinIO service is opt-in through the `sto
 
 Without Docker, create a database called `replo` on your local Postgres 17 and set `DATABASE_URL` in `apps/api/.env` to point at it.
 
-Then apply the migrations:
+Then create the application tables:
 
 ```bash
-pnpm db:migrate
+pnpm db:setup
 ```
 
 The worker creates its own `pgboss` schema the first time it starts.
@@ -120,7 +120,7 @@ pnpm dev:api          # API and worker together
 
 Stop everything with `Ctrl+C`. To stop the database: `pnpm infra:down`.
 
-**GitHub sign-in (optional).** The sign-in provider is only enabled when `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` are set. [`docs/DEVELOPING.md`](./docs/DEVELOPING.md#github-sign-in-needed-to-see-the-logged-in-ui) lists the GitHub App settings: the callback URL, the read-only permissions and the webhook secret.
+**GitHub sign-in (optional).** The sign-in provider is only enabled when `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` are set. [`docs/DEVELOPING.md`](./docs/DEVELOPING.md#github-sign-in-needed-to-see-the-logged-in-ui) lists the GitHub App settings: the callback URL and the read-only permissions.
 
 ## Build
 
@@ -204,12 +204,10 @@ pnpm --filter @replo/product test:e2e
 ## Database commands
 
 ```bash
-pnpm db:generate       # create a migration from changes to apps/api/src/platform/db/schema.ts (review the SQL)
-pnpm db:migrate        # apply migrations to the database in apps/api/.env
-pnpm db:check-drift    # check that the migration snapshots match the schema
+pnpm db:setup          # RESET the Compose app/replo public schema, then apply apps/api/db/ddl/*.sql
 ```
 
-Read [`docs/DATABASE.md`](./docs/DATABASE.md) before you change the schema. Breaking changes need an expand, backfill and contract sequence across two releases.
+`pnpm db:setup` deletes all objects in the `public` schema of the Compose `app/replo` database every time it runs. Start the Postgres service first and use only with a disposable development database. For schema changes, update the Drizzle table definitions and add a numbered DDL file; run that new file manually on existing databases. Read [`docs/DATABASE.md`](./docs/DATABASE.md) before changing the schema.
 
 ## Project layout
 
@@ -220,7 +218,7 @@ apps/
   api/            Fastify 5 + oRPC; own auth (sessions, email and password, Google, GitHub); HTTP API and worker  :7200 (worker health :7201)
 packages/
   contracts/      Zod 4 + oRPC contract, the only code the frontends and API share
-  ai/             Model roles, catalogue, budgets and BYOK model resolution
+  ai/             Model roles, catalogue and BYOK model resolution
   repo-analysis/  Source filters, path safety, tree-sitter index
   ui/             Base UI primitives and Tailwind v4 tokens
   config/         Shared TypeScript and ESLint configuration

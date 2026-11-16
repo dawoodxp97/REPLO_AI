@@ -1,6 +1,6 @@
 import { createErrorDescriber } from '@/lib/error-copy'
 
-export const FALLBACK_JOB_FAILURE = 'The job stopped before the tutorial was published.'
+export const FALLBACK_JOB_FAILURE = 'The job stopped before the course was published.'
 
 const JOB_FAILURE_COPY: Readonly<Record<string, string>> = {
   REPO_NOT_ACCESSIBLE:

@@ -1,4 +1,4 @@
-import type { StageContext } from '../../../worker/generate-tutorial'
+import type { StageContext } from '../../../worker/generate-course'
 import { JobError } from '../../../worker/errors'
 import { draftPaths } from '../prompt-inputs'
 import {
@@ -33,7 +33,7 @@ export interface GroundedChapter {
   openQuestions: string[]
 }
 
-export interface GroundedTutorial {
+export interface GroundedCourse {
   overview: GroundedDraft
   chapters: GroundedChapter[]
   outcomes: LessonOutcome[]
@@ -53,7 +53,7 @@ export async function groundChapters(
   ctx: StageContext,
   workspace: StageWorkspace,
   inputs: { architecture: ArchitectureDraft; outline: OutlineDraft },
-): Promise<GroundedTutorial> {
+): Promise<GroundedCourse> {
   const { index, session } = workspace
   const run: GroundingRun = {
     deps,

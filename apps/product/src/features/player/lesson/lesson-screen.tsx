@@ -1,19 +1,19 @@
 'use client'
 
-import type { ChapterDto, LearnerLesson, ProgressDto, TutorialOverviewDto } from '@replo/contracts'
+import type { ChapterDto, LearnerLesson, ProgressDto, CourseOverviewDto } from '@replo/contracts'
 import { useQuery } from '@tanstack/react-query'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState } from 'react'
 import { QuizSection } from '@/features/quiz/quiz-section'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { orpc } from '@/lib/orpc'
-import type { TutorialRef } from '@/lib/tutorial-paths'
+import type { CourseRef } from '@/lib/course-paths'
 import { ShownReferenceContext } from '../blocks/evidence-chips'
 import { CommandPalette } from '../commands/command-palette'
 import { useLessonCommands } from '../commands/use-lesson-commands'
 import { useLessonShortcuts } from '../commands/use-lesson-shortcuts'
 import { ReferenceSource } from '../source/reference-source'
-import { useTutorialLinks } from '../use-tutorial'
+import { useCourseLinks } from '../use-course'
 import { LessonBody } from './lesson-body'
 import { firstResolvedReference, nextReference } from './lesson-navigation'
 import { OutlineNav } from './outline-nav'
@@ -22,8 +22,8 @@ import { useLessonCompletion } from './use-lesson-completion'
 import { useLessonNavigation } from './use-lesson-navigation'
 
 export interface LessonScreenProps {
-  tutorial: TutorialRef
-  overview: TutorialOverviewDto
+  course: CourseRef
+  overview: CourseOverviewDto
   chapterData: ChapterDto
   lesson: LearnerLesson
   progress: ProgressDto | undefined
@@ -32,7 +32,7 @@ export interface LessonScreenProps {
 }
 
 export function LessonScreen({
-  tutorial,
+  course,
   overview,
   chapterData,
   lesson,
@@ -40,7 +40,7 @@ export function LessonScreen({
   shareToken,
   version,
 }: LessonScreenProps) {
-  const links = useTutorialLinks(tutorial, { version, shareToken })
+  const links = useCourseLinks(course, { version, shareToken })
   const reference = useActiveReference()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { quizzesEnabled, autoAdvance } = usePlayerSettings()
@@ -89,7 +89,7 @@ export function LessonScreen({
     <ShownReferenceContext value={shownRefId}>
       <PlayerLayout
         scrollKey={lesson.key}
-        title={overview.tutorial.title}
+        title={overview.course.title}
         overviewHref={links.overview()}
         sourceHref={links.sourceExplorer()}
         onOpenCommands={() => setPaletteOpen(true)}

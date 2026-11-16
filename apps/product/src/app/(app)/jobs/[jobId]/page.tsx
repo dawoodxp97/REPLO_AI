@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { JobPage } from '@/features/jobs/job-page'
 
-export const metadata: Metadata = { title: 'Tutorial generation' }
+export const metadata: Metadata = { title: 'Course generation' }
 
 export default async function JobRoute({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params

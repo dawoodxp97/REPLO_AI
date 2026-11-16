@@ -10,8 +10,7 @@ export function useWorkspaceSetup() {
     user: me.data?.user,
     githubLinked: me.data?.signInMethods.github,
     keys: keys.data,
-    preset: models.data?.preset,
-    defaultBudgetUsd: models.data?.defaultBudgetUsd,
+    defaultModel: models.data?.defaultModel,
   }
 }
 

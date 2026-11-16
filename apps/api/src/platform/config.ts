@@ -37,7 +37,6 @@ const Env = z.object({
   GITHUB_APP_PRIVATE_KEY: optionalString,
   GITHUB_APP_CLIENT_ID: optionalString,
   GITHUB_APP_CLIENT_SECRET: optionalString,
-  GITHUB_WEBHOOK_SECRET: optionalString,
   GITHUB_APP_SLUG: optionalString,
 
   KEY_ENCRYPTION_KEY: z
@@ -61,7 +60,6 @@ const PRODUCTION_REQUIRED = [
   'GITHUB_APP_PRIVATE_KEY',
   'GITHUB_APP_CLIENT_ID',
   'GITHUB_APP_CLIENT_SECRET',
-  'GITHUB_WEBHOOK_SECRET',
 ] as const
 
 const CREDENTIAL_PAIRS = [

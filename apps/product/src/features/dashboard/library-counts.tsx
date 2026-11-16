@@ -1,15 +1,11 @@
 import type { DashboardSummary } from '@replo/contracts'
 import { Card, CardContent, CardHeader, CardTitle } from '@replo/ui'
-import { VISIBILITY_LABEL } from '@/features/library/visibility-options'
 import { formatCount } from '@/lib/format'
 
 export function LibraryCounts({ counts }: { counts: DashboardSummary['counts'] }) {
   const rows = [
-    { label: 'Tutorials', count: counts.total, always: true },
+    { label: 'Courses', count: counts.total, always: true },
     { label: 'Drafts', count: counts.draft, always: false },
-    { label: VISIBILITY_LABEL.public, count: counts.public, always: false },
-    { label: VISIBILITY_LABEL.link, count: counts.link, always: false },
-    { label: VISIBILITY_LABEL.private, count: counts.private, always: false },
   ].filter((row) => row.always || row.count > 0)
 
   return (

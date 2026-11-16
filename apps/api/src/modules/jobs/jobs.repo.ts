@@ -13,7 +13,6 @@ import {
   jobEvents,
   jobStages,
   jobCheckpoints,
-  jobLlmCalls,
   repositorySnapshots,
 } from '../../platform/db/schema'
 
@@ -63,7 +62,10 @@ export const jobsRepo = (db: DbOrTx) => ({
       .from(generationJobs)
       .innerJoin(repositorySnapshots, eq(repositorySnapshots.id, generationJobs.snapshotId))
       .where(
-        and(eq(generationJobs.userId, userId), inArray(repositorySnapshots.repositoryId, repositoryIds)),
+        and(
+          eq(generationJobs.userId, userId),
+          inArray(repositorySnapshots.repositoryId, repositoryIds),
+        ),
       )
       .orderBy(repositorySnapshots.repositoryId, desc(generationJobs.createdAt))
   },
@@ -106,14 +108,6 @@ export const jobsRepo = (db: DbOrTx) => ({
     return row.status === 'canceling' ? 'canceling' : 'ok'
   },
 
-  async addSpend(jobId: string, micros: number): Promise<void> {
-    await db
-      .update(generationJobs)
-      // Added in SQL, never read-then-write: shared counters must be atomic (RULES §4).
-      .set({ spentMicros: sql`${generationJobs.spentMicros} + ${micros}` })
-      .where(eq(generationJobs.id, jobId))
-  },
-
   failForKey(keyId: string) {
     return db
       .update(generationJobs)
@@ -124,7 +118,10 @@ export const jobsRepo = (db: DbOrTx) => ({
         finishedAt: sql`now()`,
       })
       .where(
-        and(eq(generationJobs.providerKeyId, keyId), inArray(generationJobs.status, IN_FLIGHT_STATUSES)),
+        and(
+          eq(generationJobs.providerKeyId, keyId),
+          inArray(generationJobs.status, IN_FLIGHT_STATUSES),
+        ),
       )
       .returning({ id: generationJobs.id, userId: generationJobs.userId })
   },
@@ -268,8 +265,8 @@ export const jobsRepo = (db: DbOrTx) => ({
     return row
   },
 
-  async linkTutorial(jobId: string, tutorialId: string): Promise<void> {
-    await db.update(generationJobs).set({ tutorialId }).where(eq(generationJobs.id, jobId))
+  async linkCourse(jobId: string, courseId: string): Promise<void> {
+    await db.update(generationJobs).set({ courseId }).where(eq(generationJobs.id, jobId))
   },
 
   async resetForRetry(jobId: string): Promise<JobRow | undefined> {
@@ -291,13 +288,19 @@ export const jobsRepo = (db: DbOrTx) => ({
 const HISTORY_DELETE_BATCH = 5000
 
 export const retentionRepo = (db: DbOrTx) => ({
-  async deleteCheckpointsOfFinishedJobs(succeededBefore: Date, closedBefore: Date): Promise<number> {
+  async deleteCheckpointsOfFinishedJobs(
+    succeededBefore: Date,
+    closedBefore: Date,
+  ): Promise<number> {
     const finished = db
       .select({ id: generationJobs.id })
       .from(generationJobs)
       .where(
         or(
-          and(eq(generationJobs.status, 'succeeded'), lt(generationJobs.finishedAt, succeededBefore)),
+          and(
+            eq(generationJobs.status, 'succeeded'),
+            lt(generationJobs.finishedAt, succeededBefore),
+          ),
           and(
             inArray(generationJobs.status, RETRYABLE_STATUSES),
             lt(generationJobs.finishedAt, closedBefore),
@@ -327,23 +330,6 @@ export const retentionRepo = (db: DbOrTx) => ({
           ),
         )
         .returning({ id: jobEvents.id })
-      deleted = rows.length
-    }
-    deleted = HISTORY_DELETE_BATCH
-    while (deleted === HISTORY_DELETE_BATCH) {
-      const rows = await db
-        .delete(jobLlmCalls)
-        .where(
-          inArray(
-            jobLlmCalls.id,
-            db
-              .select({ id: jobLlmCalls.id })
-              .from(jobLlmCalls)
-              .where(lt(jobLlmCalls.createdAt, cutoff))
-              .limit(HISTORY_DELETE_BATCH),
-          ),
-        )
-        .returning({ id: jobLlmCalls.id })
       deleted = rows.length
     }
   },
@@ -412,17 +398,6 @@ export const readModelRepo = (db: DbOrTx) => ({
       .from(jobStages)
       .where(eq(jobStages.jobId, jobId))
       .orderBy(asc(jobStages.finishedAt))
-    const calls = await db
-      .select()
-      .from(jobLlmCalls)
-      .where(eq(jobLlmCalls.jobId, jobId))
-      .orderBy(asc(jobLlmCalls.createdAt))
-    return { job, stages, calls }
-  },
-})
-
-export const llmCallsRepo = (db: DbOrTx) => ({
-  async insert(values: typeof jobLlmCalls.$inferInsert): Promise<void> {
-    await db.insert(jobLlmCalls).values(values)
+    return { job, stages }
   },
 })

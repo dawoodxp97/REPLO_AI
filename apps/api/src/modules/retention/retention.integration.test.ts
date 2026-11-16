@@ -2,9 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { inArray, sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ModelPlan } from '@replo/contracts'
 import { DEFAULT_EXTRACTION_LIMITS, ANALYZER_VERSION } from '@replo/repo-analysis'
@@ -16,10 +15,9 @@ import {
   jobCheckpoints,
   notifications,
   repositories,
-  repositoryPushEvents,
   repositorySnapshots,
-  tutorialVersions,
-  tutorials,
+  courseVersions,
+  courses,
 } from '../../platform/db/schema'
 import type { GithubRest } from '../../platform/github/client'
 import { createJobHistory } from '../jobs/job-history.service'
@@ -27,7 +25,6 @@ import { createSessionService } from '../identity/session.service'
 import { createIndexingService } from '../indexing/indexing.service'
 import { createNotificationsService } from '../notifications/notifications.service'
 import { createCheckpoints } from '../pipeline/checkpoints'
-import { tutorialsRepo } from '../tutorials/tutorials.repo'
 import { createRetentionService } from './retention.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
@@ -37,7 +34,6 @@ const daysBefore = (days: number) => new Date(NOW.getTime() - days * DAY)
 
 const models: ModelPlan = {
   provider: 'anthropic',
-  preset: 'budget',
   pipeline: 'lite',
   models: {
     planner: 'claude-haiku-5-5',
@@ -45,7 +41,6 @@ const models: ModelPlan = {
     summarizer: null,
     judge: null,
   },
-  budgetMicros: 2_000_000,
 }
 
 describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
@@ -57,9 +52,7 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     const created = createDb(DATABASE_URL, { max: 4 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     await db.execute(sql`truncate table users, repositories restart identity cascade`)
     snapshotRoot = await mkdtemp(join(tmpdir(), 'replo-retention-'))
   })
@@ -107,7 +100,6 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
         audience: 'intermediate',
         idempotencyKey: randomUUID(),
         models,
-        budgetMicros: 2_000_000,
         finishedAt,
       })
       .returning({ id: generationJobs.id })
@@ -146,27 +138,23 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     const referencedByJob = await seedSnapshot(repository.id, daysBefore(3))
     const referencedByVersion = await seedSnapshot(repository.id, daysBefore(3))
     const recent = await seedSnapshot(repository.id, daysBefore(0))
-    await db.insert(repositoryPushEvents).values([
-      { repositoryId: repository.id, commitSha: 'old', paths: ['a.ts'], pushedAt: daysBefore(10) },
-      { repositoryId: repository.id, commitSha: 'new', paths: ['a.ts'], pushedAt: daysBefore(1) },
-    ])
 
     const succeeded = await seedJob(owner, referencedByJob, 'succeeded', daysBefore(2))
     const failed = await seedJob(owner, referencedByJob, 'failed', daysBefore(2))
     const freshFailure = await seedJob(owner, recent, 'failed', daysBefore(1))
 
-    const [tutorial] = await db
-      .insert(tutorials)
+    const [course] = await db
+      .insert(courses)
       .values({
         userId: owner,
         repositoryId: repository.id,
         slug: 'shop',
-        title: 'Kept tutorial',
+        title: 'Kept course',
       })
-      .returning({ id: tutorials.id })
-    if (!tutorial) throw new Error('tutorial seed failed')
-    await db.insert(tutorialVersions).values({
-      tutorialId: tutorial.id,
+      .returning({ id: courses.id })
+    if (!course) throw new Error('course seed failed')
+    await db.insert(courseVersions).values({
+      courseId: course.id,
       versionNo: 1,
       snapshotId: referencedByVersion,
       schemaVersion: 1,
@@ -181,8 +169,6 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
         models: {},
         promptVersions: {},
         promptHashes: {},
-        budgetMicros: 0,
-        spentMicros: 0,
       },
     })
 
@@ -212,7 +198,6 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
     const retention = createRetentionService({
       jobs,
       indexing,
-      tutorials: { purgeObsoletePushEvents: () => tutorialsRepo(db).deleteObsoletePushEvents() },
       notifications: createNotificationsService(db),
       sessions: createSessionService(db),
     })
@@ -237,9 +222,6 @@ describe.skipIf(DATABASE_URL === '')('retention against Postgres', () => {
 
     const events = await db.select({ type: jobEvents.type }).from(jobEvents)
     expect(events.map((row) => row.type)).toEqual(['succeeded'])
-
-    const pushes = await db.select({ commitSha: repositoryPushEvents.commitSha }).from(repositoryPushEvents)
-    expect(pushes.map((row) => row.commitSha)).toEqual(['new'])
 
     const snapshots = await db.select({ id: repositorySnapshots.id }).from(repositorySnapshots)
     expect(snapshots.map((row) => row.id).sort()).toEqual(

@@ -1,5 +1,3 @@
-import { MICROS_PER_USD } from '@replo/contracts'
-
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB'] as const
 
 export function formatBytes(bytes: number): string {
@@ -13,25 +11,7 @@ export function formatBytes(bytes: number): string {
   return `${value.toFixed(digits)} ${BYTE_UNITS[unit]}`
 }
 
-const USD_FORMAT = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
-
-const USD_PRECISE_FORMAT = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 4,
-  maximumFractionDigits: 4,
-})
-
 const COUNT_FORMAT = new Intl.NumberFormat('en-US')
-
-export function formatUsd(usd: number): string {
-  return (usd > 0 && usd < 0.01 ? USD_PRECISE_FORMAT : USD_FORMAT).format(usd)
-}
 
 export function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1)
@@ -39,10 +19,6 @@ export function capitalize(value: string): string {
 
 export function formatCount(value: number): string {
   return COUNT_FORMAT.format(value)
-}
-
-export function formatMicros(micros: number): string {
-  return formatUsd(micros / MICROS_PER_USD)
 }
 
 const DATE_TIME_FORMAT = new Intl.DateTimeFormat('en-GB', {

@@ -17,7 +17,7 @@ Edit `apps/api/.env`: set `KEY_ENCRYPTION_KEY` (`openssl rand -base64 32`; it mu
 
 ```bash
 pnpm infra:up        # Postgres :5432 (user/pass/db = app/app/replo) + MinIO :9000
-pnpm db:migrate      # applies apps/api/drizzle/*.sql (pg-boss creates its own `pgboss` schema on first worker start)
+pnpm db:setup        # resets Compose app/replo public schema, then applies apps/api/db/ddl/*.sql
 pnpm dev             # landing :7100 · product :7101 · api :7200 · worker (health :7201)
 ```
 
@@ -45,16 +45,16 @@ For the GitHub App installs and private repositories, see the GitHub notes in `M
 1. Sign in at `http://localhost:7101/login`.
 2. Open **Import**, choose **Public URL**, paste `https://github.com/owner/repo` (no trailing path).
 3. Click **Check repository**. The API calls GitHub’s REST API **without** a token (60 requests/hour per IP on GitHub’s side).
-4. Add a provider key under **Settings → API keys** before **Generate tutorial** (import refuses without a valid key).
+4. Add a provider key under **Settings → API keys** before **Generate course** (import refuses without a valid key).
 5. After import, **Repositories** lists the repo and links to the job.
 
 Repos with readable text (including Python, Go, and similar) pass preflight; empty or binary-only repos are refused. The **My GitHub App repos** tab needs `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_SLUG` in `apps/api/.env`; until then the UI explains that private import is unavailable.
 
-**GitHub App checklist (private repos, later):** read-only Contents + Metadata; webhooks `installation`, `installation_repositories`, `repository`, `push`; setup URL `<API_PUBLIC_URL>/github/setup`; callback URL for OAuth sign-in is separate from the App install flow. Full steps in `MEM.md`.
+**GitHub App checklist (private repos, later):** read-only Contents + Metadata; setup URL `<API_PUBLIC_URL>/github/setup`; callback URL for OAuth sign-in is separate from the App install flow. No webhooks. Full steps in `MEM.md`.
 
 ### What works today
 
-Release 1 backend and product UI are implemented against [`docs/API.md`](./API.md). Auth (email and password, Google and GitHub OAuth), import and preflight, BYOK keys, the generation worker pipeline, the learning player, library, settings, and public tutorial pages are wired to Postgres and pg-boss. Local verification still needs your OAuth apps, a GitHub App for private repos, and real provider keys for live generation. Deploy (O1) is not started in this repo yet.
+Release 1 is in build; the sequence is R0–R9 in [`ROADMAP.md`](./ROADMAP.md). The API and product currently carry the earlier implementation and are being restructured against [`PRD.md`](../PRD.md). Local verification still needs your OAuth apps, a GitHub App for private repos, and real provider keys for live generation. Deploy (R9) is not started in this repo yet.
 
 ## 2. Write an API endpoint (contract-first)
 
@@ -107,16 +107,16 @@ listMine: authed.repositories.listMine.handler(({ input, context }) =>
   context.services.repositories.listMine(context.user.id, input.limit)),
 ```
 
-`authed` rejects anonymous callers (401). Use `os` instead of `authed` for public procedures (like `tutorials.get`). Throw typed errors with `errors.SOME_DOMAIN_ERROR({ data: { reason } })`; use `notFound()` for foreign IDs (404, never 403).
+`authed` rejects anonymous callers (401). Use `os` instead of `authed` for public procedures (like `courses.get`). Throw typed errors with `errors.SOME_DOMAIN_ERROR({ data: { reason } })`; use `notFound()` for foreign IDs (404, never 403).
 
 6. **Test** — contract/service test **plus a cross-user 404 test** for anything touching private data.
 7. **Docs** — update the table in `docs/API.md`.
 
 If you forget to implement a contract procedure, `pnpm typecheck` fails in `apps/api` (the root `os.router({...})` must satisfy the contract).
 
-### Plain REST / SSE / webhooks (outside the contract)
+### Plain REST / SSE (outside the contract)
 
-For streaming, raw bodies or third-party callbacks add a Fastify route like `job-events.route.ts` (SSE) or `github.webhook.route.ts` (raw body → HMAC first). Register it in `main.http.ts`. Webhooks go in their **own encapsulated scope** (`app.register(async scope => …)`) because they replace the body parser.
+For streaming or raw bodies add a Fastify route like `job-events.route.ts` (SSE) or the notification stream. Register it in `main.http.ts`. Raw-body routes go in their **own encapsulated scope** (`app.register(async scope => …)`) because they replace the body parser.
 
 ## 3. Integrate it in the frontend
 
@@ -131,7 +131,7 @@ const importRepo = useMutation(
     onSuccess: (job) => router.push(`/jobs/${job.jobId}`),
   }),
 )
-importRepo.mutate({ source: { kind: 'public_url', url }, keyId, preset: 'budget' })
+importRepo.mutate({ source: { kind: 'public_url', url }, keyId, modelId })
 
 if (importRepo.error && isDefinedError(importRepo.error)) {
   importRepo.error.code // 'REPO_TOO_LARGE' | 'KEY_INVALID' | … (typed from the contract)
@@ -165,8 +165,8 @@ await db.transaction(async (tx) => {
   const existing = await jobsRepo(tx).findByIdempotencyKey(userId, key)   // idempotent
   if (existing) return existing
   const job = await jobsRepo(tx).insert({ … status: 'queued' })
-  const payload = GenerateTutorialPayload.parse({ v: 1, jobId: job.id, userId, snapshotId, audience })
-  await boss.send(GENERATE_TUTORIAL, payload, {
+  const payload = GenerateCoursePayload.parse({ v: 1, jobId: job.id, userId, snapshotId, audience })
+  await boss.send(GENERATE_COURSE, payload, {
     singletonKey: job.id, priority: 0,
     db: { executeSql: (text, values) => tx.$client.query(text, values) },   // pg-boss joins THIS transaction
   })
@@ -184,12 +184,12 @@ Stages are `ingest, index, summaries, architecture, outline, lessons, validate, 
 - throws `JobError(code, retryable)` for failures the worker should classify;
 - writes intermediate results with `deps.outputs.write(jobId, stage, unit, value)`.
 
-The loop in `worker/generate-tutorial.ts` handles claim, heartbeat (15 s), per-stage timeout, cancel (`CanceledError`), retry with backoff (rethrow → pg-boss), terminal failure, `job_events` and progress. LLM stages call the session from `openSession` (budget-guarded, built on `generateStructured` from `@replo/ai`), never a provider SDK directly. Keep heavy logic in a module service and the stage handler thin.
+The loop in `worker/generate-course.ts` handles claim, heartbeat (15 s), per-stage timeout, cancel (`CanceledError`), retry with backoff (rethrow → pg-boss), terminal failure, `job_events` and progress. LLM stages call the session from `openSession` (limit-guarded, built on `generateStructured` from `@replo/ai`), never a provider SDK directly. Keep heavy logic in a module service and the stage handler thin.
 
 ### Add a new job type (e.g. nightly cleanup)
 
 1. Name + versioned payload in `apps/api/src/worker/job-payload.ts` (`v: 1` discriminated union; parse at enqueue **and** dequeue).
-2. Handler in `apps/api/src/worker/<name>.ts` taking `(raw, deps)` so it is testable with fakes (copy `generate-tutorial.test.ts`).
+2. Handler in `apps/api/src/worker/<name>.ts` taking `(raw, deps)` so it is testable with fakes (copy `generate-course.test.ts`).
 3. Register in `apps/api/src/main.worker.ts`:
 
 ```ts
@@ -211,14 +211,14 @@ Tune concurrency with `WORKER_CONCURRENCY` (parallel `work` registrations); keep
 
 ## 5. Other common tasks
 
-| Task                         | How                                                                                                                                                                                                    |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Change the DB**            | Edit `apps/api/src/platform/db/schema.ts` → `pnpm db:generate` → **review the SQL** → `pnpm db:migrate`. Breaking changes: expand → backfill → contract across two deploys. Update `docs/DATABASE.md`. |
-| **Add an env var**           | Add to the Zod schema in `apps/api/src/platform/config.ts`, to `.env.example`, to `TECH_STACK.md`. Process exits at boot if invalid. Never `NEXT_PUBLIC_` a secret.                                    |
-| **Add a module**             | `apps/api/src/modules/<name>/{<name>.repo,<name>.service,<name>.router}.ts`; wire service in `context.ts` + `main.http.ts`; router in `router.ts`. Modules call each other via services only.          |
-| **Add a UI primitive**       | `packages/ui/src/components/*.tsx` (Base UI + cva), export from `index.ts`. Composites belong in `apps/product/src/features`.                                                                          |
-| **Add a page**               | `apps/product/src/app/(app)/<route>/page.tsx` for authed screens; `app/t/...` for public tutorial pages. Landing is static-export only.                                                                |
-| **Add BYOK / use the vault** | `KeyVault.fromEnv(...)`; `seal(key, keyAad(userId, provider))` on `keys.add`, `open(...)` only inside the worker for that job.                                                                         |
-| **Call an LLM**              | Build a `Budget`, get the client with `modelFor({ provider, decryptedKey }, modelId)` (the job's key, decrypted in the worker), then `generateStructured({ role, schema, … })`. Prices/models live in the registry/config.                                       |
-| **Test**                     | `pnpm --filter @replo/<pkg> test`. Unit tests need no DB. DB tests (migrations, links, webhooks, cross-user 404) run only when `TEST_DATABASE_URL` is set: CI sets it on its Postgres service; locally point it at a **disposable** database, because those tests truncate tables. Never call real providers outside `tools/evals`. |
-| **Deploy (later, P8)**       | Landing → Cloudflare Pages (`apps/landing/out`). Product/API/worker → one VPS with Docker Compose + Caddy; `docker compose run --rm migrate` before `up -d`. See `ARCHITECTURE.md §11`.                |
+| Task                         | How                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Change the DB**            | Update the Drizzle table definitions and add a numbered SQL file under `apps/api/db/ddl/`; run that new file manually on existing databases. `pnpm db:setup` resets the configured dev database and replays all DDL. Update `docs/DATABASE.md`.                                                                                            |
+| **Add an env var**           | Add to the Zod schema in `apps/api/src/platform/config.ts`, to `.env.example`, to `TECH_STACK.md`. Process exits at boot if invalid. Never `NEXT_PUBLIC_` a secret.                                                                                                                                                                        |
+| **Add a module**             | `apps/api/src/modules/<name>/{<name>.repo,<name>.service,<name>.router}.ts`; wire service in `context.ts` + `main.http.ts`; router in `router.ts`. Modules call each other via services only.                                                                                                                                              |
+| **Add a UI primitive**       | `packages/ui/src/components/*.tsx` (Base UI + cva), export from `index.ts`. Composites belong in `apps/product/src/features`.                                                                                                                                                                                                              |
+| **Add a page**               | `apps/product/src/app/(app)/<route>/page.tsx` for authed screens; `app/(app)/workspace/...` for the repository workspace. Landing is static-export only.                                                                                                                                                                                   |
+| **Add BYOK / use the vault** | `KeyVault.fromEnv(...)`; `seal(key, keyAad(userId, provider))` on `keys.add`, `open(...)` only inside the worker for that job.                                                                                                                                                                                                             |
+| **Call an LLM**              | Get the client with `modelFor({ provider, decryptedKey }, modelId)` (the job's key, decrypted in the worker), check the per-job limit, then `generateStructured({ role, schema, … })`. Models live in the registry/config.                                                                                                                 |
+| **Test**                     | `pnpm --filter @replo/<pkg> test`. Unit tests need no DB. DB tests (DDL bootstrap, links, graph checks, cross-user 404) run only when `TEST_DATABASE_URL` is set: CI sets it on its Postgres service; locally point it at a **disposable** database, because those tests truncate tables. Never call real providers outside `tools/evals`. |
+| **Deploy (R9)**              | Landing → Cloudflare Pages (`apps/landing/out`). Product/API/worker → one VPS with Docker Compose + Caddy; `docker compose run --rm migrate` before `up -d`. See `ARCHITECTURE.md §11`.                                                                                                                                                    |

@@ -8,24 +8,24 @@ test('home shows the library counts and resumes the last lesson', async ({ page 
   await page.goto('/')
 
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible()
-  await expect(page.getByText('Tutorials', { exact: true })).toBeVisible()
+  await expect(page.getByText('Courses', { exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Resume' })).toHaveAttribute(
     'href',
-    '/tutorials/acme/widgets/cart-flow?resume',
+    '/courses/acme/widgets/cart-flow?resume',
   )
 })
 
-test('home lists tutorials with progress and says what a new tutorial will run on', async ({
+test('home lists courses with progress and says what a new course will run on', async ({
   page,
 }) => {
   await mockRpc(page)
 
   await page.goto('/')
 
-  const shelf = page.getByRole('region', { name: 'Your tutorials' })
+  const shelf = page.getByRole('region', { name: 'Your courses' })
   await expect(shelf.getByRole('link', { name: 'How the cart works' })).toHaveAttribute(
     'href',
-    '/tutorials/acme/widgets/cart-flow',
+    '/courses/acme/widgets/cart-flow',
   )
   await expect(shelf.getByRole('link', { name: 'View library' })).toHaveAttribute(
     'href',
@@ -40,7 +40,7 @@ test('home lists tutorials with progress and says what a new tutorial will run o
   await expect(workspace.getByRole('link', { name: /GitHub/ })).toContainText('Connected')
   await expect(workspace.getByText('1 of 2 correct')).toBeVisible()
   await expect(
-    workspace.getByRole('link', { name: 'New tutorial for acme/widgets' }),
+    workspace.getByRole('link', { name: 'New course for acme/widgets' }),
   ).toHaveAttribute('href', '/import?repo=acme%2Fwidgets')
 })
 
@@ -53,7 +53,7 @@ test('home says a key is missing when none is saved', async ({ page }) => {
     page
       .getByRole('complementary', { name: 'Workspace summary' })
       .getByRole('link', { name: /API key/ }),
-  ).toContainText('Add a key to generate tutorials')
+  ).toContainText('Add a key to generate courses')
 })
 
 test('the account pill shows who is signed in and links to every settings section', async ({
@@ -111,7 +111,7 @@ test('an empty workspace explains setup and offers direct next steps', async ({ 
   await page.goto('/')
 
   const setup = page.getByRole('region', { name: 'Make an unfamiliar codebase feel familiar.' })
-  await expect(setup.getByRole('link', { name: 'New tutorial' })).toHaveAttribute('href', '/import')
+  await expect(setup.getByRole('link', { name: 'New course' })).toHaveAttribute('href', '/import')
   await expect(setup.getByRole('link', { name: 'Manage keys' })).toHaveAttribute(
     'href',
     '/settings/keys',
@@ -130,12 +130,12 @@ test('search finds a lesson in the library and opens it', async ({ page, isMobil
   await expect(page).toHaveURL(/\/learn\/ch1\/l1$/)
 })
 
-test('a lesson hit links to its lesson without a matching tutorial hit', async ({
+test('a lesson hit links to its lesson without a matching course hit', async ({
   page,
   isMobile,
 }) => {
   await mockRpc(page, {
-    'search.own': () => ({ body: { ...SEARCH_RESULTS, tutorials: [] } }),
+    'search.own': () => ({ body: { ...SEARCH_RESULTS, courses: [] } }),
   })
 
   await page.goto('/')
@@ -143,7 +143,7 @@ test('a lesson hit links to its lesson without a matching tutorial hit', async (
 
   await expect(page.getByRole('link', { name: /The button dispatches a thunk/ })).toHaveAttribute(
     'href',
-    '/tutorials/acme/widgets/cart-flow/learn/ch1/l1',
+    '/courses/acme/widgets/cart-flow/learn/ch1/l1',
   )
 })
 

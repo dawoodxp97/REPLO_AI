@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
 import { sql } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from '../../platform/db/test-setup'
 import type { JobStatus, ModelPlan } from '@replo/contracts'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { users } from '../../platform/db/auth-schema'
@@ -9,7 +8,6 @@ import { createDb, type Db } from '../../platform/db/client'
 import {
   generationJobs,
   jobStages,
-  jobLlmCalls,
   operators,
   repositorySnapshots,
   repositories,
@@ -21,7 +19,6 @@ const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 
 const plan: ModelPlan = {
   provider: 'anthropic',
-  preset: 'budget',
   pipeline: 'lite',
   models: {
     planner: 'claude-haiku-5-5',
@@ -29,7 +26,6 @@ const plan: ModelPlan = {
     summarizer: null,
     judge: null,
   },
-  budgetMicros: 2_000_000,
 }
 
 describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
@@ -42,9 +38,7 @@ describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
     const created = createDb(DATABASE_URL, { max: 4 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../../../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     operator = createOperatorService({ db, jobs: createJobHistory(db) })
   })
 
@@ -92,7 +86,6 @@ describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
         status,
         idempotencyKey: randomUUID(),
         models: plan,
-        budgetMicros: plan.budgetMicros,
       })
       .returning({ id: generationJobs.id })
     return job!.id
@@ -137,14 +130,13 @@ describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
           userId: alice,
           status: 'queued',
           pipeline: 'lite',
-          budgetMicros: 2_000_000,
         }),
         expect.objectContaining({ jobId: bobJob, userId: bob, status: 'failed' }),
       ]),
     )
   })
 
-  it('returns a job with its stages and LLM calls to an operator', async () => {
+  it('returns a job with its stages to an operator', async () => {
     const operatorId = await seedOperator()
     const owner = await seedUser()
     const jobId = await seedJob(owner, 'succeeded')
@@ -156,18 +148,6 @@ describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
       attempt: 1,
       finishedAt,
     })
-    await db.insert(jobLlmCalls).values({
-      jobId,
-      stage: 'planner',
-      provider: 'anthropic',
-      model: 'claude-haiku-5-5',
-      inputTokens: 1_000,
-      outputTokens: 200,
-      costMicros: 4_000,
-      latencyMs: 812,
-      status: 'ok',
-    })
-
     const detail = await operator.job(operatorId, jobId)
 
     expect(detail.job).toMatchObject({
@@ -184,18 +164,6 @@ describe.skipIf(DATABASE_URL === '')('operator screen against Postgres', () => {
         attempt: 1,
         finishedAt: finishedAt.toISOString(),
       },
-    ])
-    expect(detail.llmCalls).toEqual([
-      expect.objectContaining({
-        stage: 'planner',
-        provider: 'anthropic',
-        model: 'claude-haiku-5-5',
-        inputTokens: 1_000,
-        outputTokens: 200,
-        costMicros: 4_000,
-        latencyMs: 812,
-        status: 'ok',
-      }),
     ])
   })
 

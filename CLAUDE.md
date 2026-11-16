@@ -20,7 +20,7 @@ pnpm install
 pnpm dev                       # landing :7100, product :7101, api :7200 (+worker)   (needs `pnpm infra:up` for DB)
 pnpm verify                    # lint + typecheck + test + build
 pnpm --filter @replo/<pkg> typecheck|lint|test|build
-pnpm db:generate | db:migrate | db:check-drift
+pnpm db:setup
 ```
 
 Run `pnpm --filter <pkg> typecheck test lint` for what you touched before saying "done", and say what you did **not** verify (e.g. DB-dependent paths: no Docker in some environments).

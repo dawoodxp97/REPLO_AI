@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { LinkButton } from '@/components/link-button'
 import { RecommendedKeyNote } from '@/features/keys/recommended-key-note'
-import { importPath, NEW_TUTORIAL_LABEL } from '@/lib/import-path'
+import { importPath, NEW_COURSE_LABEL } from '@/lib/import-path'
 
 export function GettingStarted() {
   return (
@@ -16,11 +16,11 @@ export function GettingStarted() {
             Make an unfamiliar codebase feel familiar.
           </h2>
           <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-            No tutorials yet. Start with a repository you want to understand, and build a reading
-            path through its architecture and source.
+            No courses yet. Start with a repository you want to understand, and build a reading path
+            through its architecture and source.
           </p>
           <LinkButton href={importPath()}>
-            {NEW_TUTORIAL_LABEL} <ArrowRight aria-hidden="true" />
+            {NEW_COURSE_LABEL} <ArrowRight aria-hidden="true" />
           </LinkButton>
         </div>
         <ol className="divide-y text-sm">

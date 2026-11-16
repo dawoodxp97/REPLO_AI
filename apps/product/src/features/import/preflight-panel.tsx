@@ -60,10 +60,9 @@ function PreflightSummary({ result }: { result: PreflightResult }) {
       <DescriptionItem label="Commit" className="font-mono">
         {shortSha(result.commitSha)}
       </DescriptionItem>
-      <DescriptionItem label="License">{repo.license ?? 'None found'}</DescriptionItem>
       <DescriptionItem label="Files" className="tabular">
         {formatCount(stats.fileCount)} total, {formatCount(stats.indexableFileCount)} readable for
-        tutorials
+        courses
         {stats.sourceFileCount !== stats.indexableFileCount
           ? ` (${formatCount(stats.sourceFileCount)} primary source)`
           : ''}

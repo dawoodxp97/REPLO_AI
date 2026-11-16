@@ -5,13 +5,13 @@ import { decodeOffset, offsetPage } from '../../platform/pagination'
 import type { JobHistory, RecentJob } from '../jobs/job-history.service'
 import type { LearningService } from '../learning/learning.service'
 import type { RepositoryLibrary } from '../repositories/library.service'
-import type { TutorialCatalog } from '../tutorials/catalog.service'
+import type { CourseCatalog } from '../courses/catalog.service'
 
 const IN_FLIGHT_LIMIT = 20
 const MAX_FEED_OFFSET = 5000
 
 export interface DashboardDeps {
-  tutorials: Pick<TutorialCatalog, 'counts' | 'recentPublished'>
+  courses: Pick<CourseCatalog, 'counts' | 'recentPublished'>
   jobs: Pick<JobHistory, 'inFlightFor' | 'recentFor'>
   learning: Pick<LearningService, 'resumeTarget' | 'readingStats'>
   repositories: Pick<RepositoryLibrary, 'describeLinked' | 'linkedIds'>
@@ -29,12 +29,12 @@ type Repository = { owner: string; name: string }
 type RecentEntry = ActivityItem | RecentJob
 
 export function createDashboardService(deps: DashboardDeps): DashboardService {
-  const { tutorials, jobs, learning, repositories } = deps
+  const { courses, jobs, learning, repositories } = deps
 
   return {
     async summary(userId) {
       const [counts, inFlight, resume, reading] = await Promise.all([
-        tutorials.counts(userId),
+        courses.counts(userId),
         jobs.inFlightFor(userId, IN_FLIGHT_LIMIT),
         learning.resumeTarget(userId),
         learning.readingStats(userId),
@@ -71,7 +71,7 @@ export function createDashboardService(deps: DashboardDeps): DashboardService {
       const end = offset + limit
       const repositoryIds = await repositories.linkedIds(userId)
       const [published, recentJobs] = await Promise.all([
-        tutorials.recentPublished(userId, { zone, limit: end + 1, offset: 0 }),
+        courses.recentPublished(userId, { zone, limit: end + 1, offset: 0 }),
         jobs.recentFor(userId, { zone, repositoryIds, limit: end + 1, offset: 0 }),
       ])
       const merged = [...published, ...recentJobs].sort(newestFirst)

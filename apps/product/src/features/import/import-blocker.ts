@@ -3,10 +3,8 @@ import { ImportRepositoryInput } from '@replo/contracts'
 const FIELD_STEPS: Readonly<Record<string, string>> = {
   source: 'Add the repository to teach first.',
   keyId: 'Choose the key that pays for the run.',
-  audience: 'Choose who the tutorial is for.',
-  preset: 'Choose a model preset.',
-  customModels: 'Pick a model for every role.',
-  budgetUsd: 'Fix the budget ceiling.',
+  audience: 'Choose who the course is for.',
+  modelId: 'Choose a model.',
 }
 
 export function importBlocker(values: unknown): string | null {

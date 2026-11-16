@@ -1,18 +1,15 @@
 import { expect, test } from '@playwright/test'
-import { ESTIMATE, JOB, JOB_ID, PREFLIGHT, SAVED_KEY } from './fixtures/recorded'
-import { TUTORIAL_ID } from './fixtures/tutorial'
+import { JOB, JOB_ID, PREFLIGHT, SAVED_KEY } from './fixtures/recorded'
+import { COURSE_ID } from './fixtures/course'
 import { mockEventStream, mockRpc, type RpcCall } from './support/rpc-mock'
 
-test('the PRD journey: import, watch progress, read a lesson, answer its quiz and share', async ({
-  page,
-}) => {
+test('the journey: import, watch progress, read a lesson and answer its quiz', async ({ page }) => {
   const calls: RpcCall[] = []
   await mockRpc(
     page,
     {
       'keys.list': () => ({ body: [SAVED_KEY] }),
       'repositories.preflight': () => ({ body: PREFLIGHT }),
-      'repositories.estimate': () => ({ body: ESTIMATE }),
       'repositories.import': () => ({ body: JOB }),
       'jobs.get': () => ({
         body: {
@@ -20,9 +17,8 @@ test('the PRD journey: import, watch progress, read a lesson, answer its quiz an
           status: 'succeeded',
           stage: 'publish',
           progress: 100,
-          spentUsd: 0.4,
-          tutorialId: TUTORIAL_ID,
-          tutorial: { owner: 'acme', repo: 'widgets', slug: 'cart-flow' },
+          courseId: COURSE_ID,
+          course: { owner: 'acme', repo: 'widgets', slug: 'cart-flow' },
         },
       }),
     },
@@ -36,21 +32,16 @@ test('the PRD journey: import, watch progress, read a lesson, answer its quiz an
   await page.getByLabel('GitHub repository URL').fill('https://github.com/acme/widgets')
   await page.getByRole('button', { name: 'Check repository' }).click()
   await expect(page.getByText('3f9c1a2')).toBeVisible()
-  await page.getByRole('button', { name: 'Generate tutorial' }).click()
+  await page.getByLabel('Model').selectOption('claude-haiku-5-5')
+  await page.getByRole('button', { name: 'Generate course' }).click()
 
   await expect(page).toHaveURL(new RegExp(`/jobs/${JOB_ID}$`))
-  await expect(page.getByRole('link', { name: 'Open the tutorial' })).toBeVisible()
-  await page.getByRole('link', { name: 'Open the tutorial' }).click()
+  await expect(page.getByRole('link', { name: 'Open the course' })).toBeVisible()
+  await page.getByRole('link', { name: 'Open the course' }).click()
 
   await expect(page.getByRole('heading', { level: 1, name: 'How the cart works' })).toBeVisible()
   await page.getByRole('link', { name: 'The button dispatches a thunk' }).first().click()
   await page.getByRole('radio', { name: 'A thunk' }).check()
   await page.getByRole('button', { name: 'Check answer' }).click()
   await expect(page.getByText('Correct.', { exact: true })).toBeVisible()
-
-  await page.goto('/library')
-  await page.getByText('Sharing', { exact: true }).click()
-  await page.getByRole('radio', { name: /Shared by link/ }).check()
-  await expect(page.getByRole('textbox', { name: 'Share link' })).toBeVisible()
-  expect(calls.some((call) => call.path === 'tutorials.createShareLink')).toBe(true)
 })

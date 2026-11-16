@@ -1,8 +1,8 @@
 import { createServer } from 'node:http'
 import { Budget } from '@replo/ai'
 import { createDomainServices, vaultFrom } from './composition'
-import { handleGenerateTutorial } from './worker/generate-tutorial'
-import { GENERATE_TUTORIAL, PURGE_RETENTION, REAP_STALLED_JOBS } from './worker/job-payload'
+import { handleGenerateCourse } from './worker/generate-course'
+import { GENERATE_COURSE, PURGE_RETENTION, REAP_STALLED_JOBS } from './worker/job-payload'
 import { bootstrap } from './platform/bootstrap'
 import { pgBossQueue } from './platform/queue/job-queue'
 import { installShutdown } from './platform/shutdown'
@@ -20,14 +20,13 @@ const services = createDomainServices({
 })
 
 for (let i = 0; i < config.WORKER_CONCURRENCY; i++) {
-  await boss.work(GENERATE_TUTORIAL, { pollingIntervalSeconds: 2 }, async (batch) => {
+  await boss.work(GENERATE_COURSE, { pollingIntervalSeconds: 2 }, async (batch) => {
     for (const job of batch)
-      await handleGenerateTutorial(job.data, {
+      await handleGenerateCourse(job.data, {
         jobs: services.jobRuntime.jobStore,
         log,
         stageHandlers: services.pipeline.stageHandlers,
-        budgetFor: (row) =>
-          new Budget(row.budgetMicros, services.jobRuntime.usageSink, row.spentMicros),
+        budgetFor: () => new Budget(Number.MAX_SAFE_INTEGER, services.jobRuntime.usageSink),
       })
   })
 }

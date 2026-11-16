@@ -1,14 +1,14 @@
-import { STAGES, type GenerationJobDto, type TutorialRef } from '@replo/contracts'
+import { STAGES, type GenerationJobDto, type CourseRef } from '@replo/contracts'
 import { Alert, AlertDescription, AlertTitle } from '@replo/ui'
 import { Ban, CircleAlert, CircleCheck } from 'lucide-react'
 import { LinkButton } from '@/components/link-button'
-import { tutorialPath } from '@/lib/tutorial-paths'
+import { coursePath } from '@/lib/course-paths'
 import { describeJobFailure } from './job-errors'
 import type { JobProgress } from './job-progress-state'
 import { STAGE_LABELS } from './job-status'
 
 export function JobOutcome({ job, progress }: { job: GenerationJobDto; progress: JobProgress }) {
-  if (job.status === 'succeeded') return <TutorialReady tutorial={job.tutorial} />
+  if (job.status === 'succeeded') return <CourseReady course={job.course} />
 
   if (job.status === 'failed') {
     const failedStage = STAGES.find((stage) => progress.stages[stage] === 'failed')
@@ -40,16 +40,16 @@ export function JobOutcome({ job, progress }: { job: GenerationJobDto; progress:
   return null
 }
 
-function TutorialReady({ tutorial }: { tutorial: TutorialRef | null }) {
+function CourseReady({ course }: { course: CourseRef | null }) {
   return (
     <Alert variant="observed">
       <CircleCheck />
-      <AlertTitle>Tutorial ready</AlertTitle>
+      <AlertTitle>Course ready</AlertTitle>
       <AlertDescription>
         <p>Every explanation links to the code it came from.</p>
         <div className="mt-2">
-          {tutorial ? (
-            <LinkButton href={tutorialPath(tutorial)}>Open the tutorial</LinkButton>
+          {course ? (
+            <LinkButton href={coursePath(course)}>Open the course</LinkButton>
           ) : (
             <LinkButton href="/library" variant="outline">
               Open your library

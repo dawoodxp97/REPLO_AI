@@ -1,9 +1,8 @@
 import { randomBytes, randomUUID } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
 import { createRouterClient, ORPCError } from '@orpc/server'
 import { ANALYZER_VERSION } from '@replo/repo-analysis'
 import { inArray } from 'drizzle-orm'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import { applyDdl } from './platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ModelPlan } from '@replo/contracts'
 import { encodeCursor } from './modules/notifications/notifications.cursor'
@@ -16,8 +15,8 @@ import {
   providerKeys,
   repositorySnapshots,
   repositories,
-  tutorials,
-  tutorialVersions,
+  courses,
+  courseVersions,
   userRepositories,
 } from './platform/db/schema'
 import { loadConfig } from './platform/config'
@@ -30,7 +29,6 @@ const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 
 const models: ModelPlan = {
   provider: 'openrouter',
-  preset: 'budget',
   pipeline: 'lite',
   models: {
     planner: 'anthropic/claude-haiku-5-5',
@@ -38,7 +36,6 @@ const models: ModelPlan = {
     summarizer: null,
     judge: null,
   },
-  budgetMicros: 2_000_000,
 }
 
 const generator = {
@@ -53,7 +50,6 @@ const generator = {
   },
   promptVersions: {},
   promptHashes: {},
-  budgetMicros: 2_000_000,
   spentMicros: 0,
 }
 
@@ -88,9 +84,7 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
     const created = createDb(DATABASE_URL, { max: 4 })
     db = created.db
     pool = created.pool
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL('../drizzle', import.meta.url)),
-    })
+    await applyDdl(pool)
     const config = loadConfig({
       NODE_ENV: 'test',
       DATABASE_URL,
@@ -133,41 +127,22 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
       ['keys.delete', () => stranger.keys.delete({ keyId: world.keyId })],
       ['notifications.markRead', () => stranger.notifications.markRead({ id: world.noteId })],
       ['notifications.delete', () => stranger.notifications.delete({ id: world.noteId })],
+      ['courses.get', () => stranger.courses.get({ owner: 'acme', repo: 'shop', slug: 'shop' })],
       [
-        'tutorials.get',
-        () => stranger.tutorials.get({ owner: 'acme', repo: 'shop', slug: 'shop' }),
-      ],
-      [
-        'tutorials.getChapter',
+        'courses.getChapter',
         () =>
-          stranger.tutorials.getChapter({ versionId: world.versionId, chapterKey: 'orientation' }),
+          stranger.courses.getChapter({ versionId: world.versionId, chapterKey: 'orientation' }),
       ],
       [
-        'tutorials.getSource',
-        () => stranger.tutorials.getSource({ versionId: world.versionId, path: 'src/cart.ts' }),
+        'courses.getSource',
+        () => stranger.courses.getSource({ versionId: world.versionId, path: 'src/cart.ts' }),
       ],
-      ['tutorials.sourceTree', () => stranger.tutorials.sourceTree({ versionId: world.versionId })],
-      [
-        'tutorials.setVisibility',
-        () =>
-          stranger.tutorials.setVisibility({ tutorialId: world.tutorialId, visibility: 'public' }),
-      ],
-      [
-        'tutorials.createShareLink',
-        () => stranger.tutorials.createShareLink({ tutorialId: world.tutorialId }),
-      ],
-      [
-        'tutorials.report',
-        () => stranger.tutorials.report({ tutorialId: world.tutorialId, reason: 'spam' }),
-      ],
-      ['tutorials.delete', () => stranger.tutorials.delete({ tutorialId: world.tutorialId })],
-      [
-        'learning.getProgress',
-        () => stranger.learning.getProgress({ tutorialId: world.tutorialId }),
-      ],
+      ['courses.sourceTree', () => stranger.courses.sourceTree({ versionId: world.versionId })],
+      ['courses.delete', () => stranger.courses.delete({ courseId: world.courseId })],
+      ['learning.getProgress', () => stranger.learning.getProgress({ courseId: world.courseId })],
       [
         'learning.history',
-        () => stranger.learning.history({ limit: 25, tutorialId: world.tutorialId }),
+        () => stranger.learning.history({ limit: 25, courseId: world.courseId }),
       ],
       [
         'learning.markLesson',
@@ -241,7 +216,7 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
     const world = await seedWorld(owner.id)
     const leaked = [
       world.repositoryId,
-      world.tutorialId,
+      world.courseId,
       world.jobId,
       world.keyId,
       world.noteId,
@@ -250,7 +225,7 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
 
     const listings = await Promise.all([
       stranger.repositories.list({ limit: 25 }),
-      stranger.tutorials.list({ limit: 25 }),
+      stranger.courses.list({ limit: 25 }),
       stranger.keys.list(),
       stranger.notifications.list({ limit: 25 }),
       stranger.notifications.unreadCount(),
@@ -278,9 +253,6 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
     await expect(anonymous.notifications.list({ limit: 25 })).rejects.toMatchObject({
       code: 'UNAUTHORIZED',
     })
-    await expect(
-      anonymous.tutorials.setVisibility({ tutorialId: world.tutorialId, visibility: 'public' }),
-    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
   })
 
   async function seedWorld(ownerId: string) {
@@ -317,21 +289,20 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
         audience: 'intermediate',
         idempotencyKey: randomUUID(),
         models,
-        budgetMicros: 2_000_000,
       })
       .returning({ id: generationJobs.id })
     const jobId = job!.id
 
-    const [tutorial] = await db
-      .insert(tutorials)
+    const [course] = await db
+      .insert(courses)
       .values({ userId: ownerId, repositoryId, slug: 'shop', title: 'Shop walkthrough' })
-      .returning({ id: tutorials.id })
-    const tutorialId = tutorial!.id
+      .returning({ id: courses.id })
+    const courseId = course!.id
 
     const [version] = await db
-      .insert(tutorialVersions)
+      .insert(courseVersions)
       .values({
-        tutorialId,
+        courseId,
         versionNo: 1,
         snapshotId,
         schemaVersion: 1,
@@ -342,12 +313,12 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
         generator,
         generationJobId: jobId,
       })
-      .returning({ id: tutorialVersions.id })
+      .returning({ id: courseVersions.id })
     const versionId = version!.id
 
     await db.insert(learningProgress).values({
       userId: ownerId,
-      tutorialId,
+      courseId,
       versionId,
       lessonKey: 'map',
       status: 'in_progress',
@@ -369,10 +340,10 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
 
     const [note] = await db
       .insert(notifications)
-      .values({ userId: ownerId, kind: 'job_succeeded', title: 'Tutorial ready', jobId })
+      .values({ userId: ownerId, kind: 'job_succeeded', title: 'Course ready', jobId })
       .returning({ id: notifications.id })
     const noteId = note!.id
 
-    return { repositoryId, jobId, tutorialId, versionId, keyId, noteId }
+    return { repositoryId, jobId, courseId, versionId, keyId, noteId }
   }
 })

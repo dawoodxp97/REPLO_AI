@@ -38,7 +38,7 @@ export function SavedKeys() {
           <Empty>
             <EmptyHeader>
               <EmptyTitle>No keys saved</EmptyTitle>
-              <EmptyDescription>Add a key below to start generating tutorials.</EmptyDescription>
+              <EmptyDescription>Add a key below to start generating courses.</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
@@ -80,7 +80,7 @@ function KeyRow({ keyDto }: { keyDto: KeyDto }) {
         <ConfirmDialog
           triggerLabel="Delete"
           title={`Delete the ${LLM_PROVIDER_LABELS[keyDto.provider]} key?`}
-          description="The key is removed from Replo at once and cannot be recovered. Any tutorial still generating with it will stop and need to be restarted with another key."
+          description="The key is removed from Replo at once and cannot be recovered. Any course still generating with it will stop and need to be restarted with another key."
           confirmLabel="Delete key"
           run={() => remove.mutateAsync({ keyId: keyDto.id })}
           describeError={describeKeyError}
