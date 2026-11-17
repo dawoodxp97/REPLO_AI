@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import { LinkButton } from '@/components/link-button'
 import { PageHeader } from '@/components/page-header'
-import { OperatorJobDetailView } from '@/features/operator/operator-job-detail'
+import { AdminJobDetailView } from '@/features/operator/operator-job-detail'
 import { orNotFound } from '@/features/operator/or-not-found'
 import { serverApi } from '@/lib/server-client'
 
@@ -14,7 +14,7 @@ export default async function OperatorJobPage({ params }: { params: Promise<{ jo
   if (!parsed.success) notFound()
 
   const api = await serverApi()
-  const detail = await orNotFound(api.operator.job({ jobId: parsed.data }))
+  const detail = await orNotFound(api.admin.job({ jobId: parsed.data }))
 
   return (
     <>
@@ -26,7 +26,7 @@ export default async function OperatorJobPage({ params }: { params: Promise<{ jo
           </LinkButton>
         }
       />
-      <OperatorJobDetailView detail={detail} />
+      <AdminJobDetailView detail={detail} />
     </>
   )
 }

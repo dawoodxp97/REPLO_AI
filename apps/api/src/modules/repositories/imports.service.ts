@@ -1,12 +1,14 @@
+import { randomUUID } from 'node:crypto'
 import type {
   GenerationJobDto,
   ImportRepositoryInput,
   ModelPlan,
   PreflightResult,
+  RerunRepositoryInput,
   RepositorySource,
 } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
-import { requireFound } from '../../platform/errors'
+import { notFound, requireFound } from '../../platform/errors'
 import { ok, refused, type Outcome } from '../../platform/outcome'
 import { toRepositoryMetadata } from '../github/github.events'
 import type { JobService } from '../jobs/jobs.service'
@@ -37,6 +39,10 @@ export interface RepositoryImports {
     idempotencyKey: string,
     input: ImportRepositoryInput,
   ): Promise<Outcome<GenerationJobDto, ImportRefusal>>
+  rerun(
+    userId: string,
+    input: RerunRepositoryInput,
+  ): Promise<Outcome<GenerationJobDto, ImportRefusal>>
 }
 
 interface RepositoryImportsDeps {
@@ -46,10 +52,16 @@ interface RepositoryImportsDeps {
   indexing: Pick<IndexingService, 'ensureSnapshot'>
   keys: Pick<KeysService, 'getOwned' | 'validate'>
   models: Pick<ModelsService, 'plan'>
+  repositories: {
+    findIngestSource(
+      userId: string,
+      repositoryId: string,
+    ): Promise<{ owner: string; name: string; isPrivate: boolean; installationId: number | null } | undefined>
+  }
 }
 
 export function createRepositoryImports(deps: RepositoryImportsDeps): RepositoryImports {
-  const { db, preflight, jobs, indexing, keys, models } = deps
+  const { db, preflight, jobs, indexing, keys, models, repositories } = deps
 
   const plan = async (
     userId: string,
@@ -65,6 +77,14 @@ export function createRepositoryImports(deps: RepositoryImportsDeps): Repository
 
     return ok({ plan: modelPlan, resolution: resolution.value })
   }
+
+  const planFor = async (
+    userId: string,
+    keyId: string,
+    modelId: string,
+    source: RepositorySource,
+  ): Promise<Outcome<PlannedRun, PlanRefusal>> =>
+    plan(userId, { source, audience: 'intermediate', keyId, modelId })
 
   return {
     preflight: (userId, source) => preflight.run(userId, source),
@@ -91,6 +111,38 @@ export function createRepositoryImports(deps: RepositoryImportsDeps): Repository
           snapshotId,
           idempotencyKey,
           audience: input.audience,
+          providerKeyId: input.keyId,
+          models: run.plan,
+        })
+      })
+      return ok(await jobs.toDto(job))
+    },
+
+    async rerun(userId, input) {
+      const source = await repositories.findIngestSource(userId, input.repositoryId)
+      if (!source) notFound('Repository')
+
+      const outcome = await planFor(userId, input.keyId, input.modelId, {
+        kind: 'public_url',
+        url: `https://github.com/${source.owner}/${source.name}`,
+      })
+      if (outcome.kind === 'refused') return outcome
+      const verdict = await keys.validate(userId, input.keyId)
+      if (verdict.kind === 'refused') return refused({ code: 'KEY_CHECK_UNAVAILABLE' })
+      if (!verdict.value) return refused({ code: 'KEY_INVALID' })
+      const run = outcome.value
+      const { repo, installationId, commitSha } = run.resolution
+
+      const { job } = await db.transaction(async (tx) => {
+        const repos = repositoriesRepo(tx)
+        const repositoryId = await repos.upsertRepository(toRepositoryMetadata(repo))
+        await repos.linkUser(userId, repositoryId, installationId)
+        const snapshotId = await indexing.ensureSnapshot(tx, { repositoryId, commitSha })
+        return jobs.createJob(tx, {
+          userId,
+          snapshotId,
+          idempotencyKey: randomUUID(),
+          audience: 'intermediate',
           providerKeyId: input.keyId,
           models: run.plan,
         })

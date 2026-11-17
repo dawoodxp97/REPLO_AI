@@ -6,7 +6,7 @@ import {
   NotificationPage,
   OK_RESULT,
   OkResult,
-  OperatorJobPage,
+  AdminJobPage,
   Preferences,
   Theme,
   contract,
@@ -29,7 +29,7 @@ describe('pageOutput', () => {
     expect(Page.safeParse({ items: [], nextCursor: 'abc' }).success).toBe(false)
     expect(ActivityPage.safeParse({ items: [], nextCursor: 'abc' }).success).toBe(false)
     expect(HistoryPage.safeParse({ items: [], nextCursor: 'abc' }).success).toBe(false)
-    expect(OperatorJobPage.safeParse({ items: [], nextCursor: 'abc' }).success).toBe(false)
+    expect(AdminJobPage.safeParse({ items: [], nextCursor: 'abc' }).success).toBe(false)
     expect(HistoryPage.safeParse({ items: [], nextCursor: '40' }).success).toBe(true)
   })
 })
@@ -65,8 +65,21 @@ describe('Theme', () => {
 })
 
 describe('dashboard.summary', () => {
-  it('takes no input', () => {
+  it('takes no input and exposes the analytics procedures', () => {
     expect(contract.dashboard.summary['~orpc'].inputSchema).toBeUndefined()
     expect(contract.dashboard.recent['~orpc'].inputSchema).toBeDefined()
+    expect(contract.dashboard.analytics['~orpc'].inputSchema).toBeDefined()
+    expect(contract.dashboard.save['~orpc'].inputSchema).toBeDefined()
+    expect(contract.dashboard.listDashboards['~orpc'].inputSchema).toBeDefined()
+    expect(contract.dashboard.deleteDashboard['~orpc'].inputSchema).toBeDefined()
+  })
+})
+
+describe('workspace procedures', () => {
+  it('reads the graph, node, diagram and tree from a version', () => {
+    expect(contract.workspace.graph['~orpc'].inputSchema).toBeDefined()
+    expect(contract.workspace.node['~orpc'].inputSchema).toBeDefined()
+    expect(contract.workspace.diagram['~orpc'].inputSchema).toBeDefined()
+    expect(contract.workspace.tree['~orpc'].inputSchema).toBeDefined()
   })
 })

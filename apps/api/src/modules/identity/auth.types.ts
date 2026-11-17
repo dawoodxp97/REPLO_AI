@@ -7,6 +7,7 @@ export interface SessionUser {
   name: string | null
   email: string | null
   image: string | null
+  role: string
 }
 
 export interface IssuedSession {
@@ -47,7 +48,6 @@ export interface ProviderAuth {
 export interface SessionLifecycle {
   currentSession(token: string | undefined): Promise<CurrentSession | null>
   endSession(sessionId: string): Promise<void>
-  revokeOtherSessions(userId: string, keepSessionId: string): Promise<void>
 }
 
 export interface AuthService extends PasswordAuth, ProviderAuth, SessionLifecycle {

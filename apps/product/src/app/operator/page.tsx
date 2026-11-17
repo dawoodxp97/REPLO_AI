@@ -13,7 +13,7 @@ export default async function OperatorPage({
 }) {
   const { cursor } = await searchParams
   const api = await serverApi()
-  const page = await orNotFound(api.operator.jobs({ limit: 50, cursor }))
+  const page = await orNotFound(api.admin.jobs({ limit: 50, cursor }))
 
   return (
     <>

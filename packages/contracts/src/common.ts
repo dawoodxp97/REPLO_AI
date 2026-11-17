@@ -9,7 +9,7 @@ export const PROVIDERS = ['openrouter', 'anthropic', 'openai', 'google'] as cons
 export const Provider = z.enum(PROVIDERS)
 export type Provider = z.infer<typeof Provider>
 
-export const ModelRole = z.enum(['planner', 'author', 'summarizer', 'judge'])
+export const ModelRole = z.enum(['planner', 'author', 'summarizer'])
 export type ModelRole = z.infer<typeof ModelRole>
 
 export const CourseRef = z.object({ owner: z.string(), repo: z.string(), slug: z.string() })

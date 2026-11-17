@@ -7,11 +7,12 @@ import { keysRouter } from './modules/keys/keys.router'
 import { learningRouter } from './modules/learning/learning.router'
 import { modelsRouter } from './modules/models/models.router'
 import { notificationsRouter } from './modules/notifications/notifications.router'
-import { operatorRouter } from './modules/operator/operator.router'
+import { adminRouter } from './modules/admin/admin.router'
 import { repositoriesRouter } from './modules/repositories/repositories.router'
 import { searchRouter } from './modules/search/search.router'
 import { settingsRouter } from './modules/settings/settings.router'
 import { coursesRouter } from './modules/courses/courses.router'
+import { workspaceRouter } from './modules/workspace/workspace.router'
 import { os } from './orpc'
 
 export const router = os.router({
@@ -23,10 +24,11 @@ export const router = os.router({
   repositories: repositoriesRouter,
   jobs: jobsRouter,
   courses: coursesRouter,
+  workspace: workspaceRouter,
   learning: learningRouter,
   settings: settingsRouter,
   notifications: notificationsRouter,
   dashboard: dashboardRouter,
   search: searchRouter,
-  operator: operatorRouter,
+  admin: adminRouter,
 })

@@ -27,6 +27,5 @@ export function createAuthService(deps: {
     ...createProviderAuth({ db, vault, sessions }),
     currentSession: sessions.currentSession,
     endSession: sessions.endSession,
-    revokeOtherSessions: sessions.revokeOtherSessions,
   }
 }

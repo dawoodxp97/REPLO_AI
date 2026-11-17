@@ -65,7 +65,7 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
     const id = randomUUID()
     seededUsers.push(id)
     await db.insert(users).values({ id, name: 'Developer', email: `${id}@test.invalid` })
-    return { id, name: 'Developer', email: `${id}@test.invalid`, image: null }
+    return { id, name: 'Developer', email: `${id}@test.invalid`, image: null, role: 'user' }
   }
 
   const clientFor = (session: SessionUser | null) =>
@@ -93,7 +93,7 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
       KEY_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
     })
     const vault = vaultFrom(config)
-    const domain = createDomainServices({ config, db, queue: unusedQueue, vault })
+    const domain = createDomainServices({ config, db, queue: unusedQueue, vault, boss: {} as never })
     services = createServices({ config, db, domain, oauth: {}, vault })
   })
 
@@ -137,7 +137,10 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
         'courses.getSource',
         () => stranger.courses.getSource({ versionId: world.versionId, path: 'src/cart.ts' }),
       ],
-      ['courses.sourceTree', () => stranger.courses.sourceTree({ versionId: world.versionId })],
+      ['workspace.tree', () => stranger.workspace.tree({ versionId: world.versionId })],
+      ['workspace.graph', () => stranger.workspace.graph({ versionId: world.versionId })],
+      ['workspace.node', () => stranger.workspace.node({ versionId: world.versionId, nodeId: 'n1' })],
+      ['workspace.diagram', () => stranger.workspace.diagram({ versionId: world.versionId, diagramId: 'd1' })],
       ['courses.delete', () => stranger.courses.delete({ courseId: world.courseId })],
       ['learning.getProgress', () => stranger.learning.getProgress({ courseId: world.courseId })],
       [
@@ -171,8 +174,12 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
         'repositories.remove',
         () => stranger.repositories.remove({ repositoryId: world.repositoryId }),
       ],
-      ['operator.jobs (not an operator)', () => adminOnly.operator.jobs({ limit: 25 })],
-      ['operator.job (not an operator)', () => adminOnly.operator.job({ jobId: world.jobId })],
+      ['admin.jobs (not an admin)', () => adminOnly.admin.jobs({ limit: 25 })],
+      ['admin.job (not an admin)', () => adminOnly.admin.job({ jobId: world.jobId })],
+      ['admin.overview (not an admin)', () => adminOnly.admin.overview()],
+      ['admin.users (not an admin)', () => adminOnly.admin.users({ limit: 25 })],
+      ['admin.queues (not an admin)', () => adminOnly.admin.queues()],
+      ['admin.system (not an admin)', () => adminOnly.admin.system()],
     ]
 
     const misses: string[] = []
@@ -229,8 +236,8 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
       stranger.keys.list(),
       stranger.notifications.list({ limit: 25 }),
       stranger.notifications.unreadCount(),
-      stranger.search.own({ q: 'shop', limit: 10 }),
-      stranger.dashboard.summary({ tz: 'UTC' }),
+      stranger.search.all({ q: 'shop', limit: 10 }),
+      stranger.dashboard.summary(),
       stranger.dashboard.recent({ limit: 25, tz: 'UTC' }),
       stranger.settings.get(),
       stranger.models.getPreferences(),

@@ -162,6 +162,11 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
       indexing,
       keys: createKeysService({ db, vault, checker: fakeKeyChecker('valid'), jobs }),
       models: createModelsService({ db, catalog: bundledCatalog() }),
+      repositories: createRepositoryLibrary({
+        db,
+        jobs: createJobHistory(db),
+        courses: { removeForRepository: async () => undefined },
+      }),
     })
   })
 

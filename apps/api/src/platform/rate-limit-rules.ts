@@ -12,9 +12,8 @@ export const RATE_LIMITED_PATHS = {
   gated: [
     '/rpc/repositories/preflight',
     '/rpc/github/listRepos',
-    '/rpc/search/own',
+    '/rpc/search/all',
     '/rpc/me/deleteAccount',
-    '/rpc/auth/revokeOtherSessions',
   ],
   credentials: ['/rpc/auth/signIn', '/rpc/auth/signUp'],
 } as const

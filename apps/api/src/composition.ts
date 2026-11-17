@@ -9,10 +9,6 @@ import type { Config } from './platform/config'
 import type { Db } from './platform/db/client'
 import { createGithubRest } from './platform/github/client'
 import type { JobQueue } from './platform/queue/job-queue'
-import {
-  createDashboardService,
-  type DashboardService,
-} from './modules/dashboard/dashboard.service'
 import { createJobHistory, type JobHistory } from './modules/jobs/job-history.service'
 import { createJobRuntime, type JobRuntime } from './modules/jobs/job-runtime.service'
 import { createJobService, type JobService } from './modules/jobs/jobs.service'
@@ -30,7 +26,8 @@ import {
   createNotificationsService,
   type NotificationsService,
 } from './modules/notifications/notifications.service'
-import { createOperatorService, type OperatorService } from './modules/operator/operator.service'
+import { createAdminService, type AdminService } from './modules/admin/admin.service'
+import type PgBoss from 'pg-boss'
 import { createPipelineService, type PipelineService } from './modules/pipeline/pipeline.service'
 import {
   createRepositoryImports,
@@ -53,6 +50,9 @@ import { createCourseContent, type CourseContentService } from './modules/course
 import { createCourseManager, type CourseManager } from './modules/courses/manager.service'
 import { createCoursePublisher, type CoursePublisher } from './modules/courses/publisher.service'
 import { createVersionAccess } from './modules/courses/version-access.service'
+import { createDashboardService, type DashboardService } from './modules/dashboard/dashboard.service'
+import { createAnalyticsService, type AnalyticsService } from './modules/dashboard/analytics.service'
+import { createWorkspaceService, type WorkspaceService } from './modules/workspace/workspace.service'
 
 export interface DomainServices {
   identity: IdentityService
@@ -77,7 +77,9 @@ export interface DomainServices {
   settings: SettingsService
   dashboard: DashboardService
   search: SearchService
-  operator: OperatorService
+  workspace: WorkspaceService
+  analytics: AnalyticsService
+  admin: AdminService
   retention: RetentionService
 }
 
@@ -89,8 +91,9 @@ export function createDomainServices(deps: {
   db: Db
   queue: JobQueue
   vault: KeyVault
+  boss: PgBoss
 }): DomainServices {
-  const { config, db, queue, vault } = deps
+  const { config, db, queue, vault, boss } = deps
   const rest = createGithubRest()
   const limits = { maxFiles: config.MAX_REPO_FILES, maxBytes: config.MAX_REPO_BYTES }
   const identity = createIdentityService({ db, vault })
@@ -156,7 +159,11 @@ export function createDomainServices(deps: {
     indexing,
     keys,
     models,
+    repositories: repositoryLibrary,
   })
+
+  const workspace = createWorkspaceService({ db, courses: versionAccess, indexing })
+  const analytics = createAnalyticsService(db)
 
   return {
     identity,
@@ -185,8 +192,14 @@ export function createDomainServices(deps: {
       learning,
       repositories: repositoryLibrary,
     }),
-    search: createSearchService({ courses: courseCatalog, repositories: repositoryLibrary }),
-    operator: createOperatorService({ db, jobs: jobHistory }),
+    search: createSearchService({
+      courses: courseCatalog,
+      repositories: repositoryLibrary,
+      dashboards: analytics,
+    }),
+    workspace,
+    analytics,
+    admin: createAdminService({ db, jobs: jobHistory, boss }),
     retention: createRetentionService({
       jobs: jobHistory,
       indexing,

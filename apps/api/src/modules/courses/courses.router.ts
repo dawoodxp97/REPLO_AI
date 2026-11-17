@@ -17,9 +17,6 @@ export const coursesRouter = {
   getSource: os.courses.getSource.handler(({ input, context }) =>
     context.services.courseContent.source(viewerOf(context), input),
   ),
-  sourceTree: os.courses.sourceTree.handler(({ input, context }) =>
-    context.services.courseContent.sourceTree(viewerOf(context), input),
-  ),
   delete: authed.courses.delete.handler(async ({ input, context }) => {
     await context.services.courseManager.deleteCourse(context.user.id, input.courseId)
     return OK_RESULT

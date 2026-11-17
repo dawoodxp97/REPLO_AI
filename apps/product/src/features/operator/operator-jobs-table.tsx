@@ -1,4 +1,4 @@
-import type { OperatorJobRow } from '@replo/contracts'
+import type { AdminJobRow } from '@replo/contracts'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle, Progress } from '@replo/ui'
 import Link from 'next/link'
 import { DataTable, type DataColumn } from '@/components/data-table'
@@ -6,7 +6,7 @@ import { LinkButton } from '@/components/link-button'
 import { JobStatusBadge } from '@/features/jobs/job-status-badge'
 import { formatDateTime } from '@/lib/format'
 
-const COLUMNS: readonly DataColumn<OperatorJobRow>[] = [
+const COLUMNS: readonly DataColumn<AdminJobRow>[] = [
   {
     header: 'Job',
     cell: (row) => (
@@ -41,7 +41,7 @@ export function OperatorJobsTable({
   rows,
   nextCursor,
 }: {
-  rows: readonly OperatorJobRow[]
+  rows: readonly AdminJobRow[]
   nextCursor: string | null
 }) {
   if (rows.length === 0) {

@@ -30,6 +30,8 @@ export const DEFAULT_PREFERENCES = Preferences.parse({
 })
 
 export const SEARCH_RESULTS: SearchResults = {
+  files: [],
+  dashboards: [],
   repositories: [
     { repositoryId: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f', owner: 'acme', name: 'widgets' },
   ],
@@ -113,7 +115,6 @@ export function defaultHandlers(): RpcHandlers {
     'auth.signIn': () => ({ body: USER }),
     'auth.signUp': () => ({ body: USER }),
     'auth.signOut': () => ({ body: { ok: true } }),
-    'auth.revokeOtherSessions': () => ({ body: { ok: true } }),
 
     'keys.list': () => ({ body: [SAVED_KEY] }),
     'keys.add': ({ input }) => {
@@ -182,7 +183,7 @@ export function defaultHandlers(): RpcHandlers {
       const file = SOURCE_FILES[path]
       return file ? { body: file } : rpcError('NOT_FOUND', 404)
     },
-    'courses.sourceTree': () => ({
+    'workspace.tree': () => ({
       body: { commitSha: COURSE_OVERVIEW.commitSha, files: SOURCE_TREE },
     }),
     'courses.delete': () => ({ body: { ok: true } }),
@@ -250,7 +251,7 @@ export function defaultHandlers(): RpcHandlers {
       },
     }),
 
-    'search.own': () => ({ body: SEARCH_RESULTS }),
+    'search.all': () => ({ body: SEARCH_RESULTS }),
 
     'settings.get': () => ({ body: preferences }),
     'settings.update': ({ input }) => {
@@ -258,8 +259,8 @@ export function defaultHandlers(): RpcHandlers {
       return { body: preferences }
     },
 
-    'operator.jobs': () => rpcError('NOT_FOUND', 404),
-    'operator.job': () => rpcError('NOT_FOUND', 404),
+    'admin.jobs': () => rpcError('NOT_FOUND', 404),
+    'admin.job': () => rpcError('NOT_FOUND', 404),
   }
 }
 

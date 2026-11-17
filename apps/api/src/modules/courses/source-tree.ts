@@ -1,4 +1,4 @@
-import type { SourceTreeDto, SourceTreeEntry } from '@replo/contracts'
+import type { SourceTreeEntryDto } from '@replo/contracts'
 import { decideFile } from '../indexing/file-policy'
 import type { SnapshotFile } from '../indexing/indexing.service'
 
@@ -6,7 +6,7 @@ export function toSourceTree(
   commitSha: string,
   files: readonly SnapshotFile[],
   citedPaths: ReadonlySet<string>,
-): SourceTreeDto {
+): { commitSha: string; files: SourceTreeEntryDto[] } {
   return {
     commitSha,
     files: files
@@ -15,7 +15,7 @@ export function toSourceTree(
   }
 }
 
-function toEntry(file: SnapshotFile, cited: boolean): SourceTreeEntry {
+function toEntry(file: SnapshotFile, cited: boolean): SourceTreeEntryDto {
   return {
     path: file.path,
     sizeBytes: file.sizeBytes,

@@ -13,7 +13,7 @@ const serverLabel = () => 'Ctrl'
 export function useLibrarySearch(query: string) {
   const debounced = useDebouncedValue(query.trim(), DEBOUNCE_MS)
   const results = useQuery(
-    orpc.search.own.queryOptions({
+    orpc.search.all.queryOptions({
       input: { q: debounced, limit: 10 },
       enabled: debounced.length >= MIN_QUERY_LENGTH,
       placeholderData: keepPreviousData,

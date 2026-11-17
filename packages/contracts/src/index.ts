@@ -6,11 +6,12 @@ import { learningContract } from './learning'
 import { githubContract, meContract } from './me'
 import { modelsContract } from './models'
 import { notificationsContract } from './notifications'
-import { operatorContract } from './operator'
+import { adminContract } from './admin'
 import { repositoriesContract } from './repositories'
 import { searchContract } from './search'
 import { settingsContract } from './settings'
 import { coursesContract } from './courses'
+import { workspaceContract } from './workspace'
 
 export const contract = {
   auth: authContract,
@@ -21,12 +22,13 @@ export const contract = {
   repositories: repositoriesContract,
   jobs: jobsContract,
   courses: coursesContract,
+  workspace: workspaceContract,
   learning: learningContract,
   settings: settingsContract,
   notifications: notificationsContract,
   dashboard: dashboardContract,
   search: searchContract,
-  operator: operatorContract,
+  admin: adminContract,
 }
 export type Contract = typeof contract
 
@@ -40,8 +42,9 @@ export * from './models'
 export * from './repositories'
 export * from './courses'
 export * from './course/content'
+export * from './workspace'
 export * from './settings'
 export * from './notifications'
 export * from './dashboard'
 export * from './search'
-export * from './operator'
+export * from './admin'

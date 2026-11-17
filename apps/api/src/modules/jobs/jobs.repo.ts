@@ -70,6 +70,16 @@ export const jobsRepo = (db: DbOrTx) => ({
       .orderBy(repositorySnapshots.repositoryId, desc(generationJobs.createdAt))
   },
 
+  listActive(userId: string) {
+    return db
+      .select()
+      .from(generationJobs)
+      .where(
+        and(eq(generationJobs.userId, userId), inArray(generationJobs.status, IN_FLIGHT_STATUSES)),
+      )
+      .orderBy(desc(generationJobs.createdAt))
+  },
+
   async findByIdempotencyKey(userId: string, key: string): Promise<JobRow | undefined> {
     const [row] = await db
       .select()

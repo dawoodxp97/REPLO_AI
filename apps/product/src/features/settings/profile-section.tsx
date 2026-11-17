@@ -6,7 +6,6 @@ import { QueryBoundary } from '@/components/query-boundary'
 import { orpc } from '@/lib/orpc'
 import { DeleteAccountCard } from './delete-account-card'
 import { IdentityCard } from './identity-card'
-import { SessionsCard } from './sessions-card'
 import { SignInMethodsCard } from './sign-in-methods-card'
 
 export function ProfileSection() {
@@ -22,7 +21,6 @@ export function ProfileSection() {
         <div className="space-y-8">
           <IdentityCard user={user} />
           <SignInMethodsCard methods={signInMethods} />
-          <SessionsCard />
           <DeleteAccountCard />
         </div>
       )}

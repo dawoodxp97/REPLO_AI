@@ -2,7 +2,7 @@ import type {
   ChapterDto,
   ProgressDto,
   SourceFileDto,
-  SourceTreeEntry,
+  SourceTreeEntryDto,
   CourseOverviewDto,
   CourseSummaryDto,
 } from '@replo/contracts'
@@ -181,7 +181,7 @@ export const SOURCE_FILES: Record<string, SourceFileDto> = {
   },
 }
 
-export const SOURCE_TREE: SourceTreeEntry[] = [
+export const SOURCE_TREE: SourceTreeEntryDto[] = [
   {
     path: 'README.md',
     sizeBytes: 640,

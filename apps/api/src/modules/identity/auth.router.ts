@@ -1,6 +1,6 @@
 import { OK_RESULT } from '@replo/contracts'
 import type { RequestContext } from '../../request-context'
-import { authed, os } from '../../orpc'
+import { os } from '../../orpc'
 import type { IssuedSession } from './auth.service'
 
 const signedInMe = (context: RequestContext, issued: IssuedSession) => {
@@ -26,11 +26,6 @@ export const authRouter = {
   signOut: os.auth.signOut.handler(async ({ context }) => {
     if (context.sessionId) await context.services.auth.endSession(context.sessionId)
     context.setSessionToken(null)
-    return OK_RESULT
-  }),
-
-  revokeOtherSessions: authed.auth.revokeOtherSessions.handler(async ({ context }) => {
-    await context.services.auth.revokeOtherSessions(context.user.id, context.sessionId)
     return OK_RESULT
   }),
 }

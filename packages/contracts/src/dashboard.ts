@@ -1,6 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { NonNegativeInt, OffsetCursor, pageInput, pageOutput, TimeZone } from './common'
+import { NonNegativeInt, OffsetCursor, IdCursor, OkResult, pageInput, pageOutput, TimeZone } from './common'
 import { JobProgressFields } from './jobs'
 
 export const DashboardSummary = z.object({
@@ -73,10 +73,51 @@ export const SavedDashboard = z.object({
 })
 export type SavedDashboard = z.infer<typeof SavedDashboard>
 
+export const SaveDashboardInput = z.object({
+  name: z.string().trim().min(1).max(80),
+  query: AnalyticsQuery,
+})
+export type SaveDashboardInput = z.infer<typeof SaveDashboardInput>
+
+export const SavedDashboardRef = z.object({ dashboardId: z.uuid() })
+
+export const SavedDashboardPage = pageOutput(SavedDashboard, IdCursor)
+export type SavedDashboardPage = z.infer<typeof SavedDashboardPage>
+
+export const AnalyticsSeries = z.object({
+  key: z.string(),
+  label: z.string(),
+  points: z.array(AnalyticsPoint),
+})
+export type AnalyticsSeries = z.infer<typeof AnalyticsSeries>
+
+export const AnalyticsReport = z.object({
+  query: AnalyticsQuery,
+  series: z.array(AnalyticsSeries),
+})
+export type AnalyticsReport = z.infer<typeof AnalyticsReport>
+
 export const dashboardContract = {
   summary: oc.route({ method: 'GET', path: '/dashboard/summary' }).output(DashboardSummary),
   recent: oc
     .route({ method: 'GET', path: '/dashboard/recent' })
     .input(pageInput(OffsetCursor).extend({ tz: TimeZone.default('UTC') }))
     .output(ActivityPage),
+  analytics: oc
+    .route({ method: 'POST', path: '/dashboard/analytics' })
+    .input(AnalyticsQuery)
+    .output(AnalyticsReport),
+  save: oc
+    .route({ method: 'POST', path: '/dashboard/dashboards' })
+    .input(SaveDashboardInput)
+    .output(SavedDashboard)
+    .errors({ DASHBOARD_NAME_TAKEN: { status: 409 } }),
+  listDashboards: oc
+    .route({ method: 'GET', path: '/dashboard/dashboards' })
+    .input(pageInput(IdCursor))
+    .output(SavedDashboardPage),
+  deleteDashboard: oc
+    .route({ method: 'DELETE', path: '/dashboard/dashboards/{dashboardId}' })
+    .input(SavedDashboardRef)
+    .output(OkResult),
 }

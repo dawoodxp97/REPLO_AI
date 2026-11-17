@@ -52,4 +52,19 @@ export const repositoriesRouter = {
         return raiseRepoRefusal(errors, refusal)
     }
   }),
+  rerun: authed.repositories.rerun.handler(async ({ input, context, errors }) => {
+    const outcome = await context.services.repositoryImports.rerun(context.user.id, input)
+    if (outcome.kind === 'ok') return outcome.value
+    const refusal = outcome.refusal
+    switch (refusal.code) {
+      case 'KEY_INVALID':
+        throw errors.KEY_INVALID()
+      case 'KEY_CHECK_UNAVAILABLE':
+        throw errors.KEY_CHECK_UNAVAILABLE()
+      case 'MODEL_NOT_ALLOWED':
+        throw errors.MODEL_NOT_ALLOWED({ data: { modelId: refusal.modelId } })
+      default:
+        return raiseRepoRefusal(errors, refusal)
+    }
+  }),
 }

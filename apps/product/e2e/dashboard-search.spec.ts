@@ -135,7 +135,7 @@ test('a lesson hit links to its lesson without a matching course hit', async ({
   isMobile,
 }) => {
   await mockRpc(page, {
-    'search.own': () => ({ body: { ...SEARCH_RESULTS, courses: [] } }),
+    'search.all': () => ({ body: { ...SEARCH_RESULTS, courses: [] } }),
   })
 
   await page.goto('/')

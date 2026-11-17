@@ -5,6 +5,9 @@ export const jobsRouter = {
     const job = await context.services.jobs.getOwnedJob(context.user.id, input.jobId)
     return context.services.jobs.toDto(job)
   }),
+  listActive: authed.jobs.listActive.handler(({ context }) =>
+    context.services.jobs.listActive(context.user.id),
+  ),
   cancel: authed.jobs.cancel.handler(({ input, context }) =>
     context.services.jobs.cancel(context.user.id, input.jobId),
   ),

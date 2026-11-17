@@ -80,6 +80,9 @@ export type JobEventDto = z.infer<typeof JobEventDto>
 
 export const jobsContract = {
   get: oc.route({ method: 'GET', path: '/jobs/{jobId}' }).input(JobRef).output(GenerationJobDto),
+  listActive: oc
+    .route({ method: 'GET', path: '/jobs/active' })
+    .output(z.array(GenerationJobDto)),
   cancel: oc
     .route({ method: 'POST', path: '/jobs/{jobId}/cancel' })
     .input(JobRef)

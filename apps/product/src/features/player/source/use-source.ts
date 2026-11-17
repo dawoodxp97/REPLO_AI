@@ -15,7 +15,7 @@ export function useSourceFile({ versionId, path }: SourceFileRequest) {
 export function useSourceTree(versionId: string, _shareToken: string | undefined) {
   void _shareToken
   return useQuery({
-    ...orpc.courses.sourceTree.queryOptions({ input: { versionId } }),
+    ...orpc.workspace.tree.queryOptions({ input: { versionId } }),
     select: (data) => buildFileTree(data.files),
   })
 }

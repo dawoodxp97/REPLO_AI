@@ -1,9 +1,9 @@
-import type { OperatorJobDetail } from '@replo/contracts'
+import type { AdminJobDetail } from '@replo/contracts'
 import { DataTable, type DataColumn } from '@/components/data-table'
 import { SectionHeader } from '@/components/page-header'
 import { formatDateTime } from '@/lib/format'
 
-type StageRow = OperatorJobDetail['stages'][number]
+type StageRow = AdminJobDetail['stages'][number]
 
 const COLUMNS: readonly DataColumn<StageRow>[] = [
   { header: 'Stage', cell: (row) => row.stage, className: 'font-mono text-xs' },
@@ -15,7 +15,7 @@ const COLUMNS: readonly DataColumn<StageRow>[] = [
   },
 ]
 
-export function OperatorStagesTable({ stages }: { stages: OperatorJobDetail['stages'] }) {
+export function OperatorStagesTable({ stages }: { stages: AdminJobDetail['stages'] }) {
   return (
     <section aria-labelledby="stages-heading" className="space-y-3">
       <SectionHeader

@@ -149,7 +149,7 @@ export function createCourseContent(deps: CourseContentDeps): CourseContentServi
         repo.citedPathsOf(input.versionId),
       ])
       if (!snapshot) notFound('Course version')
-      return toSourceTree(snapshot.commitSha, files, citedPaths)
+      return { versionId: version.versionId, ...toSourceTree(snapshot.commitSha, files, citedPaths) }
     },
   }
 }

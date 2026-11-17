@@ -7,7 +7,7 @@ import { GithubTokenRejectedError, type GithubService } from './github.service'
 const clientWith = (listRepos: GithubService['listRepos']) =>
   createRouterClient(githubRouter, {
     context: {
-      user: { id: 'user-1', name: null, email: null, image: null },
+      user: { id: 'user-1', name: null, email: null, image: null, role: 'user' },
       sessionId: 'session-1',
       setSessionToken: () => undefined,
       services: { github: { listRepos } } as unknown as RequestContext['services'],

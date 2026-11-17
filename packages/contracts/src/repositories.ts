@@ -73,6 +73,13 @@ export const ImportRepositoryInput = z.object({
 })
 export type ImportRepositoryInput = z.infer<typeof ImportRepositoryInput>
 
+export const RerunRepositoryInput = z.object({
+  repositoryId: z.uuid(),
+  keyId: z.uuid(),
+  modelId: z.string().min(1),
+})
+export type RerunRepositoryInput = z.infer<typeof RerunRepositoryInput>
+
 export const repoRefusalErrors = {
   REPO_TOO_LARGE: { data: RepoLimitData },
   REPO_NOT_ACCESSIBLE: {},
@@ -103,5 +110,15 @@ export const repositoriesContract = {
       KEY_INVALID: {},
       KEY_CHECK_UNAVAILABLE: {},
       IDEMPOTENCY_KEY_REQUIRED: {},
+    }),
+  rerun: oc
+    .route({ method: 'POST', path: '/repositories/{repositoryId}/rerun' })
+    .input(RerunRepositoryInput)
+    .output(GenerationJobDto)
+    .errors({
+      ...repoRefusalErrors,
+      MODEL_NOT_ALLOWED: { data: z.object({ modelId: z.string() }) },
+      KEY_INVALID: {},
+      KEY_CHECK_UNAVAILABLE: {},
     }),
 }

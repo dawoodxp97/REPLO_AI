@@ -8,6 +8,7 @@ export const sessionUserOf = (row: UserRow): SessionUser => ({
   name: row.name,
   email: row.email,
   image: row.image,
+  role: row.role,
 })
 
 export interface SessionService extends SessionLifecycle {
@@ -35,10 +36,6 @@ export function createSessionService(db: Db): SessionService {
 
     async endSession(sessionId) {
       await identityRepo(db).deleteSession(sessionId)
-    },
-
-    async revokeOtherSessions(userId, keepSessionId) {
-      await identityRepo(db).deleteOtherSessions(userId, keepSessionId)
     },
 
     purgeExpired(now) {

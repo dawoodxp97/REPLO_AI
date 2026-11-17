@@ -58,15 +58,15 @@ Status legend: `[x]` done · `[~]` scaffolded · `[ ]` not started.
 - [x] Indexes: `pg_trgm` on dashboard names and course/repo titles; FTS on lesson titles and file paths; `(user_id, occurred_at)` on events.
 - **Accept:** fresh DB applies; previous DB upgrades; drizzle drift check passes; cross-user and cascade tests pass.
 
-## R2 — API surface (L)
+## R2 — API surface (L) — `[x]`
 
-- [ ] `auth.*` without revoke-other-sessions; `me.{get,deleteAccount}`; `github.{installUrl,listRepos}`.
-- [ ] `keys.*` vault-only; `models.{catalog,getPreferences,setPreferences}` with a default model.
-- [ ] `repositories.{preflight,import,list,remove,rerun}` — no webhook route.
-- [ ] `jobs.{get,listActive,cancel,retry}`; SSE `/jobs/:id/events`.
-- [ ] `courses.{list,get,getChapter,getSource,delete}`; `workspace.{graph,node,diagram,tree}`.
-- [ ] `learning.*`, `search.all`, `dashboard.*` (summary, recent, analytics, save, listDashboards, deleteDashboard), `notifications.*`, `settings.*`.
-- [ ] `admin.*` behind the role gate.
+- [x] `auth.*` without revoke-other-sessions; `me.{get,deleteAccount}`; `github.{installUrl,listRepos}`.
+- [x] `keys.*` vault-only; `models.{catalog,getPreferences,setPreferences}` with a default model.
+- [x] `repositories.{preflight,import,list,remove,rerun}` — no webhook route.
+- [x] `jobs.{get,listActive,cancel,retry}`; SSE `/jobs/:id/events`.
+- [x] `courses.{list,get,getChapter,getSource,delete}`; `workspace.{graph,node,diagram,tree}`.
+- [x] `learning.*`, `search.all`, `dashboard.*` (summary, recent, analytics, save, listDashboards, deleteDashboard), `notifications.*`, `settings.*`.
+- [x] `admin.*` behind the role gate.
 - **Accept:** every PRD §8 procedure has contract tests; cross-user 404 on every private read; removed procedures are gone; no endpoint exposes keys, prompts or private source.
 
 ## R3 — Pipeline (XL)

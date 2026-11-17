@@ -43,7 +43,7 @@ export const stubAuth: Pick<AuthService, 'currentSession'> = {
     token
       ? {
           sessionId: `session-${token}`,
-          user: { id: token, name: 'Developer', email: `${token}@test.invalid`, image: null },
+          user: { id: token, name: 'Developer', email: `${token}@test.invalid`, image: null, role: 'user' },
         }
       : null,
 }

@@ -8,7 +8,7 @@ const COURSE_ID = '0198c7a0-0000-7000-8000-000000000001'
 const clientWith = (deleteCourse: ReturnType<typeof vi.fn>) =>
   createRouterClient(coursesRouter, {
     context: {
-      user: { id: 'user-1', name: null, email: null, image: null },
+      user: { id: 'user-1', name: null, email: null, image: null, role: 'user' },
       sessionId: 'session-1',
       setSessionToken: () => undefined,
       services: { courseManager: { deleteCourse } } as unknown as RequestContext['services'],

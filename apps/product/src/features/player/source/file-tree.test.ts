@@ -1,8 +1,8 @@
-import type { SourceTreeEntry } from '@replo/contracts'
+import type { SourceTreeEntryDto } from '@replo/contracts'
 import { describe, expect, it } from 'vitest'
 import { buildFileTree, defaultSourcePath, type FolderNode, type TreeNode } from './file-tree'
 
-function entry(path: string, readable = true, cited = false): SourceTreeEntry {
+function entry(path: string, readable = true, cited = false): SourceTreeEntryDto {
   return { path, sizeBytes: 100, language: 'typescript', role: 'source', readable, cited }
 }
 

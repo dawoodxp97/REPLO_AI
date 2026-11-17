@@ -1,7 +1,7 @@
 import { authed } from '../../orpc'
 
 export const searchRouter = {
-  own: authed.search.own.handler(({ input, context }) =>
-    context.services.search.own(context.user.id, input),
+  all: authed.search.all.handler(({ input, context }) =>
+    context.services.search.all(context.user.id, input),
   ),
 }

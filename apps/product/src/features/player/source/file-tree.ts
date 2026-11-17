@@ -1,4 +1,4 @@
-import type { SourceTreeEntry } from '@replo/contracts'
+import type { SourceTreeEntryDto } from '@replo/contracts'
 
 export interface FolderNode {
   kind: 'folder'
@@ -10,12 +10,12 @@ export interface FolderNode {
 export interface FileNode {
   kind: 'file'
   name: string
-  entry: SourceTreeEntry
+  entry: SourceTreeEntryDto
 }
 
 export type TreeNode = FolderNode | FileNode
 
-export function buildFileTree(entries: readonly SourceTreeEntry[]): TreeNode[] {
+export function buildFileTree(entries: readonly SourceTreeEntryDto[]): TreeNode[] {
   const root: FolderNode = { kind: 'folder', name: '', path: '', children: [] }
 
   for (const entry of entries) {

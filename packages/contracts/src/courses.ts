@@ -1,14 +1,6 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import {
-  Audience,
-  CommitSha,
-  IdCursor,
-  NonNegativeInt,
-  OkResult,
-  pageInput,
-  pageOutput,
-} from './common'
+import { Audience, CommitSha, IdCursor, OkResult, pageInput, pageOutput } from './common'
 import {
   Chapter,
   Evidence,
@@ -96,26 +88,6 @@ export const SourceFileDto = z.object({
 })
 export type SourceFileDto = z.infer<typeof SourceFileDto>
 
-export const FILE_ROLES = ['source', 'test', 'config', 'doc', 'generated', 'asset'] as const
-export const FileRole = z.enum(FILE_ROLES)
-export type FileRole = z.infer<typeof FileRole>
-
-export const SourceTreeEntry = z.object({
-  path: z.string(),
-  sizeBytes: NonNegativeInt,
-  language: z.string().nullable(),
-  role: FileRole,
-  readable: z.boolean(),
-  cited: z.boolean(),
-})
-export type SourceTreeEntry = z.infer<typeof SourceTreeEntry>
-
-export const SourceTreeDto = z.object({
-  commitSha: CommitSha,
-  files: z.array(SourceTreeEntry),
-})
-export type SourceTreeDto = z.infer<typeof SourceTreeDto>
-
 export const CourseSummaryRef = z.object({ courseId: z.uuid() })
 
 export const coursesContract = {
@@ -144,10 +116,6 @@ export const coursesContract = {
       }),
     )
     .output(SourceFileDto),
-  sourceTree: oc
-    .route({ method: 'GET', path: '/course-versions/{versionId}/tree' })
-    .input(z.object({ versionId: z.uuid() }))
-    .output(SourceTreeDto),
   delete: oc
     .route({ method: 'DELETE', path: '/courses/{courseId}' })
     .input(CourseSummaryRef)

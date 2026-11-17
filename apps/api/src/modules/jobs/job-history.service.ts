@@ -1,7 +1,7 @@
 import {
   ModelPlan,
-  type OperatorJobDetail,
-  type OperatorJobRow,
+  type AdminJobDetail,
+  type AdminJobRow,
   type Stage,
 } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
@@ -38,8 +38,8 @@ export interface JobHistory {
     status?: JobRow['status'] | undefined
     limit: number
     offset: number
-  }): Promise<OperatorJobRow[]>
-  operatorJob(jobId: string): Promise<OperatorJobDetail | undefined>
+  }): Promise<AdminJobRow[]>
+  operatorJob(jobId: string): Promise<AdminJobDetail | undefined>
   purgeHistory(input: {
     eventsBefore: Date
     succeededBefore: Date
@@ -101,7 +101,7 @@ export function createJobHistory(db: Db): JobHistory {
   }
 }
 
-function toOperatorRow(job: JobRow): OperatorJobRow {
+function toOperatorRow(job: JobRow): AdminJobRow {
   return {
     jobId: job.id,
     userId: job.userId,

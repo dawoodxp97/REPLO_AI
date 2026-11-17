@@ -1,113 +1,148 @@
 # API.md
 
-> **Target:** [`PRD.md`](../PRD.md) §8. This page is rewritten in R1–R2; do not build against the list below.
+> Target: [`PRD.md`](../PRD.md) §8. Rewritten in R2 to match the implemented surface.
 
-The API is **contract-first**: [`packages/contracts`](../packages/contracts/src) defines every input, output and typed error with Zod 4 + oRPC; [`apps/api`](../apps/api/src) implements it (`implement(contract)`); `apps/product` imports only the contract **type**. Source: blueprint §5.4, §15.5.
+The API is **contract-first**: [`packages/contracts`](../packages/contracts/src) defines every input, output and typed error with Zod 4 + oRPC; [`apps/api`](../apps/api/src) implements it (`implement(contract)`); `apps/product` imports only the contract **type** (`ContractRouterClient<typeof contract>`).
 
-- RPC base path: `/rpc` (oRPC RPC protocol; OpenAPI can be emitted from the same contract later).
-- Auth: opaque session token in the `replo_session` cookie (httpOnly, Secure in production, SameSite=Lax, 30 days). The database holds only its SHA-256. `UNAUTHORIZED` (401) when missing.
-- Password auth refusals: `auth.signIn` returns `INVALID_CREDENTIALS` (401); `auth.signUp` returns `EMAIL_TAKEN` (409). These expected refusals do not issue a session.
+## Conventions
+
+- RPC base path: `/rpc` (oRPC RPC protocol).
+- Auth: opaque session token in the `replo_session` cookie (httpOnly, Secure in production, SameSite=Lax, 30 days). The database holds only its SHA-256. Missing session → `UNAUTHORIZED` (401).
+- Password refusals: `auth.signIn` → `INVALID_CREDENTIALS` (401); `auth.signUp` → `EMAIL_TAKEN` (409). Neither issues a session.
 - State-changing requests: `Origin` must equal `PRODUCT_ORIGIN` (else 403 `BAD_ORIGIN`).
-- Idempotency: clients send an `Idempotency-Key` header; unique `(user_id, idempotency_key)` returns the existing job.
-- Foreign IDs return **404**, never 403.
-- Date buckets (dashboard, activity) take an IANA `tz` query parameter, default UTC, and are computed in Postgres.
-- Rate limits apply to sign-in, import and key validation (NFR-SEC-7) and return 429 with `Retry-After`.
-- Implementation status below: ✅ implemented · 🟡 stub (`NOT_IMPLEMENTED`) with the phase that builds it.
+- Idempotency: clients send an `Idempotency-Key` header; a unique `(user_id, idempotency_key)` returns the existing job. `repositories.import` requires it (`IDEMPOTENCY_KEY_REQUIRED`).
+- **Foreign IDs return 404, never 403.** Every private read is user-scoped; the row and the id are looked up together.
+- Paged outputs share `pageOutput(item, cursor)` → `{ items, nextCursor }`; date buckets take an IANA `tz` and are computed in Postgres.
+- Rate limits apply to sign-in, import, key validation and the gated read procedures; 429 responses carry `Retry-After`.
+- Every JSON error body carries `requestId`; every response echoes `X-Request-ID`.
 
 ## Procedures (release 1)
 
-| Procedure                                                                    | Method / path                                                                       | Auth       | Purpose                                                                                                                                                                                                                                       | Status                                                           |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `me.get`                                                                     | GET `/me`                                                                           | User       | Profile (no billing or quota state, ADR-007)                                                                                                                                                                                                  | ✅ (reads DB)                                                    |
-| `me.deleteAccount`                                                           | POST `/me/delete`                                                                   | User       | Deletes the account and every row it owns (cascade); requires `confirm: "DELETE"`; `publicTutorials: delete \| anonymise` decides what happens to public tutorials (FR-AUTH-3, MEM D-061)                                                     | ✅ (Postgres test)                                               |
-| `github.installUrl`                                                          | GET `/github/install-url`                                                           | User       | GitHub App install URL                                                                                                                                                                                                                        | ✅ (needs App slug)                                              |
-| `github.listRepos`                                                           | GET `/github/repos`                                                                 | User       | Repos the caller's active installations can read                                                                                                                                                                                              | ✅ (needs App credentials)                                       |
-| `repositories.list`                                                          | GET `/repositories`                                                                 | User       | My repositories, paginated by cursor, with the latest job state (FR-LIB-1)                                                                                                                                                                    | ✅                                                               |
-| `repositories.preflight`                                                     | POST `/repositories/preflight`                                                      | User       | Size/language check via the Git Trees API (no LLM)                                                                                                                                                                                            | ✅                                                               |
-| `repositories.import`                                                        | POST `/repositories/import`                                                         | User       | Create a job on one of the user's keys; requires `Idempotency-Key` (`IDEMPOTENCY_KEY_REQUIRED` without it) and is idempotent on that key; refusals before any job (FR-IMP-1/3/5); rate limited (20/h)                                         | ✅                                                               |
-| `repositories.estimate`                                                      | POST `/repositories/estimate`                                                       | User       | Pre-run estimate from the static index: requests, tokens, cost in USD, with the budget ceiling (FR-RUN-6)                                                                                                                                     | ✅ (assumptions, D-043)                                          |
-| `repositories.remove`                                                        | DELETE `/repositories/{repositoryId}`                                               | User       | Remove from the library; revokes the link and deletes this user's tutorials and progress for it (FR-LIB-2)                                                                                                                                    | ✅                                                               |
-| `keys.list` / `add` / `validate` / `delete`                                  | `/keys…`                                                                            | User       | BYOK keys. `add` checks the key with a free model-list call before storing it; responses show only `…last4`; `delete` fails the jobs still running on the key with `KEY_REMOVED` (FR-RUN-3, FR-RUN-12); `add` and `validate` are rate limited | ✅                                                               |
-| `models.catalog` / `getPreferences` / `setPreferences`                       | `/models/…`                                                                         | User       | Presets, catalogue (unverified prices flagged), free allow-list, custom per-role models (FR-RUN-5)                                                                                                                                            | ✅ (OpenRouter slugs unverified; free allow-list empty until B5) |
-| `jobs.get`                                                                   | GET `/jobs/{jobId}`                                                                 | Job owner  | Status, stage, progress, repository, commit, budget and spend in USD, and the finished tutorial's link                                                                                                                                        | ✅                                                               |
-| `jobs.cancel`                                                                | POST `/jobs/{jobId}/cancel`                                                         | Job owner  | Cancel a queued job now, or stop a running one at its next heartbeat; no further key spend (FR-GEN-11)                                                                                                                                        | ✅                                                               |
-| `jobs.retry`                                                                 | POST `/jobs/{jobId}/retry`                                                          | Job owner  | Re-queue a failed or canceled job; completed stages are skipped; reuses the snapshot (FR-GEN-11)                                                                                                                                              | ✅                                                               |
-| `tutorials.list`                                                             | GET `/tutorials`                                                                    | User       | Own tutorials, paginated by id (FR-LIB-1)                                                                                                                                                                                                     | ✅                                                               |
-| `tutorials.get`                                                              | GET `/tutorials/{owner}/{repo}/{slug}`                                              | Visibility | Overview + outline with `stale`, `newerVersionAvailable`, `draft`; `shareToken` for link shares; NOT_FOUND for anyone the visibility rule excludes                                                                                            | ✅                                                               |
-| `tutorials.getChapter`                                                       | GET `/tutorial-versions/{versionId}/chapters/{chapterKey}`                          | Visibility | One chapter; quiz questions without the answer key (FR-LRN-5)                                                                                                                                                                                 | ✅                                                               |
-| `tutorials.getSource`                                                        | GET `/tutorial-versions/{versionId}/source`                                         | Visibility | File content at the pinned commit (text ≤ 1 MB, FR-LRN-8) with a commit-pinned permalink                                                                                                                                                      | ✅                                                               |
-| `tutorials.sourceTree`                                                       | GET `/tutorial-versions/{versionId}/tree`                                           | Visibility | Every file recorded in the pinned snapshot: path, size, language, role, and whether its text can be read (not binary, 1 MB or less). Same visibility rule as `getSource` (FR-LRN-8, MEM D-080)                                                | ✅ (Postgres test)                                               |
-| `tutorials.setVisibility` / `createShareLink`                                | PUT `/tutorials/{tutorialId}/visibility`, POST `/tutorials/{tutorialId}/share-link` | Owner      | Private, link or public; public needs an OSI licence (`PUBLIC_REQUIRES_OPEN_LICENSE`, FR-SHR-3); link token (D-056)                                                                                                                           | ✅                                                               |
-| `tutorials.delete`                                                           | DELETE `/tutorials/{tutorialId}`                                                    | Owner      | Delete a tutorial with its versions, progress and reports; its URLs stop resolving (FR-LIB-3)                                                                                                                                                 | ✅                                                               |
-| `tutorials.report`                                                           | POST `/tutorials/{tutorialId}/report`                                               | User       | Report a public tutorial (FR-SHR-3 intake; takedown decisions are manual in R1)                                                                                                                                                               | ✅                                                               |
-| `learning.getProgress` / `markLesson` / `unmarkLesson`                       | `/learning/…`                                                                       | User       | Progress per tutorial with carry-over by lesson key (D-057); mark and unmark a lesson; `nextLessonKey` is the resume target                                                                                                                   | ✅                                                               |
-| `learning.history`                                                           | GET `/learning/{tutorialId}/history`                                                | User       | Paginated lesson history, newest first, one entry per lesson (FR-LRN-12)                                                                                                                                                                      | ✅                                                               |
-| `learning.submitQuiz`                                                        | POST `/learning/quiz`                                                               | User       | Grade one answer; the correct key and explanation come back only here; attempts saved (FR-LRN-5)                                                                                                                                              | ✅                                                               |
-| `search.own`                                                                 | GET `/search?q=`                                                                    | User       | Substring search over own repositories, tutorials and lesson titles; lesson hits carry their tutorial's link (FR-SRCH-1)                                                                                                                      | ✅                                                               |
-| `dashboard.summary`                                                          | GET `/dashboard/summary`                                                            | User       | Tutorial counts by state, jobs in flight, resume target, reading totals (FR-DASH-1)                                                                                                                                                           | ✅                                                               |
-| `dashboard.recent`                                                           | GET `/dashboard/recent?tz=`                                                         | User       | Recent activity in the caller's time zone (dates computed in Postgres), paginated; only linked repositories (FR-DASH-1)                                                                                                                       | ✅                                                               |
-| `notifications.list` / `unreadCount` / `markRead` / `markAllRead` / `delete` | `/notifications…`                                                                   | User       | In-app notifications, written by the worker on job end (FR-NTF-1); the unread count is pushed over `GET /notifications/stream`                                                                                                                | ✅                                                               |
-| `settings.get` / `update`                                                    | GET / PATCH `/settings`                                                             | User       | Preferences: theme, default audience level, auto-advance, quizzes, browser notifications (FR-SET-1)                                                                                                                                           | ✅                                                               |
-| `operator.jobs` / `operator.job`                                             | GET `/operator/jobs`, GET `/operator/jobs/{jobId}`                                  | Operator   | Jobs, stages and LLM calls for the operator only; anyone else gets NOT_FOUND (FR-OPS-1, D-060)                                                                                                                                                | ✅                                                               |
-| `auth.providers`                                                             | GET `/auth/providers`                                                               | Public     | Which optional providers are configured: `{ google, github }` (FR-AUTH-1)                                                                                                                                                                     | ✅                                                               |
-| `auth.signUp`                                                                | POST `/auth/sign-up`                                                                | Public     | Name, email and password (min 8 characters). Creates the account and sets the session cookie. Rate limited 20/min per IP. Refusal `EMAIL_TAKEN` (FR-AUTH-1)                                                                                   | ✅ DB tests                                                      |
-| `auth.signIn`                                                                | POST `/auth/sign-in`                                                                | Public     | Email and password; sets the session cookie. Refusal `INVALID_CREDENTIALS` for both a wrong password and an unknown email. Rate limited 20/min per IP (FR-AUTH-1)                                                                             | ✅ DB tests                                                      |
-| `auth.signOut`                                                               | POST `/auth/sign-out`                                                               | Public     | Deletes the current session and clears the cookie                                                                                                                                                                                             | ✅                                                               |
-| `auth.revokeOtherSessions`                                                   | POST `/auth/revoke-other-sessions`                                                  | User       | Signs out every other session; the current one stays (FR-AUTH-4)                                                                                                                                                                              | ✅ DB tests                                                      |
-| `me.get`                                                                     | GET `/me`                                                                           | User       | Now also returns `signInMethods: { password, google, github }`                                                                                                                                                                                | ✅                                                               |
+### auth (public)
+
+| Procedure      | Method / path             | Purpose                                                                    |
+| -------------- | ------------------------- | -------------------------------------------------------------------------- |
+| `auth.providers` | GET `/auth/providers`   | Which optional providers are configured: `{ google, github }`               |
+| `auth.signUp`    | POST `/auth/sign-up`    | Name, email, password (min 8). Creates the account and sets the session. `EMAIL_TAKEN` (409) |
+| `auth.signIn`    | POST `/auth/sign-in`    | Email and password; sets the session. `INVALID_CREDENTIALS` (401)           |
+| `auth.signOut`   | POST `/auth/sign-out`   | Deletes the current session and clears the cookie                          |
+
+There is **no** revoke-other-sessions procedure.
+
+### me / github / keys / models
+
+| Procedure                    | Method / path                          | Auth | Purpose                                                             |
+| ---------------------------- | -------------------------------------- | ---- | ------------------------------------------------------------------ |
+| `me.get`                     | GET `/me`                              | User | Profile plus `signInMethods: { password, google, github }`          |
+| `me.deleteAccount`           | POST `/me/delete`                      | User | Deletes the account and every row it owns; `confirm: "DELETE"`      |
+| `github.installUrl`          | GET `/github/install-url`              | User | GitHub App install URL (`{ url }`, null when no App slug)           |
+| `github.listRepos`           | GET `/github/repos`                    | User | Repos the caller's installations can read; `GITHUB_RELINK_REQUIRED` |
+| `keys.list`                  | GET `/keys`                            | User | BYOK keys; responses show only `…last4`                             |
+| `keys.add`                   | POST `/keys`                           | User | Validates then stores; `KEY_INVALID`, `KEY_ALREADY_EXISTS`, `KEY_CHECK_UNAVAILABLE` |
+| `keys.validate`              | POST `/keys/{keyId}/validate`          | User | Re-checks one key; `KEY_CHECK_UNAVAILABLE`                          |
+| `keys.delete`                | DELETE `/keys/{keyId}`                 | User | Deletes the key; jobs still running on it fail with `KEY_REMOVED`    |
+| `models.catalog`             | GET `/models/catalog`                  | User | Catalogue plus `freeAllowList`                                     |
+| `models.getPreferences`      | GET `/models/preferences`              | User | `{ defaultModel }`                                                  |
+| `models.setPreferences`      | PUT `/models/preferences`              | User | Sets the default model; `MODEL_NOT_ALLOWED { modelId }`             |
+
+Keys are vault-only: the API returns `…last4` and never the secret, and no endpoint exposes a prompt.
+
+### repositories / jobs
+
+| Procedure                 | Method / path                            | Auth     | Purpose                                                                          |
+| ------------------------- | ---------------------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `repositories.preflight`  | POST `/repositories/preflight`           | User     | Size/language check via the Git Trees API; `REPO_TOO_LARGE`, `REPO_NOT_ACCESSIBLE`, `UNSUPPORTED_LANGUAGE` |
+| `repositories.import`     | POST `/repositories/import`              | User     | Create a job on one of the caller's keys; needs `Idempotency-Key`; rate limited |
+| `repositories.list`       | GET `/repositories`                      | User     | Linked repositories, cursor-paged, with the latest job state                     |
+| `repositories.remove`     | DELETE `/repositories/{repositoryId}`    | User     | Unlinks the repository and deletes the caller's courses and progress for it      |
+| `repositories.rerun`      | POST `/repositories/{repositoryId}/rerun`| User     | Fresh snapshot + new job on the caller's key; `KEY_INVALID`, `KEY_CHECK_UNAVAILABLE`, `MODEL_NOT_ALLOWED`, repo refusals |
+| `jobs.get`                | GET `/jobs/{jobId}`                      | Job owner| Status, stage, progress, repository, commit, course link                         |
+| `jobs.listActive`         | GET `/jobs/active`                       | User     | The caller's in-flight jobs (`queued|waiting_retry|stalled|running|canceling`)    |
+| `jobs.cancel`             | POST `/jobs/{jobId}/cancel`              | Job owner| Queued → canceled now; running → `canceling` at the next heartbeat             |
+| `jobs.retry`              | POST `/jobs/{jobId}/retry`               | Job owner| Re-queue a failed or canceled job; completed stages are skipped; `CONFLICT`     |
+
+### courses / workspace
+
+| Procedure              | Method / path                                                | Auth | Purpose                                                            |
+| ---------------------- | ------------------------------------------------------------ | ---- | ------------------------------------------------------------------ |
+| `courses.list`         | GET `/courses`                                               | User | Own courses, cursor-paged, with progress                           |
+| `courses.get`          | GET `/courses/{owner}/{repo}/{slug}`                         | User | Overview + outline, `draft`, `newerVersionAvailable`, versions     |
+| `courses.getChapter`   | GET `/course-versions/{versionId}/chapters/{chapterKey}`     | User | One chapter with quiz questions (no answer key)                    |
+| `courses.getSource`    | GET `/course-versions/{versionId}/source`                    | User | One file at the pinned commit with a commit-pinned permalink       |
+| `courses.delete`       | DELETE `/courses/{courseId}`                                 | User | Deletes the course with its versions and progress                  |
+| `workspace.graph`      | GET `/course-versions/{versionId}/workspace/graph`           | User | Graph nodes/edges, tours, layers and domains                       |
+| `workspace.node`       | GET `/course-versions/{versionId}/workspace/nodes/{nodeId}`  | User | One node with its incoming/outgoing edges and refs                 |
+| `workspace.diagram`    | GET `/course-versions/{versionId}/workspace/diagrams/{diagramId}` | User | One typed `DiagramSpec` with its refs; `DIAGRAM_NOT_FOUND`    |
+| `workspace.tree`       | GET `/course-versions/{versionId}/workspace/tree`            | User | Every file in the pinned snapshot: path, size, language, role, `readable`, `cited` |
+
+### learning / search / dashboard
+
+| Procedure                    | Method / path                                  | Auth | Purpose                                                            |
+| ---------------------------- | ---------------------------------------------- | ---- | ------------------------------------------------------------------ |
+| `learning.getProgress`       | GET `/learning/{courseId}/progress`            | User | Per-course progress with `nextLessonKey` and quiz attempts          |
+| `learning.history`           | GET `/learning/{courseId}/history`             | User | Paginated lesson history, newest first                             |
+| `learning.markLesson`        | POST `/learning/lessons`                       | User | Mark a lesson `in_progress` or `completed`                         |
+| `learning.unmarkLesson`      | POST `/learning/unmark-lesson`                 | User | Clears a lesson's progress                                         |
+| `learning.submitQuiz`        | POST `/learning/quiz`                          | User | Grades one answer; the correct key and explanation come back here  |
+| `search.all`                 | GET `/search`                                  | User | One query across repositories, courses, lessons, file paths and saved dashboards |
+| `dashboard.summary`          | GET `/dashboard/summary`                       | User | Course counts, in-flight jobs, resume target, reading totals       |
+| `dashboard.recent`           | GET `/dashboard/recent?tz=`                    | User | Recent activity in the caller's time zone, paginated               |
+| `dashboard.analytics`        | POST `/dashboard/analytics`                    | User | Bucketed series at day/week/month granularity for one `AnalyticsQuery` |
+| `dashboard.save`             | POST `/dashboard/dashboards`                   | User | Saves a named dashboard; `DASHBOARD_NAME_TAKEN` (409)              |
+| `dashboard.listDashboards`   | GET `/dashboard/dashboards`                    | User | The caller's saved dashboards, cursor-paged                        |
+| `dashboard.deleteDashboard`  | DELETE `/dashboard/dashboards/{dashboardId}`   | User | Deletes one saved dashboard                                        |
+
+### notifications / settings
+
+| Procedure                     | Method / path                          | Auth | Purpose                                                      |
+| ----------------------------- | -------------------------------------- | ---- | ------------------------------------------------------------ |
+| `notifications.list`          | GET `/notifications`                   | User | In-app notifications, opaque cursor paging                   |
+| `notifications.unreadCount`   | GET `/notifications/unread-count`      | User | `{ count }`                                                  |
+| `notifications.markRead`      | POST `/notifications/{id}/read`        | User | Marks one read                                               |
+| `notifications.markAllRead`   | POST `/notifications/read-all`         | User | `{ updated }`                                                |
+| `notifications.delete`        | DELETE `/notifications/{id}`           | User | Deletes one notification                                     |
+| `settings.get`                | GET `/settings`                        | User | Theme, default audience, auto-advance, quizzes, browser notifications |
+| `settings.update`             | PATCH `/settings`                      | User | Partial update; returns the stored preferences               |
+
+### admin (role-gated)
+
+Every `admin.*` procedure requires `user.role = 'admin'`; a non-admin gets **404** (`Admin screen`), never 403.
+
+| Procedure         | Method / path              | Purpose                                                                 |
+| ----------------- | -------------------------- | ----------------------------------------------------------------------- |
+| `admin.overview`  | GET `/admin/overview`      | Users, repositories, courses, jobs in flight, failures last 24h, storage |
+| `admin.users`     | GET `/admin/users`         | Every user with repository/course/job counts; optional `q` filter        |
+| `admin.jobs`      | GET `/admin/jobs`          | Every user's jobs, filterable by status, offset-paged                    |
+| `admin.job`       | GET `/admin/jobs/{jobId}`  | One job with its stage timings                                          |
+| `admin.queues`    | GET `/admin/queues`        | Queue depth, active and failed counts per pg-boss queue                  |
+| `admin.system`    | GET `/admin/system`        | Database reachability, queues, job counts, storage bytes, version        |
+
+Admin responses are metadata only: no keys, prompts or private source.
 
 ## REST / SSE (outside the contract)
 
-| Route                                            | Auth                       | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status                                                                     |
-| ------------------------------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `GET /auth/:provider/start?intent=sign-in\|link` | — (`link` needs a session) | Starts GitHub or Google sign-in (PKCE + state in the short-lived `replo_oauth` cookie, 10 min). `link` attaches the provider to the signed-in account                                                                                                                                                                                                                                                                                                           | ✅ unit and route tests; live round trip pending (needs OAuth credentials) |
-| `GET /auth/:provider/callback`                   | State cookie               | Exchanges the code, then signs in or links. Success sets `replo_session` and redirects to the product. Redirect query values are URL-encoded. Provider calls time out after 10 s and any network or malformed-response failure maps to `OAUTH_FAILED`. Failures redirect to `/login?error=CODE` (settings for links) with `OAUTH_DENIED`, `OAUTH_STATE`, `OAUTH_FAILED`, `ACCOUNT_EXISTS`, `EMAIL_NOT_VERIFIED`, `IDENTITY_IN_USE` or `PROVIDER_ALREADY_LINKED` | ✅ route tests; live round trip pending                                    |
-| `GET /jobs/:id/events`                           | Job owner                  | SSE progress stream; event `id` = `job_events.id`; replay via `Last-Event-ID`; closes after a terminal status; keep-alive comment ~15 s; re-validates the session every 30 s and closes on sign-out. Tested in `job-events.route.integration.test.ts`                                                                                                                                                                                                           | ✅                                                                         |
-| `GET /notifications/stream`                      | User session               | SSE unread count: an `unread` event with `{count}` on connect and on every change (checked every 5 s, keep-alive ~15 s); at most 5 open streams per user (429 `TOO_MANY_STREAMS` with `Retry-After`); 401 without a session; re-checks the session every heartbeat and sends `event: unauthorized` before closing when it is gone                                                                                                                               | ✅ (Postgres test)                                                         |
-| `GET /github/setup`                              | User session               | GitHub App setup redirect: links an installation only if GitHub lists it for the signed-in user; redirects to `/import?github=linked                                                                                                                                                                                                                                                                                                                            | not_accessible                                                             | owned_by_another_user | invalid | github_not_linked | error`(GitHub 401/403 →`github_not_linked`) | ✅  |
-| `POST /webhooks/github`                          | HMAC-SHA256 on raw body    | `installation`, `installation_repositories`, `repository` and `push` events; dedupe on `X-GitHub-Delivery` in the same transaction as the change; `push` records changed paths for the default branch only (D-062); bodies up to 25 MiB (GitHub's push cap; the rest of the API keeps 1 MiB)                                                                                                                                                                    | ✅ (live deliveries not verified)                                          |
-| `GET /healthz`                                   | —                          | Liveness                                                                                                                                                                                                                                                                                                                                                                                                                                                        | ✅                                                                         |
-| `GET /readyz`                                    | —                          | Readiness (DB `select 1`)                                                                                                                                                                                                                                                                                                                                                                                                                                       | ✅                                                                         |
+| Route                                            | Auth                       | Purpose                                                                 |
+| ------------------------------------------------ | -------------------------- | ----------------------------------------------------------------------- |
+| `GET /auth/:provider/start?intent=sign-in\|link` | — (`link` needs a session) | Starts GitHub or Google sign-in (PKCE + state in a 10 min cookie)        |
+| `GET /auth/:provider/callback`                   | State cookie               | Exchanges the code, then signs in or links; failures redirect to `/login?error=CODE` |
+| `GET /jobs/:id/events`                           | Job owner                  | SSE progress; event `id` = `job_events.id`; replay via `Last-Event-ID`; closes after a terminal status |
+| `GET /notifications/stream`                      | User session               | SSE unread count; at most 5 open streams per user (429 `TOO_MANY_STREAMS`) |
+| `GET /github/setup`                              | User session               | GitHub App setup redirect; links an installation for the signed-in user  |
+| `GET /healthz`                                   | —                          | Liveness                                                                |
+| `GET /readyz`                                    | —                          | Readiness (DB `select 1`)                                               |
 
-Every state-changing request must carry an `Origin` equal to `PRODUCT_ORIGIN` when the header is present (403 `BAD_ORIGIN`). Rate-limited responses are 429 with `Retry-After`; limits key on `request.ip`, which honours `X-Forwarded-For` only for the hops set in `TRUST_PROXY` (default: none in development, 1 in production). Every JSON error body carries `requestId`, and every response echoes `X-Request-ID` (NFR-OBS-2).
+There is **no webhook endpoint** (D-114).
 
-## Contract notes (2026-11-01)
+## Typed errors
 
-- `settings.*`: `theme` is `system | light | dark`, default `system`.
-- `dashboard.summary` takes no input; `dashboard.recent` keeps `tz`.
-- `notifications.list` cursors are opaque keyset tokens (`created_at` in microseconds + `id`); a malformed cursor is `BAD_REQUEST`, and paging survives deletion of the cursor row.
-- `github.listRepos` returns only repositories in the user's installations that the user can access with their own GitHub token (D-093).
-- `tutorials.report` takes an optional `shareToken` (link-shared tutorials can be reported) and is idempotent per reporter and tutorial.
-- `jobs.cancel` settles atomically: running → canceling, idle → canceled, terminal or canceling returned as is; 409 if the state is still moving after two attempts.
-- `jobs.get`, `jobs.cancel`, `jobs.retry` and `repositories.import` return `tutorial: { owner, repo, slug } | null` next to `tutorialId`, so a finished job links to its tutorial without a library lookup; it is `null` until publish and after the tutorial is deleted.
-- The same job responses carry `repository: { owner, name } | null` (from the caller's linked repositories; `null` once the repository is removed from their library), `audience`, and `preset` (`null` if the stored model plan has none), so the job page can say what it is generating without another call.
-- `search.own` lesson hits carry their tutorial's `owner`, `repo`, `slug` and `tutorialTitle`, so every lesson hit links to its lesson even when the tutorial itself did not match.
-- Paged outputs share `pageOutput(item, cursor)`; `{ ok: true }` results share `OK_RESULT`; budget bounds share `BudgetUsd`.
+`REPO_TOO_LARGE {metric, value, limit}` · `REPO_NOT_ACCESSIBLE` · `UNSUPPORTED_LANGUAGE` · `KEY_INVALID` · `KEY_ALREADY_EXISTS` · `KEY_CHECK_UNAVAILABLE` · `MODEL_NOT_ALLOWED { modelId }` · `IDEMPOTENCY_KEY_REQUIRED` · `DASHBOARD_NAME_TAKEN` · `DIAGRAM_NOT_FOUND` · `GITHUB_RELINK_REQUIRED` · `CONFLICT`, plus oRPC built-ins (`UNAUTHORIZED`, `NOT_FOUND`, `BAD_REQUEST`…).
 
-## Behaviour changes (2026-11-02)
+Key and model refusals are raised **before any job work starts**, never mid-job. A key deleted while a job runs fails that job with `KEY_REMOVED`; it is a job error, not an API error.
 
-- No wire changes. `EnabledProvidersDto` is `z.record(OAuthProvider, boolean)` (same JSON).
-- `dashboard.recent` offset cursors above 5000 return `BAD_REQUEST` "Invalid cursor".
-- Rate limits now also cover `repositories/preflight`, `repositories/estimate`, `github/listRepos`, `search/own`, `me/deleteAccount` and `auth/revokeOtherSessions` at 120/min per user (per IP when anonymous), and `jobs/retry` at 20/hour, sharing the import budget.
-- Unknown content types under `/rpc` still return 404; the wildcard body parser now enforces the 1 MiB `bodyLimit`.
-- `TutorialReader.lessonsOf(viewer, versionId)` is replaced by `readableHead` and `lessonsOfVersion`; `source` and `sourceTree` take `commitSha` from the snapshot.
-- Job events SSE ends on a terminal last event instead of polling the job row; `Last-Event-ID` is validated.
-- `keys.validate` and import re-validation decrypt the key transiently in the API process (D-097).
-
-## Typed errors (from the contract)
-
-`REPO_TOO_LARGE {metric: files|bytes, value, limit}` · `REPO_NOT_ACCESSIBLE` · `UNSUPPORTED_LANGUAGE` · `FREE_PRESET_REQUIRES_OPENROUTER` · `KEY_INVALID` · `KEY_ALREADY_EXISTS` · `KEY_CHECK_UNAVAILABLE` · `PRESET_UNAVAILABLE {reason}` · `CUSTOM_MODEL_NOT_ALLOWED {role, modelId}` · `BUDGET_BELOW_ESTIMATE {estimateUsd, budgetUsd}` · `PUBLIC_REQUIRES_OPEN_LICENSE` · `GITHUB_RELINK_REQUIRED` (`github.listRepos`, when GitHub rejects the stored user token). Plus oRPC built-ins (`UNAUTHORIZED`, `NOT_FOUND`, `BAD_REQUEST`, `NOT_IMPLEMENTED`…). Job failure codes (not API errors): `KEY_REMOVED`, `BUDGET_EXCEEDED`, `KEY_REJECTED`, `KEY_CHECK_UNAVAILABLE` during runs, `LLM_OUTPUT_INVALID`, `OUTLINE_MISSING`, `LESSONS_MISSING`, `VALIDATION_MISSING`.
-
-Key and preset errors are raised **before any job work starts** (pre-flight), never mid-job. A key deleted while a job runs fails that job with `KEY_REMOVED`; it is a job error, not an API error.
-
-## Adding a procedure (workflow)
+## Adding a procedure
 
 1. Define input/output/errors in `packages/contracts/src/<area>.ts` and add it to `contract` in `index.ts`.
 2. Implement in `apps/api/src/modules/<module>/<module>.router.ts` using `authed.<area>.<proc>.handler(...)`; call the module's **service**, not its repo.
-3. Add a contract test (inputs/outputs/errors) **and a cross-user 404 test** if it touches private data.
+3. Add a contract test and, when it names a record, a **cross-user 404 test** (`router.cross-user.integration.test.ts`).
 4. Use it in the product app via `orpc.<area>.<proc>.queryOptions()` / `.mutationOptions()`.
 5. Update this table.
-
-## Job payloads (internal, not in the contract)
-
-`apps/api/src/worker/job-payload.ts`: `GenerateTutorialV1 { v: 1, jobId, userId, snapshotId, audience }` in a discriminated union on `v`; parsed at enqueue **and** dequeue so a worker handles jobs enqueued by the previous release.

@@ -48,6 +48,7 @@ export interface JobServiceDeps {
 
 export interface JobService extends KeyJobs {
   getOwnedJob(userId: string, jobId: string): Promise<JobRow>
+  listActive(userId: string): Promise<GenerationJobDto[]>
   toDto(job: JobRow): Promise<GenerationJobDto>
   findByIdempotencyKey(userId: string, key: string): Promise<JobRow | undefined>
   createJob(tx: Tx, input: NewJob): Promise<{ job: JobRow; created: boolean }>
@@ -63,6 +64,11 @@ export function createJobService(deps: JobServiceDeps): JobService {
   const getOwnedJob: JobService['getOwnedJob'] = async (userId, jobId) => {
     const job = await jobsRepo(db).findOwned(jobId, userId)
     return requireFound(job, 'Job')
+  }
+
+  const listActive: JobService['listActive'] = async (userId) => {
+    const rows = await jobsRepo(db).listActive(userId)
+    return Promise.all(rows.map(toDto))
   }
 
   const toDto: JobService['toDto'] = async (job) => {
@@ -89,6 +95,7 @@ export function createJobService(deps: JobServiceDeps): JobService {
 
   return {
     getOwnedJob,
+    listActive,
     toDto,
 
     findByIdempotencyKey(userId, key) {

@@ -8,7 +8,7 @@ const requestWith = (cookie?: string) =>
 
 const signedInAs = (userId: string): CurrentSession => ({
   sessionId: `session-of-${userId}`,
-  user: { id: userId, name: 'Ada', email: 'ada@example.com', image: null },
+  user: { id: userId, name: 'Ada', email: 'ada@example.com', image: null, role: 'user' },
 })
 
 describe('sessionFromRequest', () => {

@@ -10,7 +10,9 @@ import type { KeysService } from './modules/keys/keys.service'
 import type { LearningService } from './modules/learning/learning.service'
 import type { ModelsService } from './modules/models/models.service'
 import type { NotificationsService } from './modules/notifications/notifications.service'
-import type { OperatorService } from './modules/operator/operator.service'
+import type { AdminService } from './modules/admin/admin.service'
+import type { AnalyticsService } from './modules/dashboard/analytics.service'
+import type { WorkspaceService } from './modules/workspace/workspace.service'
 import type { RepositoryLibrary } from './modules/repositories/library.service'
 import type { RepositoryImports } from './modules/repositories/imports.service'
 import type { SearchService } from './modules/search/search.service'
@@ -38,8 +40,10 @@ export interface Services {
   settings: SettingsService
   notifications: NotificationsService
   dashboard: DashboardService
+  analytics: AnalyticsService
   search: SearchService
-  operator: OperatorService
+  workspace: WorkspaceService
+  admin: AdminService
 }
 
 export type { SessionUser }

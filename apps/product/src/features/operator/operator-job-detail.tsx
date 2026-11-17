@@ -1,4 +1,4 @@
-import type { OperatorJobDetail } from '@replo/contracts'
+import type { AdminJobDetail } from '@replo/contracts'
 import {
   Alert,
   AlertDescription,
@@ -15,7 +15,7 @@ import { JobStatusBadge } from '@/features/jobs/job-status-badge'
 import { formatDateTime } from '@/lib/format'
 import { OperatorStagesTable } from './operator-stages-table'
 
-export function OperatorJobDetailView({ detail }: { detail: OperatorJobDetail }) {
+export function AdminJobDetailView({ detail }: { detail: AdminJobDetail }) {
   const { job } = detail
 
   return (

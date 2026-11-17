@@ -20,10 +20,20 @@ const lessonHit = {
   lessonKey: 'lesson-2',
   title: 'Checkout flow',
 }
+const fileHit = {
+  courseId: 'course-1',
+  versionId: 'version-1',
+  owner: 'acme',
+  repo: 'shop',
+  path: 'src/cart.ts',
+}
+const dashboardHit = { dashboardId: 'dash-1', name: 'Cart funnel' }
 
 interface Results {
   repositories?: (typeof repositoryHit)[]
   courses?: { courses: (typeof courseHit)[]; lessons: (typeof lessonHit)[] }
+  files?: (typeof fileHit)[]
+  dashboards?: (typeof dashboardHit)[]
 }
 
 function stubs(results: Results) {
@@ -34,39 +44,54 @@ function stubs(results: Results) {
     async (_userId: string, _query: string, _limit: number) =>
       results.courses ?? { courses: [], lessons: [] },
   )
+  const fileSearch = vi.fn(
+    async (_userId: string, _query: string, _limit: number) => results.files ?? [],
+  )
+  const dashboardSearch = vi.fn(
+    async (_userId: string, _query: string, _limit: number) => results.dashboards ?? [],
+  )
   const deps: SearchDeps = {
     repositories: { searchOwn: repositorySearch },
-    courses: { searchOwn: courseSearch },
+    courses: { searchOwn: courseSearch, searchFiles: fileSearch },
+    dashboards: { searchOwn: dashboardSearch },
   }
-  return { deps, repositorySearch, courseSearch }
+  return { deps, repositorySearch, courseSearch, fileSearch, dashboardSearch }
 }
 
-describe('search own', () => {
-  it('passes the query and the limit to both owned searches', async () => {
-    const { deps, repositorySearch, courseSearch } = stubs({})
-    await createSearchService(deps).own('user-1', { q: 'shop', limit: 5 })
+describe('search all', () => {
+  it('passes the query and the limit to every owned search', async () => {
+    const { deps, repositorySearch, courseSearch, fileSearch, dashboardSearch } = stubs({})
+    await createSearchService(deps).all('user-1', { q: 'shop', limit: 5 })
     expect(repositorySearch).toHaveBeenCalledWith('user-1', 'shop', 5)
     expect(courseSearch).toHaveBeenCalledWith('user-1', 'shop', 5)
+    expect(fileSearch).toHaveBeenCalledWith('user-1', 'shop', 5)
+    expect(dashboardSearch).toHaveBeenCalledWith('user-1', 'shop', 5)
   })
 
-  it('returns exactly the repositories, courses and lessons the owned searches return', async () => {
+  it('returns every group the owned searches return', async () => {
     const { deps } = stubs({
       repositories: [repositoryHit],
       courses: { courses: [courseHit], lessons: [lessonHit] },
+      files: [fileHit],
+      dashboards: [dashboardHit],
     })
-    expect(await createSearchService(deps).own('user-1', { q: 'shop', limit: 10 })).toEqual({
+    expect(await createSearchService(deps).all('user-1', { q: 'shop', limit: 10 })).toEqual({
       repositories: [repositoryHit],
       courses: [courseHit],
       lessons: [lessonHit],
+      files: [fileHit],
+      dashboards: [dashboardHit],
     })
   })
 
-  it('returns empty lists when nothing the user owns matches', async () => {
+  it('returns empty groups when nothing the user owns matches', async () => {
     const { deps } = stubs({})
-    expect(await createSearchService(deps).own('user-1', { q: 'nothing', limit: 10 })).toEqual({
+    expect(await createSearchService(deps).all('user-1', { q: 'nothing', limit: 10 })).toEqual({
       repositories: [],
       courses: [],
       lessons: [],
+      files: [],
+      dashboards: [],
     })
   })
 })

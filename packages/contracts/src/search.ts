@@ -15,11 +15,21 @@ export const SearchResults = z.object({
       title: z.string(),
     }),
   ),
+  files: z.array(
+    z.object({
+      courseId: z.uuid(),
+      versionId: z.uuid(),
+      owner: z.string(),
+      repo: z.string(),
+      path: z.string(),
+    }),
+  ),
+  dashboards: z.array(z.object({ dashboardId: z.uuid(), name: z.string() })),
 })
 export type SearchResults = z.infer<typeof SearchResults>
 
 export const searchContract = {
-  own: oc
+  all: oc
     .route({ method: 'GET', path: '/search' })
     .input(
       z.object({

@@ -1,4 +1,4 @@
-import type { SourceTreeEntry } from '@replo/contracts'
+import type { SourceTreeEntryDto } from '@replo/contracts'
 import { Badge, cn } from '@replo/ui'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -50,7 +50,7 @@ function FileRow({
   name,
   links,
   selectedPath,
-}: FileTreeListProps & { entry: SourceTreeEntry; name: string }) {
+}: FileTreeListProps & { entry: SourceTreeEntryDto; name: string }) {
   if (!entry.readable) {
     return (
       <span className={cn(ROW_CLASS, 'text-muted-foreground')}>

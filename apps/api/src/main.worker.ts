@@ -17,6 +17,7 @@ const services = createDomainServices({
   db,
   queue: pgBossQueue(boss),
   vault: vaultFrom(config),
+  boss,
 })
 
 for (let i = 0; i < config.WORKER_CONCURRENCY; i++) {

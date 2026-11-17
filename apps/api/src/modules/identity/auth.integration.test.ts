@@ -126,19 +126,15 @@ describe.skipIf(DATABASE_URL === '')('auth against Postgres', () => {
       expect(await auth.currentSession(signedIn.token)).toBeNull()
     })
 
-    it('revokes every session except the one that is kept', async () => {
+    it('keeps a session for the same account independent of other sessions', async () => {
       const first = await signUp('ada@example.com')
       const second = valueOf(
         await auth.signIn({ email: 'ada@example.com', password: 'correct horse' }),
       )
-      const third = valueOf(
-        await auth.signIn({ email: 'ada@example.com', password: 'correct horse' }),
-      )
 
-      await auth.revokeOtherSessions(first.user.id, second.sessionId)
+      await auth.endSession(first.sessionId)
 
       expect(await auth.currentSession(first.token)).toBeNull()
-      expect(await auth.currentSession(third.token)).toBeNull()
       expect((await auth.currentSession(second.token))?.sessionId).toBe(second.sessionId)
     })
   })

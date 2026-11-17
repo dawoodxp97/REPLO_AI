@@ -34,6 +34,11 @@ export interface CourseCatalog {
     query: string,
     limit: number,
   ): Promise<Pick<SearchResults, 'courses' | 'lessons'>>
+  searchFiles(
+    userId: string,
+    query: string,
+    limit: number,
+  ): Promise<SearchResults['files']>
 }
 
 export function createCourseCatalog(deps: CourseCatalogDeps): CourseCatalog {
@@ -104,6 +109,17 @@ export function createCourseCatalog(deps: CourseCatalogDeps): CourseCatalog {
         })),
         lessons: lessonRows,
       }
+    },
+
+    async searchFiles(userId, query, limit) {
+      const rows = await repo.searchFiles(userId, containsPattern(query), limit)
+      return rows.map((row) => ({
+        courseId: row.courseId,
+        versionId: row.versionId,
+        owner: row.owner,
+        repo: row.repo,
+        path: row.path,
+      }))
     },
   }
 }

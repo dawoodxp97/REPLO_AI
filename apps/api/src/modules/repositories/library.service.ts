@@ -15,6 +15,10 @@ interface RepositoryLibraryDeps {
 export interface RepositoryLibrary {
   list(userId: string, input: RepositoryListInput): Promise<RepositoryPage>
   remove(userId: string, repositoryId: string): Promise<void>
+  findIngestSource(
+    userId: string,
+    repositoryId: string,
+  ): Promise<{ owner: string; name: string; isPrivate: boolean; installationId: number | null } | undefined>
   searchOwn(
     userId: string,
     query: string,
@@ -75,5 +79,9 @@ export function createRepositoryLibrary(deps: RepositoryLibraryDeps): Repository
         .then((rows) =>
           rows.map((row) => ({ repositoryId: row.repositoryId, owner: row.owner, name: row.name })),
         ),
+
+    findIngestSource(userId, repositoryId) {
+      return repositoriesRepo(db).findIngestSource(userId, repositoryId)
+    },
   }
 }

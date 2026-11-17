@@ -6,6 +6,8 @@ import {
   courseSourceRefs,
   courseVersions,
   courses,
+  repositorySnapshots,
+  snapshotFiles,
 } from '../../platform/db/schema'
 
 export type CourseRow = typeof courses.$inferSelect
@@ -265,6 +267,25 @@ export const coursesRepo = (db: DbOrTx) => {
         .innerJoin(repositories, eq(repositories.id, courses.repositoryId))
         .where(and(eq(courses.userId, userId), ilike(courseLessons.title, pattern)))
         .orderBy(courseLessons.title)
+        .limit(limit)
+    },
+
+    searchFiles(userId: string, pattern: string, limit: number) {
+      return db
+        .select({
+          courseId: courses.id,
+          versionId: courseVersions.id,
+          owner: repositories.owner,
+          repo: repositories.name,
+          path: snapshotFiles.path,
+        })
+        .from(courses)
+        .innerJoin(courseVersions, eq(courseVersions.courseId, courses.id))
+        .innerJoin(repositorySnapshots, eq(repositorySnapshots.id, courseVersions.snapshotId))
+        .innerJoin(snapshotFiles, eq(snapshotFiles.snapshotId, repositorySnapshots.id))
+        .innerJoin(repositories, eq(repositories.id, courses.repositoryId))
+        .where(and(eq(courses.userId, userId), ilike(snapshotFiles.path, pattern)))
+        .orderBy(snapshotFiles.path)
         .limit(limit)
     },
 
