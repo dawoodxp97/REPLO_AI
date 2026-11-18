@@ -42,34 +42,36 @@ Nothing imports an app. `contracts`, `ui`, `ai`, `repo-analysis`, `config` impor
 
 ```mermaid
 flowchart LR
-  B[Browser] --> CF[Cloudflare free<br/>DNS, TLS, CDN, WAF]
-  CF -->|apex| L[apps/landing<br/>Pages static]
-  CF -->|app. / api.| CA[Caddy]
-  subgraph VPS["One VPS · 2 vCPU / 4 GB · Docker Compose"]
-    CA --> P[apps/product<br/>Next standalone]
-    CA --> A[API process<br/>Fastify + oRPC + own auth + SSE]
-    W[Worker process<br/>pg-boss handlers]
-    PG[(Postgres 17<br/>records + queue)]
-    P --> A
-    A --> PG
-    W --> PG
+  B[Browser] --> CF[Cloudflare<br/>DNS, TLS, CDN, WAF]
+  CF -->|apex| L[apps/landing<br/>Static Assets]
+  CF -->|app.| P[apps/product<br/>Worker via OpenNext]
+  CF -->|api.| A[API Worker<br/>Fastify via cloudflare:node<br/>+ oRPC + own auth + SSE]
+  subgraph CF2["Cloudflare platform"]
+    W[Pipeline Workflows<br/>stage = step, durable]
+    CR[Cron Triggers<br/>reaper · retention · backups]
+    R2[(R2 blobs + backups)]
   end
+  P --> A
+  A --> HD[Hyperdrive]
+  HD --> PG[(Neon Postgres 17<br/>records + job metadata)]
+  W --> PG
+  W --> R2
   W -- installation token, on demand --> GH[GitHub]
-  W --> R2[(R2 blobs + backups)]
   W --> UK[User's own provider key<br/>OpenRouter · OpenAI · Google AI Studio · Anthropic]
 ```
 
-Only the **worker** talks to GitHub for content, model providers and R2. The product app talks only to the API. There are **no inbound webhooks** (D-114).
+Only the **pipeline Workflows** talk to GitHub for content and model providers; blobs and backups live in R2. The product app talks only to the API. There are **no inbound webhooks** (D-114). Limits that shape this topology: 128 MB per isolate (pre-flight repo caps are the guard), 30 s CPU per HTTP request (raisable to 5 min), pipeline stages run as durable Workflows steps with no overall timeout.
 
-### Memory budget on 4 GB (+2 GB swap)
+### Resource shape
 
-Postgres ~0.6–1.0 · worker 0.5–1.5 peak (concurrency 1–2) · product ~0.25 · api ~0.2 · Caddy+OS ~0.35. Per-job repo caps keep peaks bounded.
+No fixed memory budget: Workers isolates cap at 128 MB each and scale horizontally; the pipeline is bounded by pre-flight repo caps (`MAX_REPO_FILES`, `MAX_REPO_BYTES`), per-job wall-clock/token limits, and Workflows step state living in the platform, not in memory.
 
 ## 3. Backend layout (`apps/api/src`)
 
 ```
-main.http.ts        Fastify + oRPC router + auth routes + SSE + /healthz /readyz
-main.worker.ts      pg-boss workers (generate-course, reaper, retention purge); only HTTP is /healthz
+main.http.ts        Worker fetch entry: Fastify + oRPC router + auth routes + SSE + /healthz /readyz
+main.workflows.ts   pipeline Workflow class (stage = step) and instance create/cancel
+main.cron.ts        scheduled: stalled sweep, retention purge, snapshot TTL, nightly backup trigger
 composition.ts      builds every service from its dependencies
 request-context.ts  RequestContext + Services, built per request
 worker/             generate-course handler, job-payload (queue names, payload, timeouts, retry policy), error classification
@@ -79,8 +81,8 @@ modules/
   github/           app installs, token minting, access checks (no webhooks)
   repositories/     repos, snapshots, pre-flight, import, rerun
   indexing/         orchestrates packages/repo-analysis, stores the structural graph
-  jobs/             generation_jobs lifecycle: create, cancel, retry, claim, heartbeat, reaper, SSE progress
-  pipeline/         stage handlers (index, enrich, graph-review, tours, diagrams, outline, lessons, validate), checkpoints, prompts, grounding
+  jobs/             generation_jobs lifecycle: create, cancel, retry, claim, SSE progress
+  pipeline/         stage handlers (ingest, index, enrich, graph-review, tours, diagrams, outline, lessons, validate, publish), checkpoints, prompts, grounding
   keys/, models/    BYOK keys, model catalogue, default model
   courses/          catalog, content, version access, publishing, workspace reads, delete
   learning/         progress, quiz attempts
@@ -125,14 +127,12 @@ The validator resolves `symbolKey`/anchor quotes to `(path, startLine, endLine, 
 
 ## 6. Jobs, queue and reliability
 
-- `generation_jobs` is the durable truth; **pg-boss only delivers work** (at-least-once). Enqueue in the **same transaction** as the job row (no dual-write).
-- States: `queued → running → succeeded | failed | canceled`, with `waiting_retry`, `stalled`, `canceling` transitional.
-- Claim = conditional update (`queued|waiting_retry|stalled → running`); anything else is a no-op (duplicate delivery).
-- Heartbeat every ~15 s; reaper every minute marks stale `running` jobs `stalled` and re-sends them; completed stages are skipped on resume.
-- One `AbortSignal` threads into every LLM and HTTP call; cancel flips `canceling`, the heartbeat observes it and aborts. No dollar budget is involved (D-116).
-- Errors classified retryable (429/5xx/overloaded/timeouts) vs terminal (access revoked, too large, limit exceeded, invalid input); backoff with jitter; `retry-after` respected.
-- One active job per user, so one user's key is not hit by parallel runs. Queue priority is flat: every job runs on a user's own key.
-- **Triggers to add Redis/BullMQ or durable execution:** queue latency above SLO, polling load visible in DB CPU, need for distributed rate limiting, multi-step workflows with long waits.
+- `generation_jobs` is the durable truth; a generation run is a **Cloudflare Workflow instance** whose steps map onto the pipeline stages. Enqueue in the **same transaction** as the job row (no dual-write); Workflow `create` rejects a second active instance per user.
+- States: `queued → running → succeeded | failed | canceled`, with `waiting_retry`, `stalled`, `canceling` transitional. Workflows persist state between steps, so a resumed run skips completed stages natively — the old reaper/re-send machinery is gone.
+- Per-step retry = conditional check of the job row inside `step.do`; anything but `queued|waiting_retry|stalled → running` is a no-op (duplicate delivery).
+- One `AbortSignal` threads into every LLM and HTTP call; cancel flips `canceling`, terminates the Workflow instance and aborts in-flight calls between steps. No dollar budget is involved (D-116).
+- Errors classified retryable (429/5xx/overloaded/timeouts) vs terminal (access revoked, too large, limit exceeded, invalid input); Workflows step retries with backoff + jitter; `retry-after` respected.
+- **Triggers to add Redis/BullMQ or durable execution:** n/a — Workflows is the durable execution layer (R9). Remaining trigger: multi-tenant queue-sharding or non-TS analyzer needs.
 
 ### Progress delivery
 
@@ -169,15 +169,15 @@ Least-privilege read-only GitHub access · strict per-user scoping with cross-us
 
 ## 11. Deployment and environments
 
-| Environment | Where                                                             | Notes                                                  |
-| ----------- | ----------------------------------------------------------------- | ------------------------------------------------------ |
-| Local       | `docker compose` for Postgres/MinIO + `pnpm dev` on host          | Your own key (OpenRouter recommended)                  |
-| Staging     | Same VPS, separate Compose project, DB and GitHub App, basic auth | Skip until real users                                  |
-| Production  | The VPS                                                           | Nightly encrypted backups to R2, monthly restore drill |
+| Environment | Where                                                                                       | Notes                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Local       | `docker compose` for Postgres/MinIO + `pnpm dev` on host (wrangler dev for Worker paths)     | Your own key (OpenRouter recommended)                                                              |
+| Preview     | Cloudflare: PR `wrangler versions upload` on `*.workers.dev` (product, api, landing)         | Neon branch per PR when DB-affecting; Playwright against the preview when product/api touched       |
+| Production  | Cloudflare Workers + Neon Postgres (Hyperdrive) + R2                                        | Nightly encrypted backups to R2 + Neon PITR, monthly restore drill                                 |
 
-CI/CD: PR → install frozen → `turbo run lint typecheck test build --affected` (database integration tests bootstrap the committed DDL) → eval smoke (recorded fixtures). Main → build images (arm64 if Arm VPS) → GHCR → SSH deploy. Apply new DDL manually before deploying code that depends on it. Landing → Cloudflare Pages on push. There is no scheduled eval (D-048); an operator runs the recorded matrix before changing the allow-list.
+CI/CD (GitHub Actions, everything on the same platform): PR → install frozen → `turbo run lint typecheck test build --affected` (DDL applied to a local Postgres) → eval smoke (recorded fixtures) → `wrangler versions upload` preview. Main → automatic: build → `opennextjs-cloudflare build` → `wrangler versions upload` → staged rollout (`wrangler versions deploy`, gradual traffic shift, instant rollback) after the DDL step applies new migrations to Neon. Auth via OIDC (`wrangler-action`), actions pinned to SHAs. There is no scheduled eval (D-048); an operator runs the recorded matrix before changing the allow-list.
 
-Observability: pino JSON → stdout (rotated), Sentry free tier, admin UI reading user/job/stage/queue tables, scheduled alerts (failure rate > 20%/h, oldest queued > 15 min, disk > 80%, backup failed, key-validation failure spike).
+Observability: pino JSON → Workers Logs, Sentry free tier, admin UI reading user/job/stage tables, alert worker on cron (failure rate > 20%/h, oldest queued > 15 min, Neon storage, backup failed, key-validation failure spike). Workers CPU limit for the api Worker raised to 5 min (`limits.cpu_ms`); pipeline stages run as Workflows steps (durable, retried, persisted state) — see R9.
 
 ## 12. When to split further
 

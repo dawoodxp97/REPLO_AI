@@ -98,7 +98,7 @@ DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services m
 
 - pnpm 11 defaults stay on: `minimumReleaseAge` (3 days here), `strictDepBuilds` with an explicit `allowBuilds` list. Adding to `allowBuilds` needs a reason in the PR.
 - Shared versions go through the `catalog:` in `pnpm-workspace.yaml`.
-- Pin majors per [`TECH_STACK.md`](./TECH_STACK.md): oRPC 1.x (not 2.0 beta), Drizzle 0.45.x, AI SDK 6, pg-boss 10.x, Next 16.x (patch promptly). Majors change only via an entry in `MEM.md`.
+- Pin majors per [`TECH_STACK.md`](./TECH_STACK.md): oRPC 1.x (not 2.0 beta), Drizzle 0.45.x, AI SDK 6, Next 16.x (patch promptly), Wrangler 4.x. From R9 the runtime targets Cloudflare Workers/Workflows, Neon Postgres (Hyperdrive) and R2 (ADR-010); pg-boss is retired with the VPS. Majors change only via an entry in `MEM.md`.
 - Commit `pnpm-lock.yaml`. CI uses `--frozen-lockfile`. Pin GitHub Actions to commit SHAs.
 - New dependency checklist: maintained? licence OK? install scripts? bundle impact (frontend)? could ~20 lines replace it?
 

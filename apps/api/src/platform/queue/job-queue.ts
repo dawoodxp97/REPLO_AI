@@ -2,7 +2,7 @@ import { sql, type SQL } from 'drizzle-orm'
 import type PgBoss from 'pg-boss'
 import type { Tx } from '../db/client'
 
-interface EnqueueOptions {
+export interface EnqueueOptions {
   singletonKey: string
   tx?: Tx
 }

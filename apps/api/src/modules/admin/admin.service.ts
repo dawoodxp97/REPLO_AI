@@ -18,7 +18,8 @@ import type PgBoss from 'pg-boss'
 interface AdminDeps {
   db: Db
   jobs: Pick<JobHistory, 'operatorJobs' | 'operatorJob'>
-  boss: PgBoss
+  // pg-boss on the Node runtime; undefined on Cloudflare (see admin.queues).
+  boss?: PgBoss | undefined
 }
 
 export interface AdminService {
@@ -38,7 +39,7 @@ export interface AdminService {
 
 export function createAdminService(deps: AdminDeps): AdminService {
   const repo = adminRepo(deps.db)
-  const queues = createAdminQueues(deps.boss)
+  const queues = createAdminQueues({ boss: deps.boss, db: deps.db })
 
   const requireAdmin = async (userId: string) => {
     if (!(await repo.isAdmin(userId))) notFound('Admin screen')

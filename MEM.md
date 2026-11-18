@@ -556,13 +556,17 @@ The workspace is one route per course (`/workspace/{owner}/{repo}/{slug}?version
 
 The landing now describes the graph, the eight typed diagrams and the course. The demo lesson frame, checker-report example and tutorial copy are gone; the only illustration is `graph-preview.tsx`, a layer-grouping schematic with no repository data, labelled as such. Home sections: Hero · Product · Graph · Diagrams · How it works · Checks · Your key · FAQ · call to action. Copy lives in `lib/content.tsx`, provider rows in `lib/providers.tsx` and named routes in `lib/routes.ts`; the home and key guide share `provider-table.tsx`, and the home and docs share `check-list.tsx`. The takedown page is removed with public courses; policy pages are privacy, terms and licence, still drafts until review. **Why:** D-122 requires a static landing with no demo course, and R1 removed sharing and public courses. **How to apply:** keep the landing free of API-shaped props, demo fixtures, live data and any embedded player; add a home section by adding its copy to `content.tsx` and a component under `components/sections/`.
 
+### D-128 · 2026-11-18 · active — R9 hosts everything on Cloudflare: Workers, Workflows, Neon + Hyperdrive, R2 (ADR-010)
+
+R9 rewrites the deploy plan: API runs as a Worker (Fastify via `cloudflare:node` `httpServerHandler`, `nodejs_compat` default since compatibility date 2026-08-04, `pluginTimeout: 0`, `limits.cpu_ms` raised to 5 min); product deploys through `@opennextjs/cloudflare` (v1.20+, Next.js 16 Node runtime, R2 incremental cache); landing ships as Workers Static Assets; Postgres 17 moves to Neon behind a Hyperdrive binding with the existing `pg`/Drizzle stack unchanged; pipeline stages become durable **Cloudflare Workflows** steps (stage = step, retries with backoff, cancel = instance terminate) replacing pg-boss; reaper/retention/backup run on Cron Triggers. The VPS, Docker Compose, Caddy and pg-boss are retired; ADR-002's pg-boss choice and D-002's pg-boss pin are superseded for the deployed runtime. CI/CD is GitHub Actions with OIDC: PR previews via `wrangler versions upload` on `*.workers.dev`, main auto-deploys through a staged rollout with instant rollback, and the DDL step applies migrations to Neon before the code rollout. **Why:** one platform with no servers to patch, scale-to-zero cost, and Workflows matching the already-checkpointed stage model 1:1. Risks accepted: 128 MB isolate memory bounds large-repo ingest (pre-flight caps `MAX_REPO_FILES`/`MAX_REPO_BYTES` are the guard; the fallback is a Cloudflare Container for ingest/index only); Neon free tier is dev-only. **How to apply:** new queue/schedule code targets Workflows and Cron Triggers, not pg-boss; deploy code goes through `wrangler versions upload/deploy`, never a manual dashboard edit; docs describe Workers topology from R9's first merge onward.
+
 ## Assumptions to validate
 
 1. Developers get oriented measurably faster than with DeepWiki/Code Wiki.
 2. The lite path on OpenRouter `:free` models is good enough to hook new users.
 3. Users will add a key during onboarding when they see the OpenRouter recommendation and its `:free` models. ADR-007 depends on this.
 4. The graph/diagram workspace is compelling enough that users return without public pages or paid acquisition.
-5. One 4 GB server handles launch traffic and generation.
+5. Cloudflare's free-tier Workers limits plus Neon's free/postgres tiers handle launch traffic; the pipeline's isolate memory stays within pre-flight caps.
 
 ## Gotchas / things to re-verify when implementing
 
@@ -634,4 +638,4 @@ The landing now describes the graph, the eight typed diagrams and the course. Th
 - [ ] Run the Playwright journey against staging and capture responses for fixtures.
 - [ ] Real golden repos with truth sheets (R7); the thirteen synthetic repos exist (D-046).
 - [ ] Sentry (free tier) with a redaction check, and Trusted Types (SECURITY.md #11).
-- [ ] Production deployment: VPS Compose, Caddy, worker hardening, backups and alerts (R9).
+- [ ] Production deployment: Cloudflare (Workers, Workflows, OpenNext, Static Assets), Neon + Hyperdrive, R2 backups and alerts, GitHub Actions CI/CD (R9, ADR-010).

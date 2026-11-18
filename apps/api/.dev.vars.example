@@ -1,0 +1,9 @@
+# Copy to apps/api/.dev.vars for `pnpm --filter @replo/api cf:dev` (git-ignored).
+# The deployed worker reads these from Wrangler secrets instead.
+NODE_ENV=development
+LOG_LEVEL=debug
+DATABASE_URL=postgres://app:app@localhost:5432/replo
+API_PUBLIC_URL=http://localhost:7300
+PRODUCT_ORIGIN=http://localhost:3000
+KEY_ENCRYPTION_KEY=<base64 of 32 bytes>
+ADMIN_EMAILS=you@example.com

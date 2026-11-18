@@ -16,7 +16,7 @@ catalog:
   '@types/react-dom': ^19.2.0
   react: ^19.2.0
   react-dom: ^19.2.0
-  next: ^16.3.0
+  next: ^16.4.6 # patched release line (16.4.1 was flagged vulnerable); 16.4.6 is 8 days old, inside minimumReleaseAge
   tailwindcss: ^4.3.3
   '@tailwindcss/postcss': ^4.3.3
   '@orpc/contract': ^1.15.7
@@ -33,4 +33,5 @@ minimumReleaseAge: 4320 # minutes (3 days), stricter than the pnpm 11 default of
 strictDepBuilds: true # install scripts are denied unless allow-listed below
 allowBuilds:
   esbuild: true # downloads/verifies its platform binary (tsx, tsdown, vite/vitest)
+  workerd: true # wrangler's runtime; its postinstall extracts the platform binary
   unrs-resolver: false # eslint-config-next's resolver; ships prebuilt napi binaries, its postinstall is not needed

@@ -1,6 +1,6 @@
 # ADR-002 — Postgres-backed queue (pg-boss) for release 1
 
-- **Status:** Accepted (blueprint §17.3, §9)
+- **Status:** Superseded by [ADR-010](./010-cloudflare-platform.md) (the durable record, checkpoints and SSE design below carry over; pg-boss delivery does not).
 - **Context:** Low job volume (hundreds–thousands/day), high cost per job, correctness over throughput. Dual writes between a DB and Redis are a classic source of lost or phantom jobs.
 - **Decision:** pg-boss in the same Postgres. Enqueue **inside the transaction** that creates the `generation_jobs` row. `generation_jobs` is the durable truth; stage checkpoints in `job_stages`; progress via `job_events` + SSE. The queue only delivers work (at-least-once); every stage is idempotent.
 - **Consequences:** One stateful system to back up and monitor; seconds of dispatch latency; the database stays awake (acceptable on our own VPS; rules out Neon free tier).

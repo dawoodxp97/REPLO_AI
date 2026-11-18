@@ -103,7 +103,8 @@ export function createDomainServices(deps: {
   db: Db
   queue: JobQueue
   vault: KeyVault
-  boss: PgBoss
+  // pg-boss, only on the Node runtime. The Cloudflare runtime runs Workflows instead.
+  boss?: PgBoss | undefined
 }): DomainServices {
   const { config, db, queue, vault, boss } = deps
   const rest = createGithubRest()

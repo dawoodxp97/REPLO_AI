@@ -5,6 +5,8 @@ node_modules/
 # builds
 .next/
 out/
+.open-next/
+.wrangler/
 dist/
 coverage/
 *.tsbuildinfo
@@ -35,3 +37,6 @@ tools/evals/out/
 test-results/
 playwright-report/
 blob-report/
+.dev.vars
+
+.env.cloudflare

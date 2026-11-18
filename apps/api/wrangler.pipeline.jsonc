@@ -1,0 +1,54 @@
+// "replo-pipeline": Workflows + Cron Triggers Worker (the pg-boss replacement).
+// Deployed as top-level config (`wrangler deploy -c wrangler.pipeline.jsonc`,
+// no --env) so the Worker name and its bindings are stable. Bindings are NOT
+// inherited by environments, so `env.preview` repeats its full set. The pipeline
+// runtime is built lazily inside handlers, so the Hyperdrive binding is
+// reachable and Postgres connections are pooled by Hyperdrive.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "replo-pipeline",
+  "main": "src/main.cloudflare.ts",
+  "compatibility_date": "2026-11-17",
+  "observability": { "enabled": true },
+  "workflows": [
+    {
+      "binding": "PIPELINE",
+      "name": "generate-course",
+      "class_name": "CourseGenerationWorkflow",
+    },
+  ],
+  "triggers": { "crons": ["* * * * *", "0 3 * * *"] },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "0baed97f95bd4dcf85e4fe0a3b81287e",
+      "localConnectionString": "postgres://app:app@localhost:5432/replo",
+    },
+  ],
+  "vars": {
+    "NODE_ENV": "production",
+    "LOG_LEVEL": "info",
+  },
+  // "routes": [{ "pattern": "pipeline.replo.example", "custom_domain": true }],
+  "env": {
+    "preview": {
+      "name": "replo-pipeline-preview",
+      "workflows": [
+        {
+          "binding": "PIPELINE",
+          "name": "generate-course-preview",
+          "class_name": "CourseGenerationWorkflow",
+        },
+      ],
+      "triggers": { "crons": ["*/5 * * * *", "0 3 * * *"] },
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "<HYPERDRIVE_ID_PREVIEW>",
+          "localConnectionString": "postgres://app:app@localhost:5432/replo",
+        },
+      ],
+      "vars": { "NODE_ENV": "production", "LOG_LEVEL": "info" },
+    },
+  },
+}

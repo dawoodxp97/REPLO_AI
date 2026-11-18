@@ -13,7 +13,12 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
-    "db:setup": "bash scripts/setup-db.sh"
+    "db:setup": "bash scripts/setup-db.sh",
+    "db:migrate": "tsx scripts/apply-ddl.ts --env-file-if-exists=.env",
+    "cf:dev": "wrangler dev -c wrangler.jsonc",
+    "cf:dev:pipeline": "wrangler dev -c wrangler.pipeline.jsonc",
+    "deploy": "wrangler deploy -c wrangler.jsonc",
+    "deploy:pipeline": "wrangler deploy -c wrangler.pipeline.jsonc"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.1",
@@ -41,6 +46,7 @@
     "tsdown": "^0.23.1",
     "tsx": "^4.23.0",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "wrangler": "^4.162.0"
   }
 }

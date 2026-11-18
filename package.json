@@ -21,6 +21,10 @@
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "db:setup": "pnpm --filter @replo/api db:setup",
+    "cf:api:deploy": "pnpm --filter @replo/api exec wrangler deploy -c wrangler.jsonc",
+    "cf:pipeline:deploy": "pnpm --filter @replo/api exec wrangler deploy -c wrangler.pipeline.jsonc",
+    "cf:product:deploy": "pnpm --filter @replo/product exec opennextjs-cloudflare build && pnpm --filter @replo/product exec wrangler deploy",
+    "cf:landing:deploy": "pnpm --filter @replo/landing build && pnpm --filter @replo/landing exec wrangler deploy",
     "evals": "pnpm --filter @replo/evals start"
   },
   "devDependencies": {

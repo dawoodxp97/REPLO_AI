@@ -1,0 +1,44 @@
+// "replo-api": HTTP Worker (Fastify via cloudflare:node). Deployed as top-level
+// config (`wrangler deploy -c wrangler.jsonc`, no --env) so the Worker name is
+// exactly `replo-pipeline`'s service target. Bindings are NOT inherited by
+// environments, so `env.preview` repeats its full set. Secrets (DATABASE_URL,
+// KEY_ENCRYPTION_KEY, OAuth and GitHub App credentials) are set with
+// `wrangler secret put`.
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "replo-api",
+	"main": "src/main.cloudflare.http.ts",
+	"compatibility_date": "2026-11-17",
+	"observability": {
+		"enabled": true,
+	},
+	// limits.cpu_ms is a paid-plan setting (code 100328 on Free). Re-add it —
+	// 30 s default, 300000 max — when the account moves to Workers Paid; on
+	// Free every request is capped at 10 ms CPU, so real traffic will 1102.
+	"services": [
+		{
+			"binding": "PIPELINE",
+			"service": "replo-pipeline",
+		},
+	],
+	"vars": {
+		"NODE_ENV": "production",
+		"LOG_LEVEL": "info",
+	},
+	// "routes": [{ "pattern": "api.replo.example", "custom_domain": true }],
+	"env": {
+		"preview": {
+			"name": "replo-api-preview",
+			"services": [
+				{
+					"binding": "PIPELINE",
+					"service": "replo-pipeline-preview",
+				},
+			],
+			"vars": {
+				"NODE_ENV": "production",
+				"LOG_LEVEL": "info",
+			},
+		},
+	},
+}

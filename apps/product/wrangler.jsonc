@@ -1,0 +1,78 @@
+// Deployed as top-level config: `wrangler deploy` (no --env), so the Worker name
+// stays `replo-product` and WORKER_SELF_REFERENCE matches it exactly. Bindings
+// are NOT inherited by environments, so `env.preview` repeats its full set and
+// production simply IS the top level. Preview placeholders stay until preview
+// resources are created.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "replo-product",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-17",
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "replo-product-cache",
+    },
+  ],
+  "d1_databases": [
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "replo-product-tags",
+      "database_id": "b9255bc3-1c9e-4485-8884-24db3b317abc",
+      "migrations_dir": "drizzle-d1",
+    },
+  ],
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "replo-product",
+    },
+  ],
+  "vars": {
+    "NEXT_PUBLIC_API_URL": "https://replo-api.dawoodmsam422.workers.dev",
+    "NEXT_PUBLIC_APP_URL": "https://replo-product.dawoodmsam422.workers.dev",
+  },
+  // "routes": [
+  //   { "pattern": "app.replo.example", "custom_domain": true }
+  // ],
+  "env": {
+    "preview": {
+      "name": "replo-product-preview",
+      "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS",
+      },
+      "r2_buckets": [
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "replo-product-cache-preview",
+        },
+      ],
+      "d1_databases": [
+        {
+          "binding": "NEXT_TAG_CACHE_D1",
+          "database_name": "replo-product-tags-preview",
+          "database_id": "<D1_DATABASE_ID_PREVIEW>",
+          "migrations_dir": "drizzle-d1",
+        },
+      ],
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "replo-product-preview",
+        },
+      ],
+      "vars": {
+        "NEXT_PUBLIC_API_URL": "https://replo-api-preview.dawoodmsam422.workers.dev",
+        "NEXT_PUBLIC_APP_URL": "https://replo-product-preview.dawoodmsam422.workers.dev",
+      },
+    },
+  },
+}

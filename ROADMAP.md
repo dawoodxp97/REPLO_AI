@@ -17,9 +17,9 @@ One sequence, contract first. The backend contract and data model land before co
 | **R6** | Landing: static, no demo                                                                                    | S    | R0         |
 | **R7** | Evals: graph, citation, diagram, course and quiz gates                                                      | L    | R3         |
 | **R8** | Documentation and dead-code sweep                                                                           | M    | R1–R7      |
-| **R9** | Release hardening and deploy                                                                                | L    | R1–R8      |
+| **R9** | Cloudflare migration (Workers/Workflows/Neon), full CI/CD on GitHub Actions, release hardening              | XL   | R1–R8      |
 
-Estimate, two engineers: **~16–20 weeks**. R5 and R6 can run beside R3/R4; R7 starts when the pipeline can produce fixtures.
+Estimate, two engineers: **~17–21 weeks** (R9 grew to XL for the Cloudflare migration). R5 and R6 can run beside R3/R4; R7 starts when the pipeline can produce fixtures.
 
 **Critical path:** R0 → R1 → R2 → R3 → R4 → R7 → R8 → R9.
 
@@ -123,9 +123,41 @@ Status legend: `[x]` done · `[~]` scaffolded · `[ ]` not started.
 - [x] Delete dead modules, tables, contracts and fixtures left by removed features.
 - **Accept:** `grep` finds no reference to a removed feature; docs match code; no unused exports or tables.
 
-## R9 — Release hardening and deploy (L)
+## R9 — Cloudflare migration, CI/CD and release hardening (XL)
 
-- [ ] VPS Compose, Caddy, worker hardening; nightly encrypted backups to R2; restore drill.
-- [ ] Alerts: failure rate, queue age, disk, backup, key-validation spike.
-- [ ] Live GitHub App, live Google/GitHub sign-in, a real provider key end to end.
-- [ ] Threat-model checklist signed off; release checklist in PRD §14 complete.
+Everything hosts on Cloudflare: Workers for compute, Neon Postgres behind Hyperdrive for data, R2 for blobs, Workflows for the pipeline, GitHub Actions for CI/CD. The VPS, Docker Compose, Caddy and pg-boss are retired.
+
+**Platform migration**
+
+- [x] API: Fastify 5 runs on a Worker via `cloudflare:node` `httpServerHandler` (`nodejs_compat` on by default, compatibility date ≥ 2026-08-04); `pluginTimeout: 0`; static files never served by Fastify; `/healthz` `/readyz` work as-is; CPU limit raised to 5 min in `wrangler.jsonc` (`limits.cpu_ms`).
+- [~] Product: `@opennextjs/cloudflare` (v1.20+, Next.js 16, Node runtime, no `edge` routes); R2 incremental cache + D1 tag cache bindings; admin SSR role gate unchanged; custom domains via Wrangler routes.
+- [~] Landing: static export to Workers Static Assets (Pages only if the export path demands it); no API calls.
+- [~] Postgres: Neon (serverless Postgres 17, scale-to-zero) + Hyperdrive binding; `pg` driver and Drizzle unchanged; pooling mode = transaction; Hyperdrive user is a dedicated Neon role with pooled connections disabled.
+- [~] Blobs: R2 bindings replace the S3 client; tarballs, git-blob objects and nightly backups in the same buckets; local dev keeps MinIO behind a driver switch.
+- [ ] Secrets: Wrangler secrets / account env vars for `KEY_ENCRYPTION_KEY`, GitHub App key, OAuth client secrets; `AUTH_COOKIE_DOMAIN` and origins set per environment.
+- [x] Rewrite `ARCHITECTURE.md` §2 runtime topology and `TECH_STACK.md` hosting rows to this platform before merge (docs match the system).
+
+**Pipeline on Workflows (pg-boss retired)**
+
+- [~] `generation_jobs` stays the durable truth; each course generation creates a **Cloudflare Workflow instance** (`CourseGenerationWorkflow`) whose step wraps the checkpointed stage loop (`ingest → … → publish`) — completed stages are skipped on retry by the existing checkpoints, so one durable step per run is equivalent to one step per stage; `wrangler.pipeline.jsonc` carries the `generate-course` Workflow and the `replo-pipeline` worker.
+- [~] `ingest`/`index` in-isolate: tar extraction to an in-memory VFS, tree-sitter WASM parse; pre-flight caps (`MAX_REPO_FILES`, `MAX_REPO_BYTES`) are the memory guard — refuse before any bytes are fetched, stream GitHub → VFS without buffering the whole tarball where possible.
+- [~] Retry policy moves to Workflows (step retries with exponential backoff = the old pg-boss retryLimit/retryDelay, error classification reused); cancel = `canceling` flag observed by the heartbeat (unchanged); heartbeat/reaper logic collapses into Workflows' persisted state.
+- [~] SSE `/jobs/:id/events` unchanged (streaming responses, no duration limit on HTTP); event rows still written per stage, reconnect via `Last-Event-ID` still works.
+- [~] Cron Triggers replace the reaper/retention/purge workers: dispatch backstop sweep (every minute), stalled-job sweep, retention purge (nightly, ≤ 15 min CPU/wall per trigger).
+- [x] One active job per user enforced at enqueue time (instance id = job id; the sweep only creates missing instances); evals still gate every allow-listed model before it is offered.
+
+**CI/CD on GitHub Actions (automatic hosting)**
+
+- [x] PR checks: frozen install → `turbo run lint typecheck test build --affected` (Testcontainers boot Neon-compatible DDL against a local Postgres) → eval smoke on recorded fixtures.
+- [~] PR previews: `wrangler versions upload` per PR on a `*.workers.dev` preview URL — product, api and landing all deployable; product Playwright suite runs against the preview when the PR touches `apps/product` or `apps/api`.
+- [~] Main → production, automatic: build → `opennextjs-cloudflare build` → deploy via `wrangler-action` (plain `wrangler deploy` today; **staged rollout** via `versions upload`/`versions deploy` is the documented follow-up in `deploy.yml`) → smoke checks against production; instant rollback = redeploy the previous version. Actions pinned to SHAs; Cloudflare does not support GitHub OIDC federation, so deploys authenticate with a scoped API token (`CLOUDFLARE_API_TOKEN` secret, Workers Scripts:Edit + D1:Edit + Hyperdrive:Edit + R2:Edit).
+- [x] DDL: migration step applies the committed numbered DDL files (`apps/api/scripts/apply-ddl.ts`, `_schema_migrations` ledger + advisory lock, verified idempotent) to Neon (fresh-branch test first via Neon branching) **before** the code rollout step; drift check blocks the merge if it fails.
+- [~] Secrets and Hyperdrive configs provisioned by a `wrangler deploy` of `wrangler.jsonc` (envs: `production`, `preview`); `NEXT_PUBLIC_*` baked at build time from repo config, not the dashboard.
+
+**Hardening and go-live**
+
+- [ ] Nightly encrypted backups to R2 (pg_dump from Neon → R2 with SSE; R2 lifecycle rules), plus Neon PITR enabled; monthly restore drill documented and rehearsed once before go-live.
+- [ ] Alerts: generation failure rate > 20%/h, oldest queued workflow age > 15 min, Neon storage, backup failed, key-validation failure spike (Workers cron alert worker + Sentry).
+- [ ] Live GitHub App, live Google/GitHub sign-in, a real provider key end to end on the deployed stack.
+- [ ] Threat-model checklist signed off (Workers data plane, Neon network policy, R2 bucket access, admin gate on Workers); release checklist in PRD §14 complete.
+- **Accept:** full PRD §8 journey on the deployed Cloudflare stack (sign in → import → generate via Workflows → workspace → lesson → quiz); a rollback drill and a restore drill each proven once; a green PR auto-deploys through staged rollout without manual steps; CI blocks a regression at eval, typecheck or migration stage.

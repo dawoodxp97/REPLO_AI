@@ -5,7 +5,7 @@ Decisions that are expensive to reverse. Format: **Context → Decision → Cons
 | ADR                                                  | Title                                                       | Status                   |
 | ---------------------------------------------------- | ----------------------------------------------------------- | ------------------------ |
 | [001](./001-modular-monolith-api-worker.md)          | Modular monolith with separate API and worker processes     | Accepted                 |
-| [002](./002-postgres-backed-queue.md)                | Postgres-backed queue (pg-boss) for release 1               | Accepted                 |
+| [002](./002-postgres-backed-queue.md)                | Postgres-backed queue (pg-boss) for release 1               | Superseded by 010        |
 | [003](./003-no-embeddings-in-r1.md)                  | No embeddings in release 1                                  | Accepted                 |
 | [004](./004-model-points-system-quotes.md)           | "The model points, the system quotes"                       | Accepted                 |
 | [005](./005-read-only-github-no-code-execution.md)   | Read-only GitHub access and no execution of repository code | Accepted                 |
@@ -13,5 +13,6 @@ Decisions that are expensive to reverse. Format: **Context → Decision → Cons
 | [007](./007-byok-only-no-billing.md)                 | BYOK only, free for everyone, no billing or ads ever        | Accepted                 |
 | [008](./008-no-runnable-code-in-r1.md)               | No runnable code examples in the player in release 1        | Accepted                 |
 | [009](./009-own-auth-no-better-auth.md)              | Own authentication instead of Better Auth                   | Accepted                 |
+| [010](./010-cloudflare-platform.md)                  | Everything on Cloudflare: Workers, Workflows, Neon, R2      | Accepted                 |
 
 New ADR: copy the shape of an existing one, number sequentially, add a row here, and link it from the PR.
