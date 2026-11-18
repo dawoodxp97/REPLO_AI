@@ -4,6 +4,9 @@ import tseslint from 'typescript-eslint'
 const IGNORES = [
   '**/node_modules/**',
   '**/.next/**',
+  '**/.open-next/**',
+  '**/.wrangler/**',
+  '**/.turbo/**',
   '**/out/**',
   '**/dist/**',
   '**/coverage/**',

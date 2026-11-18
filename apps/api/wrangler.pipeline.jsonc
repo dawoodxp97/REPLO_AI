@@ -9,6 +9,7 @@
   "name": "replo-pipeline",
   "main": "src/main.cloudflare.ts",
   "compatibility_date": "2026-11-17",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "workflows": [
     {

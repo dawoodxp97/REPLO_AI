@@ -73,6 +73,9 @@ catalogs:
       specifier: ^4.6.7
       version: 4.6.7
 
+patchedDependencies:
+  find-my-way@9.10.0: e44059c8ca34332bb2b1d85487fbad896b55dea431431608bcbf239c6b939600
+
 importers:
 
   .:
@@ -9325,7 +9328,7 @@ snapshots:
       abstract-logging: 2.0.1
       avvio: 9.3.1
       fast-json-stringify: 7.1.0
-      find-my-way: 9.10.0
+      find-my-way: 9.10.0(patch_hash=e44059c8ca34332bb2b1d85487fbad896b55dea431431608bcbf239c6b939600)
       light-my-request: 6.8.0
       pino: 10.4.0
       process-warning: 5.1.1
@@ -9361,7 +9364,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  find-my-way@9.10.0:
+  find-my-way@9.10.0(patch_hash=e44059c8ca34332bb2b1d85487fbad896b55dea431431608bcbf239c6b939600):
     dependencies:
       fast-deep-equal: 3.1.3
       fast-querystring: 1.1.2

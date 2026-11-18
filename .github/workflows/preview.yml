@@ -12,6 +12,7 @@ on:
     paths:
       - 'apps/api/**'
       - 'apps/product/**'
+      - 'apps/landing/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/preview.yml'
 
@@ -54,6 +55,13 @@ jobs:
           pnpm exec wrangler versions upload -c wrangler.jsonc 2>&1 | tee /tmp/api-upload.log
           grep -oE 'https://[^ ]+\.workers\.dev' /tmp/api-upload.log | tail -n 1 > /tmp/api-url.txt || true
 
+      - name: Upload landing preview version
+        working-directory: apps/landing
+        run: |
+          set -o pipefail
+          pnpm exec wrangler versions upload 2>&1 | tee /tmp/landing-upload.log
+          grep -oE 'https://[^ ]+\.workers\.dev' /tmp/landing-upload.log | tail -n 1 > /tmp/landing-url.txt || true
+
       - name: Comment preview URLs on the PR
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -62,11 +70,13 @@ jobs:
             const read = (p) => fs.readFileSync(p, 'utf8').trim();
             const product = read('/tmp/product-url.txt');
             const api = read('/tmp/api-url.txt');
+            const landing = read('/tmp/landing-url.txt');
             const lines = [
               '## Preview versions',
               '',
               product ? `- **product**: ${product}` : '- **product**: version uploaded (check the "Upload product preview version" step log for the URL)',
               api ? `- **api**: ${api}` : '- **api**: version uploaded (check the "Upload api preview version" step log for the URL)',
+              landing ? `- **landing**: ${landing}` : '- **landing**: version uploaded (check the "Upload landing preview version" step log for the URL)',
               '',
               'These are version preview URLs — production traffic is unaffected. Promote with `wrangler versions deploy`.',
             ];

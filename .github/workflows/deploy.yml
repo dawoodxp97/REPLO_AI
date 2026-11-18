@@ -29,6 +29,13 @@ concurrency:
 permissions:
   contents: read
 
+# Override with repository variables when the workers.dev URLs change (or a
+# custom domain is attached). The defaults are the deployed Worker names.
+env:
+  API_URL: ${{ vars.API_URL || 'https://replo-api.dawoodmsam422.workers.dev' }}
+  PRODUCT_URL: ${{ vars.PRODUCT_URL || 'https://replo-product.dawoodmsam422.workers.dev' }}
+  LANDING_URL: ${{ vars.LANDING_URL || 'https://replo-landing.dawoodmsam422.workers.dev' }}
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -99,14 +106,48 @@ jobs:
           workingDirectory: apps/product
           command: deploy
 
+      # The api Worker has a service binding to replo-pipeline, so the pipeline
+      # Worker must exist (and be current) before the api is deployed.
+      - name: Deploy api pipeline (Workflows + cron)
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          workingDirectory: apps/api
+          command: deploy -c wrangler.pipeline.jsonc
+
       - name: Deploy api (HTTP)
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           workingDirectory: apps/api
           command: deploy -c wrangler.jsonc
 
-      - name: Deploy api pipeline (Workflows + cron)
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
-        with:
-          workingDirectory: apps/api
-          command: deploy -c wrangler.pipeline.jsonc
+  smoke:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: API health and database readiness
+        run: |
+          set -euo pipefail
+          check() {
+            local url="$1" label="$2" attempts="$3" timeout="$4" code
+            for _ in $(seq 1 "$attempts"); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time "$timeout" "$url" || true)
+              if [ "$code" = "200" ]; then
+                echo "$label: 200"
+                return 0
+              fi
+              sleep 5
+            done
+            echo "$label: expected 200, got $code from $url"
+            return 1
+          }
+          check "$API_URL/healthz" "api /healthz" 6 15
+          # /readyz opens a database connection, which can lag the version
+          # promotion by a few seconds.
+          check "$API_URL/readyz" "api /readyz" 12 20
+
+      - name: Product and landing
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 20 -o /dev/null "$PRODUCT_URL"
+          curl -fsS --max-time 20 -o /dev/null "$LANDING_URL"
+          echo "product and landing: 200"

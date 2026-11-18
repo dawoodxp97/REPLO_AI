@@ -3,7 +3,9 @@ import nextVitals from 'eslint-config-next/core-web-vitals'
 import nextTs from 'eslint-config-next/typescript'
 
 const config = [
-  { ignores: ['.next/**', 'out/**', 'next-env.d.ts'] },
+  {
+    ignores: ['.next/**', '.open-next/**', '.wrangler/**', '.turbo/**', 'out/**', 'next-env.d.ts'],
+  },
   ...nextVitals,
   ...nextTs,
   landingBoundaries,

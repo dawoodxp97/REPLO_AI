@@ -71,6 +71,10 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
       repositoryId,
       slug,
       title: `${slug} walk`,
+      // Fixed timestamps: the stats test asserts that the job's finishedAt is
+      // the newest activity, which a defaultNow() course row would always beat.
+      createdAt: new Date('2026-11-18T10:00:00.000Z'),
+      updatedAt: new Date('2026-11-18T10:00:00.000Z'),
     })
 
   const coursesOf = (userId: string, repositoryId: string) =>

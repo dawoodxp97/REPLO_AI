@@ -73,7 +73,10 @@ async function buildRuntime(env: WorkerEnv): Promise<CloudflareRuntime> {
     name: 'worker',
   })
   const { db, pool } = createDb(config.DATABASE_URL, {
-    max: config.DB_POOL_MAX,
+    // workerd closes a socket when the request that opened it ends, so the
+    // shared pg.Pool would deadlock on its first reuse. One connection per
+    // query is the documented Workers/Hyperdrive pattern.
+    perQuery: true,
     onPoolError: (err) => log.error({ err }, 'idle pg client error'),
   })
 

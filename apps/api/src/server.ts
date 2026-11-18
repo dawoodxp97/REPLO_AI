@@ -40,6 +40,9 @@ export interface HttpAppDeps {
   // On Workers, Fastify's built-in pino integration fails at boot (pino's
   // interop breaks in workerd); the HTTP entry passes false and logs itself.
   disableFastifyLogger?: boolean
+  // The Workers entry runs the seed after the first response instead of
+  // blocking boot on a database write; defaults to true (Node entrypoints).
+  seedAdmin?: boolean
 }
 
 export interface HttpApp {
@@ -57,10 +60,12 @@ export async function buildHttpApp(deps: HttpAppDeps): Promise<HttpApp> {
   const services = createServices({ config, db, domain, oauth, vault })
   // Boot must not throw on seeding: the Workers runtime validates a deploy by
   // starting the Worker, and a database hiccup here must not fail the deploy.
-  try {
-    await services.adminSeed.seed(config.ADMIN_EMAILS)
-  } catch (err) {
-    log.warn({ err }, 'admin seed skipped; it retries on the next boot')
+  if (deps.seedAdmin !== false) {
+    try {
+      await services.adminSeed.seed(config.ADMIN_EMAILS)
+    } catch (err) {
+      log.warn({ err }, 'admin seed skipped; it retries on the next boot')
+    }
   }
   const secureCookies = config.NODE_ENV === 'production'
   const sessionCookie = createSessionCookie({

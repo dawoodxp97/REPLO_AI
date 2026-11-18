@@ -1,0 +1,152 @@
+diff --git a/lib/handler-storage.js b/lib/handler-storage.js
+index 09bd834b95a830b0393433800f51dabd3a8a9475..3a3c2b7d6ce587df197337a5b67e6457e251dc28 100644
+--- a/lib/handler-storage.js
++++ b/lib/handler-storage.js
+@@ -62,24 +62,23 @@ class HandlerStorage {
+   }
+ 
+   _compileCreateParamsObject (params) {
+-    const fnBody = ["'use strict'"]
+-
+-    // Parameter values arrive by position: the first four as arguments and
+-    // any further ones in the extraParams array. This mirrors how the
+-    // router's find() collects them without allocating an array.
+-    fnBody.push('const fn = function _createParamsObject (param0, param1, param2, param3, extraParams) {')
+-
+-    fnBody.push('const params = new NullObject()')
+-    for (let i = 0; i < params.length; i++) {
+-      const value = i < 4 ? `param${i}` : `extraParams[${i - 4}]`
+-      fnBody.push(`params[${JSON.stringify(params[i])}] = ${value}`)
++    // Parameter values arrive by position: the first four as arguments and any
++    // further ones in the extraParams array. This mirrors how the router's
++    // find() collects them without allocating an array.
++    //
++    // Upstream compiles this with `new Function`, which workerd rejects with
++    // "Code generation from strings disallowed for this context" and which
++    // deadlocks Fastify's boot. A closure over the parameter names does the
++    // same work without eval.
++    const names = params
++    return function _createParamsObject (param0, param1, param2, param3, extraParams) {
++      const values = [param0, param1, param2, param3]
++      const result = new NullObject()
++      for (let i = 0; i < names.length; i++) {
++        result[names[i]] = i < 4 ? values[i] : extraParams[i - 4]
++      }
++      return result
+     }
+-    fnBody.push('return params')
+-    fnBody.push('}')
+-
+-    fnBody.push('return fn')
+-
+-    return new Function('NullObject', fnBody.join('\n'))(NullObject)  // eslint-disable-line
+   }
+ 
+   _getHandlerMatchingConstraints () {
+@@ -130,49 +129,40 @@ class HandlerStorage {
+       this._buildConstraintStore(store, constraint)
+     }
+ 
+-    const lines = ["'use strict'"]
+-    lines.push(`
+-    let candidates = ${(1 << this.handlers.length) - 1}
+-    let mask, matches, value
+-    `)
+-    for (const constraint of this.constraints) {
+-      // Setup the mask for indexes this constraint applies to. The mask bits are set to 1 for each position if the constraint applies.
+-      lines.push(`
+-      mask = ${this._constrainedIndexBitmask(constraint)}
+-      value = derivedConstraints.${constraint}
+-      `)
+-
+-      // If there's no constraint value, none of the handlers constrained by this constraint can match. Remove them from the candidates.
+-      // If there is a constraint value, get the matching indexes bitmap from the store, and mask it down to only the indexes this constraint applies to, and then bitwise and with the candidates list to leave only matching candidates left.
+-      const strategy = constrainer.strategies[constraint]
+-      const matchMask = strategy.mustMatchWhenDerived ? 'matches' : '(matches | mask)'
+-
+-      lines.push(`
+-      if (value === undefined) {
+-        candidates &= mask
+-      } else {
+-        matches = this.constrainedHandlerStores.${constraint}.get(value) || 0
+-        candidates &= ${matchMask}
++    // The matching function is a closure (see below) rather than generated
++    // source: workerd rejects `new Function` with "Code generation from
++    // strings disallowed for this context".
++    // Return the highest set bit index in the candidates bitmask.
++    //
++    // Upstream builds this function with `new Function`, which workerd rejects
++    // (string code generation is disabled). The closure below is the same
++    // algorithm with the generated constants read from the store at call time.
++    const self = this
++    this._getHandlerMatchingConstraints = function (derivedConstraints) {
++      let candidates = (1 << self.handlers.length) - 1
++      let mask, matches, value
++      for (const constraint of self.constraints) {
++        mask = self._constrainedIndexBitmask(constraint)
++        value = derivedConstraints[constraint]
++        if (value === undefined) {
++          candidates &= mask
++        } else {
++          matches = self.constrainedHandlerStores[constraint].get(value) || 0
++          candidates &= constrainer.strategies[constraint].mustMatchWhenDerived
++            ? matches
++            : (matches | mask)
++        }
++        if (candidates === 0) return null
+       }
+-      if (candidates === 0) return null;
+-      `)
+-    }
+-
+-    // There are some constraints that can be derived and marked as "must match", where if they are derived, they only match routes that actually have a constraint on the value, like the SemVer version constraint.
+-    // An example: a request comes in for version 1.x, and this node has a handler that matches the path, but there's no version constraint. For SemVer, the find-my-way semantics do not match this handler to that request.
+-    // This function is used by Nodes with handlers to match when they don't have any constrained routes to exclude request that do have must match derived constraints present.
+-    for (const constraint in constrainer.strategies) {
+-      if (!Object.hasOwn(constrainer.strategies, constraint)) continue
+-      const strategy = constrainer.strategies[constraint]
+-      if (strategy.mustMatchWhenDerived && !this.constraints.includes(constraint)) {
+-        lines.push(`if (derivedConstraints.${constraint} !== undefined) return null`)
++      for (const constraint in constrainer.strategies) {
++        if (!Object.hasOwn(constrainer.strategies, constraint)) continue
++        const strategy = constrainer.strategies[constraint]
++        if (strategy.mustMatchWhenDerived && !self.constraints.includes(constraint)) {
++          if (derivedConstraints[constraint] !== undefined) return null
++        }
+       }
++      return self.handlers[31 - Math.clz32(candidates)]
+     }
+-
+-    // Return the highest set bit index in the candidates bitmask.
+-    lines.push('return this.handlers[31 - Math.clz32(candidates)]')
+-
+-    this._getHandlerMatchingConstraints = new Function('derivedConstraints', lines.join('\n')) // eslint-disable-line
+   }
+ }
+ 
+diff --git a/lib/node.js b/lib/node.js
+index feffbf3f85e1a55f555973063411d60c1e6f64b1..5853dc820376dbf2fc113eb348a1ae6f3ef7a629 100644
+--- a/lib/node.js
++++ b/lib/node.js
+@@ -28,12 +28,16 @@ function compilePrefixMatch (prefix) {
+     }
+   }
+ 
+-  const lines = []
+-  for (let i = 1; i < prefix.length; i++) {
+-    const charCode = prefix.charCodeAt(i)
+-    lines.push(`path.charCodeAt(i + ${i}) === ${charCode}`)
++  // Upstream compiles the comparison with `new Function`; workerd forbids code
++  // generation from strings ("Code generation from strings disallowed for this
++  // context"), which deadlocks Fastify's boot. A closure over the prefix does
++  // the same work without eval.
++  return function matchPrefix (path, i) {
++    for (let j = 1; j < prefix.length; j++) {
++      if (path.charCodeAt(i + j) !== prefix.charCodeAt(j)) return false
++    }
++    return true
+   }
+-  return new Function('path', 'i', `'use strict'\nreturn ${lines.join(' && ')}`) // eslint-disable-line
+ }
+ 
+ // Every node kind is an instance of this one class so that all nodes share a

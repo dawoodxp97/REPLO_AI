@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import type pg from 'pg'
+import type { DbPool } from './client'
 
 const ddlDir = new URL('../../../db/ddl/', import.meta.url)
 
@@ -15,7 +16,7 @@ async function applyFiles(client: pg.PoolClient, files: string[]): Promise<void>
   }
 }
 
-export async function applyDdl(pool: pg.Pool): Promise<void> {
+export async function applyDdl(pool: DbPool): Promise<void> {
   const client = await pool.connect()
   try {
     await client.query('select pg_advisory_lock(74219031)')

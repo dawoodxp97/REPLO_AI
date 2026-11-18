@@ -35,3 +35,5 @@ allowBuilds:
   esbuild: true # downloads/verifies its platform binary (tsx, tsdown, vite/vitest)
   workerd: true # wrangler's runtime; its postinstall extracts the platform binary
   unrs-resolver: false # eslint-config-next's resolver; ships prebuilt napi binaries, its postinstall is not needed
+patchedDependencies:
+  find-my-way@9.10.0: patches/find-my-way@9.10.0.patch
