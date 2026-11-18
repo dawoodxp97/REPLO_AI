@@ -3,7 +3,7 @@
 import { Button } from '@replo/ui'
 import { ErrorPanel } from '@/components/error-panel'
 
-export default function OperatorError({
+export default function AdminError({
   error,
   reset,
 }: {
@@ -12,7 +12,7 @@ export default function OperatorError({
 }) {
   return (
     <ErrorPanel
-      title="Operator data could not be loaded"
+      title="Admin data could not be loaded"
       description={
         <>
           The request failed for a reason other than access. Try again, then check the API logs.

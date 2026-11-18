@@ -15,7 +15,7 @@ const COLUMNS: readonly DataColumn<StageRow>[] = [
   },
 ]
 
-export function OperatorStagesTable({ stages }: { stages: AdminJobDetail['stages'] }) {
+export function AdminStagesTable({ stages }: { stages: AdminJobDetail['stages'] }) {
   return (
     <section aria-labelledby="stages-heading" className="space-y-3">
       <SectionHeader

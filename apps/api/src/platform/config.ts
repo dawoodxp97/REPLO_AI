@@ -47,6 +47,8 @@ const Env = z.object({
     ),
   KEY_ENCRYPTION_KEY_VERSION: z.coerce.number().int().positive().default(1),
 
+  ADMIN_EMAILS: optionalString,
+
   MAX_LITE_PIPELINE_FILES: z.coerce.number().int().positive().default(300),
   MAX_JOB_TOKENS: z.coerce.number().int().positive().default(2_000_000),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),

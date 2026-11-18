@@ -1,4 +1,10 @@
-import type { EnabledProvidersDto, OAuthProvider, SignInInput, SignUpInput } from '@replo/contracts'
+import type {
+  EnabledProvidersDto,
+  OAuthProvider,
+  SignInInput,
+  SignUpInput,
+  UserRole,
+} from '@replo/contracts'
 import type { Outcome } from '../../platform/outcome'
 import type { OAuthProfile } from './oauth'
 
@@ -7,7 +13,7 @@ export interface SessionUser {
   name: string | null
   email: string | null
   image: string | null
-  role: string
+  role: UserRole
 }
 
 export interface IssuedSession {

@@ -9,8 +9,16 @@ import {
   type KeyDto,
   type SearchResults,
 } from '@replo/contracts'
-import { rpcError, type RpcHandlers } from '../support/rpc-types'
-import { JOB, JOB_ID, MODEL_CATALOG, PREFLIGHT, SAVED_KEY, USER } from './recorded'
+import { rpcError, type RpcHandlers, type RpcReply } from '../support/rpc-types'
+import {
+  ADMIN_JOB_DETAIL,
+  ADMIN_JOBS,
+  ADMIN_QUEUES,
+  ADMIN_SUMMARY,
+  ADMIN_SYSTEM,
+  ADMIN_USERS,
+} from './admin'
+import { ADMIN, JOB, JOB_ID, MODEL_CATALOG, PREFLIGHT, SAVED_KEY, USER } from './recorded'
 import {
   CHAPTER_ONE,
   HISTORY_ITEMS,
@@ -123,7 +131,7 @@ export function defaultHandlers(): RpcHandlers {
   const course = COURSE_SUMMARY
   let preferences = DEFAULT_PREFERENCES
   return {
-    'me.get': () => ({ body: USER }),
+    'me.get': ({ headers }) => ({ body: isAdminCookie(headers.cookie) ? ADMIN : USER }),
     'me.deleteAccount': () => ({ body: { ok: true } }),
 
     'auth.providers': () => ({ body: { google: false, github: true } }),
@@ -304,9 +312,27 @@ export function defaultHandlers(): RpcHandlers {
       return { body: preferences }
     },
 
-    'admin.jobs': () => rpcError('NOT_FOUND', 404),
-    'admin.job': () => rpcError('NOT_FOUND', 404),
+    'admin.overview': ({ headers }) => adminReply(headers.cookie, { body: ADMIN_SUMMARY }),
+    'admin.users': ({ headers }) => adminReply(headers.cookie, {
+      body: { items: ADMIN_USERS, nextCursor: null },
+    }),
+    'admin.jobs': ({ headers }) => adminReply(headers.cookie, {
+      body: { items: ADMIN_JOBS, nextCursor: null },
+    }),
+    'admin.job': ({ headers }) => adminReply(headers.cookie, { body: ADMIN_JOB_DETAIL }),
+    'admin.queues': ({ headers }) => adminReply(headers.cookie, { body: ADMIN_QUEUES }),
+    'admin.system': ({ headers }) => adminReply(headers.cookie, { body: ADMIN_SYSTEM }),
   }
+}
+
+const ADMIN_COOKIE = 'replo_e2e_admin=1'
+
+function isAdminCookie(cookie: string | undefined): boolean {
+  return typeof cookie === 'string' && cookie.split(';').some((part) => part.trim() === ADMIN_COOKIE)
+}
+
+function adminReply(cookie: string | undefined, reply: RpcReply): RpcReply {
+  return isAdminCookie(cookie) ? reply : rpcError('NOT_FOUND', 404)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

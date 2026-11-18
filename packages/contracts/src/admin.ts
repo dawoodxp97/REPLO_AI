@@ -2,6 +2,7 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { JobProgressFields, JobStatus, Stage } from './jobs'
 import { JobRef, NonNegativeInt, OffsetCursor, pageInput, pageOutput } from './common'
+import { UserRole } from './me'
 import { Pipeline } from './models'
 
 export const AdminJobRow = z.object({
@@ -46,7 +47,7 @@ export const AdminUserRow = z.object({
   id: z.string(),
   name: z.string().nullable(),
   email: z.string().nullable(),
-  role: z.enum(['user', 'admin']),
+  role: UserRole,
   createdAt: z.iso.datetime(),
   lastSeenAt: z.iso.datetime().nullable(),
   repositories: NonNegativeInt,

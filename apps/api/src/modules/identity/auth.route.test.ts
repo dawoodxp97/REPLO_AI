@@ -24,7 +24,7 @@ const grant: OAuthGrant = {
 const issued = {
   token: 'session-token',
   sessionId: 'session-1',
-  user: { id: 'user-1', name: 'Ada', email: 'ada@example.com', image: null, role: 'user' },
+  user: { id: 'user-1', name: 'Ada', email: 'ada@example.com', image: null, role: 'user' as const },
 }
 
 function buildApp(

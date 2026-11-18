@@ -41,7 +41,7 @@ export function createMockApi(handlers: RpcHandlers): Server {
     const path = url.pathname.slice('/rpc/'.length).replaceAll('/', '.')
     const handler = handlers[path]
     const reply = handler
-      ? await handler({ path, input: await readInput(request), headers: {} })
+      ? await handler({ path, input: await readInput(request), headers: headerRecord(request.headers) })
       : rpcError('NOT_FOUND', 404)
 
     response.writeHead(reply.status ?? 200, { 'content-type': 'application/json', ...cors })
@@ -56,4 +56,13 @@ async function readInput(request: IncomingMessage): Promise<unknown> {
   if (!text) return undefined
   const wire: unknown = JSON.parse(text)
   return typeof wire === 'object' && wire !== null && 'json' in wire ? wire.json : undefined
+}
+
+function headerRecord(headers: IncomingMessage['headers']): Record<string, string> {
+  const record: Record<string, string> = {}
+  for (const [key, value] of Object.entries(headers)) {
+    if (value === undefined) continue
+    record[key] = Array.isArray(value) ? value.join('; ') : value
+  }
+  return record
 }

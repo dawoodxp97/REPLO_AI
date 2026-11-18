@@ -35,6 +35,7 @@ const vault = vaultFrom(config)
 const oauth = createOAuthClients(config)
 const domain = createDomainServices({ config, db, queue: pgBossQueue(boss), vault, boss })
 const services = createServices({ config, db, domain, oauth, vault })
+await services.adminSeed.seed(config.ADMIN_EMAILS)
 const secureCookies = config.NODE_ENV === 'production'
 const sessionCookie = createSessionCookie({
   secure: secureCookies,

@@ -42,6 +42,7 @@
   --color-interpretation-text: var(--interpretation-text);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-text: var(--destructive-text);
   --color-code-bg: var(--code-bg);
   --color-code-highlight: var(--code-highlight);
 

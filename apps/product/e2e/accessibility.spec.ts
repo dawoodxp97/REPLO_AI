@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { DEFAULT_PREFERENCES } from './fixtures/handlers'
 import { JOB_ID } from './fixtures/recorded'
-import { mockRpc } from './support/rpc-mock'
+import { ADMIN_COOKIE_NAME, ADMIN_COOKIE_VALUE, mockRpc } from './support/rpc-mock'
 import { MIN_TOUCH_TARGET, undersizedTouchTargets } from './support/touch-targets'
 
 const COURSE = '/courses/acme/widgets/cart-flow'
@@ -25,6 +25,11 @@ const PAGES = [
   { name: 'lesson', path: `${COURSE}/learn/ch1/l1` },
   { name: 'source explorer', path: `${COURSE}/code` },
   { name: 'progress', path: `${COURSE}/progress` },
+  { name: 'admin overview', path: '/admin', admin: true },
+  { name: 'admin users', path: '/admin/users', admin: true },
+  { name: 'admin jobs', path: '/admin/jobs', admin: true },
+  { name: 'admin job detail', path: `/admin/jobs/${JOB_ID}`, admin: true },
+  { name: 'admin system', path: '/admin/system', admin: true },
   { name: 'not found', path: '/does-not-exist' },
 ] as const
 
@@ -45,6 +50,8 @@ const APP_SHELL_ROUTES = new Set([
   'workspace',
 ])
 
+const ADMIN_COOKIE = { name: ADMIN_COOKIE_NAME, value: ADMIN_COOKIE_VALUE, domain: 'localhost', path: '/' }
+
 for (const scheme of ['light', 'dark'] as const) {
   test.describe(`${scheme} theme`, () => {
     test.use({ colorScheme: scheme })
@@ -55,6 +62,7 @@ for (const scheme of ['light', 'dark'] as const) {
           'settings.get': () => ({ body: { ...DEFAULT_PREFERENCES, theme: scheme } }),
         })
         await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: scheme })
+        if ('admin' in target && target.admin) await page.context().addCookies([ADMIN_COOKIE])
         await page.goto(target.path)
         await expect(page.locator('h1').first()).toBeVisible()
 
@@ -91,6 +99,7 @@ test.describe('touch targets', () => {
     }) => {
       test.skip(!isMobile, 'touch sizes apply to coarse pointers only')
       await mockRpc(page)
+      if ('admin' in target && target.admin) await page.context().addCookies([ADMIN_COOKIE])
       await page.goto(target.path)
       await expect(page.locator('h1').first()).toBeVisible()
 

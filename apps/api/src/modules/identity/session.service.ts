@@ -1,4 +1,5 @@
 import type { Db, DbOrTx } from '../../platform/db/client'
+import { UserRole } from '@replo/contracts'
 import type { SessionLifecycle, SessionUser } from './auth.types'
 import { identityRepo, type UserRow } from './identity.repo'
 import { hashSessionToken, newSessionToken, SESSION_LIFETIME_MS } from './session'
@@ -8,7 +9,7 @@ export const sessionUserOf = (row: UserRow): SessionUser => ({
   name: row.name,
   email: row.email,
   image: row.image,
-  role: row.role,
+  role: UserRole.parse(row.role),
 })
 
 export interface SessionService extends SessionLifecycle {

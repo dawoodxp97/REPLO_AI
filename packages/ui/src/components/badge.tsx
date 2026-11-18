@@ -12,7 +12,7 @@ export const badgeVariants = cva(
         outline: 'border-border text-muted-foreground',
         observed: 'border-observed/25 bg-observed/10 text-observed-text',
         interpretation: 'border-interpretation/35 bg-interpretation/12 text-interpretation-text',
-        destructive: 'border-destructive/25 bg-destructive/10 text-destructive',
+        destructive: 'border-destructive/25 bg-destructive/10 text-destructive-text',
       },
     },
     defaultVariants: { variant: 'secondary' },

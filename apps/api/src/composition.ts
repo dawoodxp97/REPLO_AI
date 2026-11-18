@@ -27,6 +27,7 @@ import {
   type NotificationsService,
 } from './modules/notifications/notifications.service'
 import { createAdminService, type AdminService } from './modules/admin/admin.service'
+import { createAdminSeeder, type AdminSeeder } from './modules/admin/admin-seed'
 import type PgBoss from 'pg-boss'
 import { createPipelineService, type PipelineService } from './modules/pipeline/pipeline.service'
 import {
@@ -90,6 +91,7 @@ export interface DomainServices {
   workspace: WorkspaceService
   analytics: AnalyticsService
   admin: AdminService
+  adminSeed: AdminSeeder
   retention: RetentionService
 }
 
@@ -212,6 +214,7 @@ export function createDomainServices(deps: {
     workspace,
     analytics,
     admin: createAdminService({ db, jobs: jobHistory, boss }),
+    adminSeed: createAdminSeeder(db),
     retention: createRetentionService({
       jobs: jobHistory,
       indexing,

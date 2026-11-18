@@ -1,7 +1,12 @@
-import type { GenerationJobDto, KeyDto, ModelCatalog, PreflightResult } from '@replo/contracts'
+import type { GenerationJobDto, KeyDto, MeDto, ModelCatalog, PreflightResult } from '@replo/contracts'
 
-export const USER = {
-  user: { id: 'user-1', name: 'Ada Lovelace', email: 'ada@example.com', image: null },
+export const USER: MeDto = {
+  user: { id: 'user-1', name: 'Ada Lovelace', email: 'ada@example.com', image: null, role: 'user' },
+  signInMethods: { password: true, google: false, github: true },
+}
+
+export const ADMIN: MeDto = {
+  user: { id: 'user-1', name: 'Ada Lovelace', email: 'ada@example.com', image: null, role: 'admin' },
   signInMethods: { password: true, google: false, github: true },
 }
 

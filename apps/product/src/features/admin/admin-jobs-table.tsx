@@ -1,8 +1,7 @@
 import type { AdminJobRow } from '@replo/contracts'
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle, Progress } from '@replo/ui'
+import { Badge, Empty, EmptyDescription, EmptyHeader, EmptyTitle, Progress } from '@replo/ui'
 import Link from 'next/link'
 import { DataTable, type DataColumn } from '@/components/data-table'
-import { LinkButton } from '@/components/link-button'
 import { JobStatusBadge } from '@/features/jobs/job-status-badge'
 import { formatDateTime } from '@/lib/format'
 
@@ -10,7 +9,10 @@ const COLUMNS: readonly DataColumn<AdminJobRow>[] = [
   {
     header: 'Job',
     cell: (row) => (
-      <Link href={`/operator/jobs/${row.jobId}`} className="text-link underline underline-offset-4">
+      <Link
+        href={`/admin/jobs/${row.jobId}`}
+        className="text-link inline-flex min-h-6 items-center underline underline-offset-4 pointer-coarse:min-h-10"
+      >
         {row.jobId.slice(0, 8)}
       </Link>
     ),
@@ -19,6 +21,11 @@ const COLUMNS: readonly DataColumn<AdminJobRow>[] = [
   { header: 'Status', cell: (row) => <JobStatusBadge status={row.status} /> },
   { header: 'Stage', cell: (row) => row.stage ?? '—', className: 'font-mono text-xs' },
   { header: 'Pipeline', cell: (row) => row.pipeline, className: 'font-mono text-xs' },
+  {
+    header: 'Error',
+    cell: (row) =>
+      row.errorCode ? <Badge variant="destructive">{row.errorCode}</Badge> : <span>—</span>,
+  },
   {
     header: 'Progress',
     cell: (row) => (
@@ -37,18 +44,12 @@ const COLUMNS: readonly DataColumn<AdminJobRow>[] = [
   },
 ]
 
-export function OperatorJobsTable({
-  rows,
-  nextCursor,
-}: {
-  rows: readonly AdminJobRow[]
-  nextCursor: string | null
-}) {
+export function AdminJobsTable({ rows }: { rows: readonly AdminJobRow[] }) {
   if (rows.length === 0) {
     return (
       <Empty>
         <EmptyHeader>
-          <EmptyTitle>No jobs yet</EmptyTitle>
+          <EmptyTitle>No jobs match</EmptyTitle>
           <EmptyDescription>
             Generation jobs appear here as soon as someone starts one.
           </EmptyDescription>
@@ -58,17 +59,6 @@ export function OperatorJobsTable({
   }
 
   return (
-    <div className="space-y-4">
-      <DataTable columns={COLUMNS} rows={rows} getKey={(row) => row.jobId} minWidth="min-w-3xl" />
-      {nextCursor ? (
-        <LinkButton
-          href={`/operator?cursor=${encodeURIComponent(nextCursor)}`}
-          variant="outline"
-          size="sm"
-        >
-          Next page
-        </LinkButton>
-      ) : null}
-    </div>
+    <DataTable columns={COLUMNS} rows={rows} getKey={(row) => row.jobId} minWidth="min-w-4xl" />
   )
 }

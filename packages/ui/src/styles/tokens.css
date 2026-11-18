@@ -33,6 +33,7 @@
   --interpretation-text: light-dark(oklch(0.47 0.11 62), oklch(0.83 0.12 78));
   --destructive: light-dark(oklch(0.56 0.21 27), oklch(0.68 0.2 25));
   --destructive-foreground: light-dark(oklch(0.99 0.002 250), oklch(0.17 0.01 260));
+  --destructive-text: light-dark(oklch(0.48 0.19 27), oklch(0.8 0.16 25));
 
   --code-bg: light-dark(oklch(0.978 0.003 250), oklch(0.15 0.008 260));
   --code-highlight: light-dark(oklch(0.965 0.03 158), oklch(0.27 0.05 158));

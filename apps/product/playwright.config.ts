@@ -6,6 +6,8 @@ const serverEnv = {
   NEXT_PUBLIC_APP_URL: APP_ORIGIN,
   API_INTERNAL_URL: API_URL,
   PORT: String(E2E_PORT),
+  CI: '1',
+  __NEXT_AGENT_UPGRADE: 'security',
 }
 
 export default defineConfig({

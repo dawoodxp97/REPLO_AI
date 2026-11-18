@@ -2,6 +2,18 @@ import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { OkResult } from './common'
 
+export const UserRole = z.enum(['user', 'admin'])
+export type UserRole = z.infer<typeof UserRole>
+
+export const SessionUserDto = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  email: z.string().nullable(),
+  image: z.string().nullable(),
+  role: UserRole,
+})
+export type SessionUserDto = z.infer<typeof SessionUserDto>
+
 export const SignInMethodsDto = z.object({
   password: z.boolean(),
   google: z.boolean(),
@@ -10,12 +22,7 @@ export const SignInMethodsDto = z.object({
 export type SignInMethodsDto = z.infer<typeof SignInMethodsDto>
 
 export const MeDto = z.object({
-  user: z.object({
-    id: z.string(),
-    name: z.string().nullable(),
-    email: z.string().nullable(),
-    image: z.string().nullable(),
-  }),
+  user: SessionUserDto,
   signInMethods: SignInMethodsDto,
 })
 export type MeDto = z.infer<typeof MeDto>

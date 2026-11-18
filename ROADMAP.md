@@ -96,10 +96,10 @@ Status legend: `[x]` done · `[~]` scaffolded · `[ ]` not started.
 
 ## R5 — Admin (L)
 
-- [ ] Role-gated route group and shell; server-side check before the client renders.
-- [ ] Overview: users, repositories, generations, storage, error rates.
-- [ ] Jobs: all users, filters, stage timings, error codes; queues and cron schedules.
-- [ ] Metadata only — no keys, prompts or source.
+- [x] Role-gated route group and shell; server-side check before the client renders.
+- [x] Overview: users, repositories, generations, storage, error rates.
+- [x] Jobs: all users, filters, stage timings, error codes; queues and cron schedules.
+- [x] Metadata only — no keys, prompts or source.
 - **Accept:** non-admin gets 404/redirect before shell; admin sees every user's job; gate has cross-user tests.
 
 ## R6 — Landing (S)

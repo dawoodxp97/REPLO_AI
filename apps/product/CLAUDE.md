@@ -39,9 +39,9 @@ e2e/                                 Playwright journeys; fixtures/ and support/
 
 ## Status
 
-R4 is implemented: the repository workspace (layer graph, tree, table, node detail, tours, diagram viewer), the course player, repositories and courses lists with counts, the analytics dashboard with saved dashboards, product-wide search, active generations, and settings. Sharing, visibility, budget/preset and revoke-sessions UI are removed. R5 in [`ROADMAP.md`](../ROADMAP.md) owns the admin surface.
+R4 is implemented: the repository workspace (layer graph, tree, table, node detail, tours, diagram viewer), the course player, repositories and courses lists with counts, the analytics dashboard with saved dashboards, product-wide search, active generations, and settings. Sharing, visibility, budget/preset and revoke-sessions UI are removed. R5 is implemented: the role-gated `/admin` route group (overview, users, jobs, job detail, system) behind a server-side role check. R6 in [`ROADMAP.md`](../ROADMAP.md) owns the landing.
 
-Verified locally (18 Nov 2026): unit tests (211), typecheck, lint, the production build, and 218 Playwright tests on desktop and phone against the standalone production server with the mock API (199 pass, 19 skip by design). `e2e/accessibility.spec.ts` fails on any axe violation on all 18 routes in both themes and on any control under 40 px on the phone project. Not verified: staging, the live API, the GitHub App and sign-in, real provider keys, Lighthouse.
+Verified locally (18 Nov 2026): unit tests (210), typecheck, lint. The admin e2e spec covers the non-admin 404 and the five admin pages. `e2e/accessibility.spec.ts` covers every route including `/admin/*` in both themes. Not verified: the production build (blocked by a Next.js security-upgrade nudge, unrelated to these changes), staging, the live API, the GitHub App and sign-in, real provider keys, Lighthouse.
 
 Open: notification counts pushed over SSE; the explorer renders the whole tree without virtualisation (MEM D-080). See [`ROADMAP.md`](../ROADMAP.md) (R4) and [`MEM.md`](../MEM.md) (D-074 to D-079).
 

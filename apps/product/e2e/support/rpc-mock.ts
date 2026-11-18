@@ -11,6 +11,9 @@ export {
   type RpcReply,
 } from './rpc-types'
 
+export const ADMIN_COOKIE_NAME = 'replo_e2e_admin'
+export const ADMIN_COOKIE_VALUE = '1'
+
 export async function mockRpc(page: Page, overrides: RpcHandlers = {}, calls: RpcCall[] = []) {
   const handlers = { ...defaultHandlers(), ...overrides }
   await page.route(`${API_URL}/rpc/**`, async (route) => {

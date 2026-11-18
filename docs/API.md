@@ -106,7 +106,7 @@ Keys are vault-only: the API returns `…last4` and never the secret, and no end
 
 ### admin (role-gated)
 
-Every `admin.*` procedure requires `user.role = 'admin'`; a non-admin gets **404** (`Admin screen`), never 403.
+Every `admin.*` procedure requires `user.role = 'admin'`; a non-admin gets **404** (`Admin screen`), never 403. The role is granted by listing the account email in the API's `ADMIN_EMAILS` environment variable (comma-separated); the API promotes matching users to `admin` at startup.
 
 | Procedure        | Method / path             | Purpose                                                                  |
 | ---------------- | ------------------------- | ------------------------------------------------------------------------ |

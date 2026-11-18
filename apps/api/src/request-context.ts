@@ -11,6 +11,7 @@ import type { LearningService } from './modules/learning/learning.service'
 import type { ModelsService } from './modules/models/models.service'
 import type { NotificationsService } from './modules/notifications/notifications.service'
 import type { AdminService } from './modules/admin/admin.service'
+import type { AdminSeeder } from './modules/admin/admin-seed'
 import type { AnalyticsService } from './modules/dashboard/analytics.service'
 import type { WorkspaceService } from './modules/workspace/workspace.service'
 import type { RepositoryLibrary } from './modules/repositories/library.service'
@@ -44,6 +45,7 @@ export interface Services {
   search: SearchService
   workspace: WorkspaceService
   admin: AdminService
+  adminSeed: AdminSeeder
 }
 
 export type { SessionUser }

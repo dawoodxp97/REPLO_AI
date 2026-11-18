@@ -13,7 +13,7 @@ import { CircleAlert } from 'lucide-react'
 import { DescriptionItem } from '@/components/description-item'
 import { JobStatusBadge } from '@/features/jobs/job-status-badge'
 import { formatDateTime } from '@/lib/format'
-import { OperatorStagesTable } from './operator-stages-table'
+import { AdminStagesTable } from './admin-stages-table'
 
 export function AdminJobDetailView({ detail }: { detail: AdminJobDetail }) {
   const { job } = detail
@@ -51,6 +51,9 @@ export function AdminJobDetailView({ detail }: { detail: AdminJobDetail }) {
             <DescriptionItem label="Progress" className="tabular font-mono">
               {job.progress}%
             </DescriptionItem>
+            <DescriptionItem label="User" className="font-mono text-xs break-all">
+              {job.userId}
+            </DescriptionItem>
             <DescriptionItem label="Created">{formatDateTime(job.createdAt)}</DescriptionItem>
             <DescriptionItem label="Finished">
               {job.finishedAt ? formatDateTime(job.finishedAt) : '—'}
@@ -59,7 +62,7 @@ export function AdminJobDetailView({ detail }: { detail: AdminJobDetail }) {
         </CardContent>
       </Card>
 
-      <OperatorStagesTable stages={detail.stages} />
+      <AdminStagesTable stages={detail.stages} />
     </div>
   )
 }
