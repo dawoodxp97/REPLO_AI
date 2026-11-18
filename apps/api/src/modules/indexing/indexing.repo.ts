@@ -1,5 +1,5 @@
 import { and, eq, inArray, lt, notExists, sql } from 'drizzle-orm'
-import type { SnapshotStats } from '@replo/contracts'
+import type { CourseGraph, SnapshotStats } from '@replo/contracts'
 import type { Analysis } from '@replo/repo-analysis'
 import type { DbOrTx } from '../../platform/db/client'
 import { insertChunked } from '../../platform/db/query-helpers'
@@ -210,6 +210,13 @@ export const snapshotsRepo = (db: DbOrTx) => ({
     await db
       .update(repositorySnapshots)
       .set({ analysis })
+      .where(eq(repositorySnapshots.id, snapshotId))
+  },
+
+  async replaceGraph(snapshotId: string, graph: CourseGraph): Promise<void> {
+    await db
+      .update(repositorySnapshots)
+      .set({ graph })
       .where(eq(repositorySnapshots.id, snapshotId))
   },
 })

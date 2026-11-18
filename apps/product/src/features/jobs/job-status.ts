@@ -14,9 +14,11 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
 
 export const STAGE_LABELS: Record<Stage, string> = {
   ingest: 'Download and extract repository',
-  index: 'Build static index',
-  summaries: 'Summarise central files',
-  architecture: 'Model the architecture',
+  index: 'Build the structural graph',
+  enrich: 'Summarise and layer the code',
+  'graph-review': 'Review graph coverage',
+  tours: 'Plan guided tours',
+  diagrams: 'Build and validate diagrams',
   outline: 'Design the curriculum',
   lessons: 'Write lessons and quizzes',
   validate: 'Verify every source reference',

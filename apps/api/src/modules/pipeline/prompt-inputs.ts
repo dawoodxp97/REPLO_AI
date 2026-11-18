@@ -1,4 +1,5 @@
 import { JobError } from '../../worker/errors'
+import type { CourseGraph, Tour } from '@replo/contracts'
 import type { IndexingService, SnapshotView } from '../indexing/indexing.service'
 import type { LessonDraft, OutlineDraft } from './drafts'
 import { normalisePath } from './grounding/evidence'
@@ -171,6 +172,25 @@ function existingPaths(paths: readonly string[], index: SourceIndex): string[] {
 
 export function dataFiles(index: SourceIndex, paths: readonly string[]): string {
   return dataSection('files', excerptsFor(index, paths))
+}
+
+// A compact, node-id-anchored rendering of the structural graph for prompts.
+export function graphSection(graph: CourseGraph): string {
+  const nodes = graph.nodes
+    .map((node) => {
+      const facts = [node.kind, node.layer, node.domain].filter(Boolean).join(', ')
+      return `- ${node.id} (${facts})${node.label && node.label !== node.id ? `: ${node.label}` : ''}`
+    })
+    .slice(0, 200)
+  return dataSection('graph', nodes.join('\n'))
+}
+
+export function toursSection(tours: readonly Tour[]): string {
+  const body = tours.flatMap((tour) => [
+    `TOUR ${tour.key}: ${tour.title} — ${tour.objective}`,
+    ...tour.steps.map((step, position) => `  ${position + 1}. ${step.title} (${step.nodeId ?? '—'})`),
+  ])
+  return dataSection('tours', body.join('\n'))
 }
 
 function uniqueKey(key: string, taken: Set<string>): string {

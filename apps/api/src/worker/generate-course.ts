@@ -1,4 +1,4 @@
-import type { Budget } from '@replo/ai'
+import type { RunLimits } from '@replo/ai'
 import { STAGES, type JobEventData, type Stage } from '@replo/contracts'
 import type { Logger } from 'pino'
 import type { JobRow } from '../modules/jobs/jobs.repo'
@@ -16,7 +16,7 @@ import { withTimeout } from './with-timeout'
 export interface StageContext {
   job: JobRow
   signal: AbortSignal
-  budget: Budget
+  limits: RunLimits
   progress(data: JobEventData): Promise<void>
 }
 export type StageHandler = (ctx: StageContext) => Promise<void>
@@ -24,7 +24,7 @@ export type StageHandler = (ctx: StageContext) => Promise<void>
 export interface WorkerDeps {
   jobs: JobStore
   log: Logger
-  budgetFor(job: JobRow): Budget
+  limitsFor(job: JobRow): RunLimits
   stageHandlers: Record<Stage, StageHandler>
   heartbeatMs?: number
   abortGraceMs?: number
@@ -40,7 +40,7 @@ export async function handleGenerateCourse(raw: unknown, deps: WorkerDeps): Prom
     log.info({ jobId: payload.jobId }, 'job not claimable; skipping')
     return
   }
-  const budget = deps.budgetFor(job)
+  const limits = deps.limitsFor(job)
 
   const interrupt = new AbortController()
   const heartbeat = setInterval(async () => {
@@ -58,6 +58,8 @@ export async function handleGenerateCourse(raw: unknown, deps: WorkerDeps): Prom
       // Resuming after a crash or a retry: stages finished by an earlier attempt are not run again.
       if (await jobs.isStageComplete(job.id, stage)) continue
       if (interrupt.signal.aborted) throw new CanceledError()
+      // A job that has burned through its token or wall-clock ceiling stops before the next stage.
+      limits.throwIfExpired()
 
       await jobs.setStage(job.id, stage)
       await jobs.emit(job.id, { type: 'stage_started', stage })
@@ -70,7 +72,7 @@ export async function handleGenerateCourse(raw: unknown, deps: WorkerDeps): Prom
           deps.stageHandlers[stage]({
             job,
             signal,
-            budget,
+            limits,
             progress: async (data) => {
               await jobs.emit(job.id, { type: 'progress', stage, data })
             },

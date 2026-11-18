@@ -30,7 +30,6 @@ const BLOB = 'b'.repeat(40)
 const report: ValidationReport = {
   referenceValidity: 1,
   verifiedClaimRatio: 1,
-  judgeScore: null,
   confidence: 1,
   fabricatedIdentifiers: 0,
   repairs: 0,
@@ -46,7 +45,6 @@ const generator = {
     planner: 'claude-haiku-5-5',
     author: 'claude-haiku-5-5',
     summarizer: null,
-    judge: null,
   },
   promptVersions: {},
   promptHashes: {},
@@ -243,7 +241,6 @@ describe.skipIf(DATABASE_URL === '')('course library against Postgres', () => {
             planner: 'claude-haiku-5-5',
             author: 'claude-haiku-5-5',
             summarizer: null,
-            judge: null,
           },
         },
       })

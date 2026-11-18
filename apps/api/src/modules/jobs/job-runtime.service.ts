@@ -1,4 +1,3 @@
-import type { UsageSink } from '@replo/ai'
 import type { Stage } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
 import type { JobQueue } from '../../platform/queue/job-queue'
@@ -27,7 +26,6 @@ export interface JobRuntimeDeps {
 
 export interface JobRuntime {
   jobStore: JobStore
-  usageSink: UsageSink
   requeueStalled(): Promise<void>
 }
 
@@ -49,8 +47,6 @@ export function createJobRuntime(deps: JobRuntimeDeps): JobRuntime {
           return false
         }),
     },
-
-    usageSink: async () => {},
 
     // Runs every minute on the worker. Stalled jobs are re-sent, not failed: claim accepts
     // them and finished stages are skipped.

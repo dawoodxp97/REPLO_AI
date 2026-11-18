@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { GRAPH_LAYERS } from '@replo/contracts'
 
 const text = (max: number) => z.string().min(1).max(max)
 
@@ -101,35 +102,86 @@ export const OutlineDraft = z.object({
 })
 export type OutlineDraft = z.infer<typeof OutlineDraft>
 
-export const ArchitectureDraft = z.object({
-  blocks: z
-    .array(z.discriminatedUnion('type', [ProseDraft, CalloutDraft]))
-    .min(1)
-    .max(8),
-  openQuestions: z.array(text(300)).max(5),
-})
-export type ArchitectureDraft = z.infer<typeof ArchitectureDraft>
-
-export const ArchitectureAndOutlineDraft = z.object({
-  architecture: ArchitectureDraft,
-  outline: OutlineDraft,
-})
-export type ArchitectureAndOutlineDraft = z.infer<typeof ArchitectureAndOutlineDraft>
-
-export const SummariesDraft = z.object({
+// One batch of file summaries, layers and domains from the enrich stage.
+export const EnrichDraft = z.object({
   files: z
     .array(
       z.object({
         path: text(512),
         summary: text(300),
+        layer: z.enum(GRAPH_LAYERS),
+        domain: text(64),
       }),
     )
-    .max(64),
+    .max(32),
+  concepts: z.array(z.object({ term: text(64), summary: text(200) })).max(8),
 })
-export type SummariesDraft = z.infer<typeof SummariesDraft>
+export type EnrichDraft = z.infer<typeof EnrichDraft>
 
-export const JudgeDraft = z.object({
-  score: z.number().min(0).max(1),
-  issues: z.array(text(300)).max(5),
+export const FlowsDraft = z.object({
+  flows: z
+    .array(
+      z.object({
+        name: text(120),
+        summary: text(300),
+        steps: z.array(text(512)).min(1).max(12),
+      }),
+    )
+    .max(6),
 })
-export type JudgeDraft = z.infer<typeof JudgeDraft>
+export type FlowsDraft = z.infer<typeof FlowsDraft>
+
+// One guided tour: an ordered path through graph nodes.
+export const TourDraft = z.object({
+  key: text(64),
+  title: text(160),
+  objective: text(400),
+  steps: z
+    .array(
+      z.object({
+        title: text(160),
+        summary: text(400),
+        nodeId: text(128),
+        lessonKey: text(64).optional(),
+      }),
+    )
+    .min(2)
+    .max(12),
+})
+export type TourDraft = z.infer<typeof TourDraft>
+
+export const ToursDraft = z.object({ tours: z.array(TourDraft).min(1).max(4) })
+export type ToursDraft = z.infer<typeof ToursDraft>
+
+// A model-authored diagram. The model names nodes and edges by graph node id; the system
+// validates every id against the graph and lays the diagram out, never the model.
+export const DiagramDraft = z.object({
+  id: text(64),
+  type: z.enum(['sequence', 'workflow', 'dataflow', 'lifecycle']),
+  title: text(160),
+  caption: text(300),
+  nodes: z
+    .array(z.object({ id: text(128), label: text(120), kind: text(40) }))
+    .min(2)
+    .max(20),
+  edges: z
+    .array(z.object({ from: text(128), to: text(128), label: text(80).optional() }))
+    .max(30),
+})
+export type DiagramDraft = z.infer<typeof DiagramDraft>
+
+export const DiagramsDraft = z.object({ diagrams: z.array(DiagramDraft).max(4) })
+export type DiagramsDraft = z.infer<typeof DiagramsDraft>
+
+// Overview prose for the course landing page, grounded like any lesson.
+const ArchitectureProse = z.object({
+  type: z.literal('prose'),
+  kind: z.enum(['observed', 'interpretation']),
+  md: text(4000),
+  evidence: z.array(EvidenceDraft).max(6),
+})
+export const ArchitectureDraft = z.object({
+  blocks: z.array(z.union([ArchitectureProse, CalloutDraft])).min(1).max(8),
+  openQuestions: z.array(text(300)).max(5),
+})
+export type ArchitectureDraft = z.infer<typeof ArchitectureDraft>

@@ -7,11 +7,15 @@ import type { IndexingService } from '../indexing/indexing.service'
 import type { KeysService } from '../keys/keys.service'
 import type { CoursePublisher } from '../courses/publisher.service'
 import { createCheckpoints } from './checkpoints'
+import { structuralGraph } from './graph'
 import type { StageDeps } from './stage-tools'
+import { runDiagrams } from './stages/diagrams'
+import { runEnrich } from './stages/enrich'
+import { runGraphReview } from './stages/graph-review'
 import { runLessons } from './stages/lessons'
-import { runArchitecture, runOutline } from './stages/planning'
+import { runOutline } from './stages/outline'
 import { runPublish } from './stages/publish'
-import { runSummaries } from './stages/summaries'
+import { runTours } from './stages/tours'
 import { runValidate } from './stages/validate'
 
 export interface PipelineDeps {
@@ -43,10 +47,16 @@ export function createPipelineService(deps: PipelineDeps): PipelineService {
     stageHandlers: {
       ingest: ({ job, signal }) =>
         deps.indexing.ingest({ userId: job.userId, snapshotId: job.snapshotId, signal }),
-      index: ({ job, signal }) =>
-        deps.indexing.index({ userId: job.userId, snapshotId: job.snapshotId, signal }),
-      summaries: (ctx) => runSummaries(stageDeps, ctx),
-      architecture: (ctx) => runArchitecture(stageDeps, ctx),
+      index: async ({ job, signal }) => {
+        await deps.indexing.index({ userId: job.userId, snapshotId: job.snapshotId, signal })
+        // Persist the deterministic structural graph next to the raw index (D-116, §8).
+        const view = await deps.indexing.readView(job.snapshotId)
+        if (view) await deps.indexing.storeGraph(job.snapshotId, structuralGraph(view))
+      },
+      enrich: (ctx) => runEnrich(stageDeps, ctx),
+      'graph-review': (ctx) => runGraphReview(stageDeps, ctx),
+      tours: (ctx) => runTours(stageDeps, ctx),
+      diagrams: (ctx) => runDiagrams(stageDeps, ctx),
       outline: (ctx) => runOutline(stageDeps, ctx),
       lessons: (ctx) => runLessons(stageDeps, ctx),
       validate: (ctx) => runValidate(stageDeps, ctx),

@@ -48,7 +48,7 @@ const Env = z.object({
   KEY_ENCRYPTION_KEY_VERSION: z.coerce.number().int().positive().default(1),
 
   MAX_LITE_PIPELINE_FILES: z.coerce.number().int().positive().default(300),
-  DEFAULT_BYOK_JOB_BUDGET_USD: z.coerce.number().positive().default(2),
+  MAX_JOB_TOKENS: z.coerce.number().int().positive().default(2_000_000),
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
   MAX_REPO_FILES: z.coerce.number().int().positive().default(5000),
   MAX_REPO_BYTES: z.coerce.number().int().positive().default(50_000_000),

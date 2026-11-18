@@ -1,15 +1,13 @@
 import { MockLanguageModelV3 } from 'ai/test'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { Budget, BudgetExceededError } from './budget'
 import { generateStructured } from './generate'
+import { RunLimits, RunLimitExceededError } from './limits'
 import type { ModelSpec } from './registry'
 
-const spec = (id: string, inputUsdPerMTok = 2, outputUsdPerMTok = 10): ModelSpec => ({
+const spec = (id: string): ModelSpec => ({
   provider: 'anthropic',
   id,
-  inputUsdPerMTok,
-  outputUsdPerMTok,
   structuredOutput: true,
   free: false,
 })
@@ -41,81 +39,42 @@ const failing = (statusCode: number) =>
 
 const schema = z.object({ title: z.string() })
 
-const options = (spec: ModelSpec, budget: Budget, model: MockLanguageModelV3) => ({
-  spec,
+const options = (model: MockLanguageModelV3, limits = new RunLimits({ maxTokens: 1_000_000 })) => ({
+  spec: spec('primary'),
   schema,
   system: 'system',
   prompt: 'prompt',
-  budget,
+  limits,
   model,
-  meta: { jobId: 'job-1', stage: 'lessons' },
 })
 
 describe('generateStructured', () => {
-  it('returns the parsed object and records the provider’s own usage numbers', async () => {
-    const sink = vi.fn(async () => undefined)
-    const budget = new Budget(1_000_000_000, sink)
-    const premium = spec('premium', 2, 10)
-    const result = await generateStructured(options(premium, budget, reply({ title: 'Cart' })))
+  it('returns the parsed object and accounts the provider’s own usage numbers', async () => {
+    const limits = new RunLimits({ maxTokens: 1_000_000 })
+    const result = await generateStructured(options(reply({ title: 'Cart' }), limits))
     expect(result).toEqual({ title: 'Cart' })
-    expect(sink).toHaveBeenCalledWith(
-      expect.objectContaining({
-        jobId: 'job-1',
-        stage: 'lessons',
-        inputTokens: 11,
-        outputTokens: 7,
-        costMicros: 11 * 2 + 7 * 10,
-      }),
-    )
-    expect(budget.spentMicros).toBe(11 * 2 + 7 * 10)
+    expect(limits.usedTokens).toBe(11 + 7)
   })
 
-  it('releases the reservation when the provider rejects the call', async () => {
-    const sink = vi.fn(async () => undefined)
-    const budget = new Budget(1_000_000_000, sink)
-    await expect(
-      generateStructured(options(spec('primary'), budget, failing(401))),
-    ).rejects.toThrow('provider 401')
-    expect(budget.remainingMicros).toBe(1_000_000_000)
-    expect(sink).not.toHaveBeenCalled()
+  it('does not account tokens when the provider rejects the call', async () => {
+    const limits = new RunLimits({ maxTokens: 1_000_000 })
+    await expect(generateStructured(options(failing(401), limits))).rejects.toThrow('provider 401')
+    expect(limits.usedTokens).toBe(0)
   })
 
-  it('records spend for a billed call whose output fails validation', async () => {
-    const sink = vi.fn(async () => undefined)
-    const budget = new Budget(1_000_000_000, sink)
+  it('accounts a billed call whose output fails validation', async () => {
+    const limits = new RunLimits({ maxTokens: 1_000_000 })
     await expect(
-      generateStructured(options(spec('primary'), budget, reply({ wrong: 1 }, 11, 7))),
+      generateStructured(options(reply({ wrong: 1 }, 11, 7), limits)),
     ).rejects.toThrow()
-    expect(budget.spentMicros).toBe(11 * 2 + 7 * 10)
-    expect(budget.remainingMicros).toBe(1_000_000_000 - budget.spentMicros)
-    expect(sink).toHaveBeenCalledOnce()
+    expect(limits.usedTokens).toBe(18)
   })
 
-  it('refuses before any call when the reservation exceeds the job budget', async () => {
-    const budget = new Budget(
-      1,
-      vi.fn(async () => undefined),
-    )
-    const model = reply({ title: 'never' })
+  it('throws once a call pushes the run past its token ceiling', async () => {
+    const limits = new RunLimits({ maxTokens: 10})
     await expect(
-      generateStructured(options(spec('premium'), budget, model)),
-    ).rejects.toBeInstanceOf(BudgetExceededError)
-    expect(model.doGenerateCalls).toHaveLength(0)
-  })
-
-  it('does not release when recording usage fails after a successful call', async () => {
-    const budget = new Budget(
-      1_000_000_000,
-      vi.fn(async () => {
-        throw new Error('usage sink down')
-      }),
-    )
-    budget.reserve(500)
-    const model = reply({ title: 'first' })
-    await expect(generateStructured(options(spec('primary'), budget, model))).rejects.toThrow(
-      'usage sink down',
-    )
-    expect(model.doGenerateCalls).toHaveLength(1)
-    expect(budget.remainingMicros).toBe(1_000_000_000 - budget.spentMicros - 500)
+      generateStructured(options(reply({ title: 'over' }, 11, 7), limits)),
+    ).rejects.toBeInstanceOf(RunLimitExceededError)
+    expect(limits.remainingTokens).toBe(0)
   })
 })

@@ -37,12 +37,11 @@ describe('buildReport', () => {
       fabricated: 1,
     })
     const final = grounded({ claims: { total: 4, supported: 3 } })
-    const report = buildReport([outcome(first, final, true)], [])
+    const report = buildReport([outcome(first, final, true)])
 
     expect(report).toMatchObject({
       referenceValidity: 0.8,
       verifiedClaimRatio: 0.75,
-      judgeScore: null,
       confidence: 0.75,
       fabricatedIdentifiers: 1,
       repairs: 1,
@@ -56,19 +55,8 @@ describe('buildReport', () => {
       references: { total: 1, resolved: 1 },
     })
     const final = grounded({ claims: { total: 2, supported: 2 } })
-    const report = buildReport([outcome(first, final, true)], [])
+    const report = buildReport([outcome(first, final, true)])
     expect(report.verifiedClaimRatio).toBe(1)
-  })
-
-  it('multiplies the claim ratio by the mean judge score', () => {
-    const lesson = grounded({
-      claims: { total: 2, supported: 2 },
-      references: { total: 2, resolved: 2 },
-    })
-    const report = buildReport([outcome(lesson)], [0.5, 1])
-    expect(report.judgeScore).toBe(0.75)
-    expect(report.confidence).toBe(0.75)
-    expect(report.draft).toBe(true)
   })
 
   it('publishes without a draft flag when confidence clears the threshold', () => {
@@ -76,7 +64,7 @@ describe('buildReport', () => {
       claims: { total: 10, supported: 9 },
       references: { total: 9, resolved: 9 },
     })
-    const report = buildReport([outcome(lesson)], [])
+    const report = buildReport([outcome(lesson)])
     expect(report.confidence).toBeGreaterThanOrEqual(DRAFT_CONFIDENCE)
     expect(report.draft).toBe(false)
   })
@@ -86,7 +74,7 @@ describe('buildReport', () => {
       lesson: { key: 'empty', title: 'E', minutes: 1, blocks: [], quiz: [] },
       failures: [{ code: 'INVALID_DIAGRAM', location: 'block:0', detail: 'NO_VERIFIED_HOPS' }],
     })
-    const report = buildReport([outcome(empty)], [])
+    const report = buildReport([outcome(empty)])
     expect(report.draft).toBe(true)
     expect(report.issues).toEqual([
       { lessonKey: 'empty', code: 'EMPTY_LESSON', detail: 'every block was removed by grounding' },

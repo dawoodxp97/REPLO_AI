@@ -1,23 +1,54 @@
-import { CourseContent, ValidationReport, type Stage } from '@replo/contracts'
+import {
+  CourseContent,
+  CourseGraph,
+  DiagramSpec,
+  GRAPH_LAYERS,
+  Tour,
+  ValidationReport,
+  type Stage,
+} from '@replo/contracts'
 import { z } from 'zod'
 import type { Db } from '../../platform/db/client'
 import { checkpointsRepo } from './checkpoints.repo'
-import { LessonDraft } from './drafts'
+import { ArchitectureDraft, LessonDraft } from './drafts'
 
 export const WHOLE_JOB = 'all'
 export const OVERVIEW_CHECKPOINT = 'overview'
+export const FLOWS_CHECKPOINT = 'flows'
 
+export const enrichBatchKey = (batch: number) => `batch:${batch}`
 export const lessonCheckpointKey = (lessonKey: string) => `lesson:${lessonKey}`
-export const judgeCheckpointKey = (chapterKey: string) => `judge:${chapterKey}`
 
-export const StoredSummaries = z.object({ files: z.record(z.string(), z.string()) })
-export type StoredSummaries = z.infer<typeof StoredSummaries>
+export const StoredEnrichment = z.object({
+  files: z.record(
+    z.string(),
+    z.object({ summary: z.string(), layer: z.enum(GRAPH_LAYERS), domain: z.string() }),
+  ),
+  concepts: z.array(z.object({ term: z.string(), summary: z.string() })),
+})
+export type StoredEnrichment = z.infer<typeof StoredEnrichment>
+
+export const StoredFlows = z.object({
+  flows: z.array(
+    z.object({ name: z.string(), summary: z.string(), steps: z.array(z.string()) }),
+  ),
+})
+export type StoredFlows = z.infer<typeof StoredFlows>
+
+export const StoredGraph = z.object({ graph: CourseGraph, coverage: z.number() })
+export type StoredGraph = z.infer<typeof StoredGraph>
+
+export const StoredTours = z.object({ tours: z.array(Tour) })
+export type StoredTours = z.infer<typeof StoredTours>
+
+export const StoredDiagrams = z.object({
+  diagrams: z.array(DiagramSpec),
+  architecture: ArchitectureDraft,
+})
+export type StoredDiagrams = z.infer<typeof StoredDiagrams>
 
 export const StoredRepair = z.object({ repaired: LessonDraft.nullable() })
 export type StoredRepair = z.infer<typeof StoredRepair>
-
-export const StoredJudge = z.object({ score: z.number().min(0).max(1) })
-export type StoredJudge = z.infer<typeof StoredJudge>
 
 export const StoredValidation = z.object({ content: CourseContent, report: ValidationReport })
 export type StoredValidation = z.infer<typeof StoredValidation>

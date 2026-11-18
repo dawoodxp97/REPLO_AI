@@ -47,7 +47,7 @@ export function openSession(deps: StageDeps, ctx: StageContext): Promise<LlmSess
     keyId: ctx.job.providerKeyId,
     plan: planOf(ctx),
     system: systemFor(ctx.job.audience),
-    budget: ctx.budget,
+    limits: ctx.limits,
     signal: ctx.signal,
   })
 }

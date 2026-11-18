@@ -67,6 +67,7 @@ export function createCoursePublisher(db: Db): CoursePublisher {
 
       await writer.insertSourceRefs(sourceRefRows(version.id, content))
       await writer.insertLessons(lessonRows(version.id, content))
+      await writer.insertDiagrams(version.id, content.diagrams)
       await writer.touch(course.id, { title: content.meta.title, currentVersionId: version.id })
       return toPublished(version)
     },

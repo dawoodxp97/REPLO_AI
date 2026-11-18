@@ -34,7 +34,6 @@ const models: ModelPlan = {
     planner: 'claude-haiku-5-5',
     author: 'claude-haiku-5-5',
     summarizer: null,
-    judge: null,
   },
 }
 

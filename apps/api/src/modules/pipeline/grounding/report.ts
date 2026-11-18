@@ -10,27 +10,23 @@ export interface LessonOutcome {
   repaired: boolean
 }
 
-export function buildReport(
-  outcomes: readonly LessonOutcome[],
-  judgeScores: readonly number[],
-): ValidationReport {
+// Deterministic validation summary. "Confidence" is the verified-claim coverage — there is no
+// model-scored confidence (D-113, FR-GEN-8): a course is a draft when its claims are weakly grounded.
+export function buildReport(outcomes: readonly LessonOutcome[]): ValidationReport {
   const claims = sum(outcomes.map((outcome) => outcome.final.claims.total))
   const supported = sum(outcomes.map((outcome) => outcome.final.claims.supported))
   const references = sum(outcomes.map((outcome) => outcome.first.references.total))
   const resolved = sum(outcomes.map((outcome) => outcome.first.references.resolved))
-  const judgeScore = judgeScores.length > 0 ? round(sum(judgeScores) / judgeScores.length) : null
   const verifiedClaimRatio = claims === 0 ? 1 : round(Math.min(1, supported / claims))
-  const confidence = round(verifiedClaimRatio * (judgeScore ?? 1))
   const emptyLessons = outcomes.filter((outcome) => outcome.final.lesson.blocks.length === 0)
 
   return {
     referenceValidity: references === 0 ? 1 : round(resolved / references),
     verifiedClaimRatio,
-    judgeScore,
-    confidence,
+    confidence: verifiedClaimRatio,
     fabricatedIdentifiers: sum(outcomes.map((outcome) => outcome.first.fabricated)),
     repairs: outcomes.filter((outcome) => outcome.repaired).length,
-    draft: confidence < DRAFT_CONFIDENCE || emptyLessons.length > 0,
+    draft: verifiedClaimRatio < DRAFT_CONFIDENCE || emptyLessons.length > 0,
     issues: [
       ...emptyLessons.map((outcome) => ({
         lessonKey: outcome.lessonKey,

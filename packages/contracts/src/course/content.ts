@@ -261,7 +261,6 @@ export function upcastCourseContent(raw: unknown): CourseContent {
 export const ValidationReport = z.object({
   referenceValidity: z.number().min(0).max(1),
   verifiedClaimRatio: z.number().min(0).max(1),
-  judgeScore: z.number().min(0).max(1).nullable(),
   confidence: z.number().min(0).max(1),
   fabricatedIdentifiers: NonNegativeInt,
   repairs: NonNegativeInt,

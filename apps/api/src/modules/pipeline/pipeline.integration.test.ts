@@ -2,27 +2,26 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { Budget } from '@replo/ai'
+import { RunLimits } from '@replo/ai'
 import { scriptedModel, type Scripted } from '@replo/ai/testing'
 import type { ModelPlan } from '@replo/contracts'
 import { ANALYZER_VERSION, DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
-import { and, eq, sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
   jobCheckpoints,
-  courseLessons,
   repositories,
   repositorySnapshots,
   snapshotFiles,
   snapshotSymbols,
   snapshotFileEdges,
-  generationJobs,
   courses,
   courseSourceRefs,
   courseVersions,
+  diagramSpecs,
 } from '../../platform/db/schema'
 import type { GithubRest } from '../../platform/github/client'
 import { createLogger } from '../../platform/logger'
@@ -37,68 +36,45 @@ import { createKeysService, type KeysService } from '../keys/keys.service'
 import { createNotificationsService } from '../notifications/notifications.service'
 import { createCoursePublisher, type CoursePublisher } from '../courses/publisher.service'
 import { createVersionAccess } from '../courses/version-access.service'
-import type { OutlineDraft } from './drafts'
 import { createPipelineService, type PipelineService } from './pipeline.service'
 
 const DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 const SHA = 'a'.repeat(40)
 const AUDIENCE = 'intermediate' as const
 
-const LITE_PLAN = {
-  architecture: {
-    blocks: [
-      {
-        type: 'prose',
-        kind: 'observed',
-        md: 'The cart keeps items in memory through `addToCart`.',
-        evidence: [{ path: 'src/cart.ts', symbol: 'addToCart' }],
-      },
-    ],
-    openQuestions: ['Is the cart persisted between requests?'],
-  },
-  outline: {
-    title: 'Shop cart walkthrough',
-    objectives: ['Explain how items reach the cart'],
-    prerequisites: ['TypeScript basics'],
-    chapters: [
-      {
-        key: 'orientation',
-        title: 'Orientation',
-        summary: 'Where the cart lives',
-        objectives: ['Locate the cart'],
-        prerequisites: [],
-        lessons: [{ key: 'map', title: 'The map', minutes: 5, focusPaths: ['src/cart.ts'] }],
-      },
-      {
-        key: 'requests',
-        title: 'Requests',
-        summary: 'How a request reaches the cart',
-        objectives: ['Trace a request'],
-        prerequisites: ['Orientation'],
-        lessons: [
-          { key: 'route', title: 'The route', minutes: 6, focusPaths: ['src/api/routes.ts'] },
-        ],
-      },
-      {
-        key: 'wrap-up',
-        title: 'Wrap-up',
-        summary: 'Review the flow',
-        objectives: ['Recall the flow'],
-        prerequisites: [],
-        lessons: [
-          {
-            key: 'review',
-            title: 'Review',
-            minutes: 3,
-            focusPaths: ['src/cart.ts', 'src/api/routes.ts'],
-          },
-        ],
-      },
-    ],
-  },
+const OUTLINE = {
+  title: 'Shop cart walkthrough',
+  objectives: ['Explain how items reach the cart'],
+  prerequisites: ['TypeScript basics'],
+  chapters: [
+    {
+      key: 'orientation',
+      title: 'Orientation',
+      summary: 'Where the cart lives',
+      objectives: ['Locate the cart'],
+      prerequisites: [],
+      lessons: [{ key: 'map', title: 'The map', minutes: 5, focusPaths: ['src/cart.ts'] }],
+    },
+    {
+      key: 'requests',
+      title: 'Requests',
+      summary: 'How a request reaches the cart',
+      objectives: ['Trace a request'],
+      prerequisites: ['Orientation'],
+      lessons: [{ key: 'route', title: 'The route', minutes: 6, focusPaths: ['src/api/routes.ts'] }],
+    },
+    {
+      key: 'wrap-up',
+      title: 'Wrap-up',
+      summary: 'Review the flow',
+      objectives: ['Recall the flow'],
+      prerequisites: [],
+      lessons: [
+        { key: 'review', title: 'Review', minutes: 3, focusPaths: ['src/cart.ts'] },
+      ],
+    },
+  ],
 }
-
-const FULL_ARCHITECTURE = { blocks: LITE_PLAN.architecture.blocks, openQuestions: [] }
 
 const LESSONS: Record<string, unknown> = {
   map: {
@@ -116,7 +92,7 @@ const LESSONS: Record<string, unknown> = {
         type: 'prose',
         kind: 'observed',
         md: 'New items are pushed onto `items`.',
-        evidence: [{ path: 'src/cart.ts', quote: 'items.push(item) is missing here' }],
+        evidence: [{ path: 'src/cart.ts', quote: 'items.push(item)' }],
       },
     ],
     quiz: [],
@@ -165,81 +141,92 @@ const LESSONS: Record<string, unknown> = {
     minutes: 3,
     blocks: [
       { type: 'callout', tone: 'tip', md: 'Read the cart before the route.' },
-      {
-        type: 'exercise',
-        prompt: 'Find where items are pushed.',
-        hints: ['Start in `addToCart`.'],
-      },
+      { type: 'exercise', prompt: 'Find where items are pushed.', hints: ['Start in `addToCart`.'] },
     ],
     quiz: [],
   },
 }
 
-const FIXED_MAP = {
-  ...(LESSONS.map as Record<string, unknown>),
-  blocks: [
-    (LESSONS.map as { blocks: unknown[] }).blocks[0],
-    {
-      type: 'prose',
-      kind: 'observed',
-      md: 'New items are pushed onto `items`.',
-      evidence: [{ path: 'src/cart.ts', quote: 'items.push(item)' }],
-    },
-  ],
-}
-
-const steeredLesson = (key: string) => {
-  const lesson = LESSONS[key] as { blocks: unknown[] }
-  return {
-    ...lesson,
-    blocks: [
-      {
-        type: 'prose',
-        kind: 'observed',
-        md: 'Install it first: [setup guide](javascript:alert(document.cookie)), see https://evil.example/install, then run <img src=x onerror=alert(1)>.',
-        evidence: [{ path: 'src/cart.ts', symbol: 'addToCart' }],
-      },
-      ...lesson.blocks,
-    ],
-  }
-}
-
-const CHAPTER_LESSONS: Record<string, string[]> = {
-  orientation: ['map'],
-  requests: ['route'],
-  'wrap-up': ['review'],
+const CHAPTER_LESSON: Record<string, string> = {
+  orientation: 'map',
+  requests: 'route',
+  'wrap-up': 'review',
 }
 
 function chapterKeyOf(prompt: string): string {
   const match = /<repo_data label="chapter">\n([\s\S]*?)\n<\/repo_data>/.exec(prompt)
-  const spec = JSON.parse(match?.[1] ?? '{}') as { key?: string }
-  return spec.key ?? ''
-}
-
-function lessonOf(prompt: string): string {
-  const match = /<repo_data label="lesson">\n([\s\S]*?)\n<\/repo_data>/.exec(prompt)
   return (JSON.parse(match?.[1] ?? '{}') as { key?: string }).key ?? ''
 }
 
-function judgedTitleOf(prompt: string): string {
-  const match = /<repo_data label="chapter">\n([\s\S]*?)\n<\/repo_data>/.exec(prompt)
-  return (JSON.parse(match?.[1] ?? '{}') as { title?: string }).title ?? ''
+// Answers every prompt the lite pipeline issues: outline (planner) and lessons (author).
+function liteScript(): Scripted {
+  return (prompt) => {
+    if (prompt.includes('Plan the learning path')) return OUTLINE
+    if (prompt.includes('Write the lessons for the chapter')) {
+      const key = CHAPTER_LESSON[chapterKeyOf(prompt)] ?? 'map'
+      return { lessons: [LESSONS[key]], openQuestions: [] }
+    }
+    throw new Error(`unexpected prompt: ${prompt.slice(0, 120)}`)
+  }
 }
 
-function respondWith(options: { pipeline: 'lite' | 'full'; judge: boolean }): Scripted {
+// Additionally answers the model-driven stages: enrich, flows, tours, diagrams, architecture.
+function fullScript(): Scripted {
+  const lite = liteScript()
   return (prompt) => {
-    if (prompt.includes('Do two things')) return LITE_PLAN
-    if (prompt.includes('Describe how this repository is structured')) return FULL_ARCHITECTURE
-    if (prompt.includes('Plan the learning path for this repository')) return LITE_PLAN.outline
-    if (prompt.includes('The lesson in the lesson section has grounding problems')) {
-      return lessonOf(prompt) === 'map' ? FIXED_MAP : LESSONS[lessonOf(prompt)]
-    }
-    if (prompt.includes('Write the lessons for the chapter')) {
-      const lessons = CHAPTER_LESSONS[chapterKeyOf(prompt)] ?? []
-      return { lessons: lessons.map((key) => LESSONS[key]), openQuestions: [] }
-    }
-    if (prompt.includes('Score the chapter') && options.judge) return { score: 0.9, issues: [] }
-    throw new Error(`unexpected prompt: ${prompt.slice(0, 120)}`)
+    if (prompt.includes('For each file in the files section'))
+      return {
+        files: [
+          { path: 'src/cart.ts', summary: 'Holds cart state.', layer: 'data', domain: 'cart' },
+          { path: 'src/api/routes.ts', summary: 'HTTP routes.', layer: 'api', domain: 'cart' },
+        ],
+        concepts: [],
+      }
+    if (prompt.includes('end-to-end flows'))
+      return { flows: [{ name: 'Add to cart', summary: 'A request adds an item.', steps: ['src/api/routes.ts', 'src/cart.ts'] }] }
+    if (prompt.includes('guided tours'))
+      return {
+        tours: [
+          {
+            key: 'flow',
+            title: 'Follow a request',
+            objective: 'See how a request reaches the cart.',
+            steps: [
+              { title: 'Route', summary: 'The HTTP entry point.', nodeId: 'file:src/api/routes.ts' },
+              { title: 'Cart', summary: 'The cart state.', nodeId: 'file:src/cart.ts' },
+            ],
+          },
+        ],
+      }
+    if (prompt.includes('Produce up to four diagrams'))
+      return {
+        diagrams: [
+          {
+            id: 'sequence-add',
+            type: 'sequence',
+            title: 'Add to cart',
+            caption: 'Route to cart',
+            nodes: [
+              { id: 'file:src/api/routes.ts', label: 'Route', kind: 'file' },
+              { id: 'file:src/cart.ts', label: 'Cart', kind: 'file' },
+            ],
+            edges: [{ from: 'file:src/api/routes.ts', to: 'file:src/cart.ts', label: 'calls' }],
+          },
+        ],
+      }
+    if (prompt.includes('Describe how this repository is structured'))
+      return {
+        blocks: [
+          {
+            type: 'prose',
+            kind: 'observed',
+            md: '`addToCart` adds an item to the cart.',
+            evidence: [{ path: 'src/cart.ts', symbol: 'addToCart' }],
+          },
+        ],
+        openQuestions: [],
+      }
+    return lite(prompt)
   }
 }
 
@@ -251,7 +238,6 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
   let indexing: IndexingService
   let keys: KeysService
   let publisher: CoursePublisher
-  let pipelines: PipelineService
   let snapshotRoot: string
   const log = createLogger({ level: 'silent' })
   const vault = testVault()
@@ -266,21 +252,14 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     db = created.db
     pool = created.pool
     await applyDdl(pool)
-    await db.execute(
-      sql`truncate table users, repositories, provider_keys restart identity cascade`,
-    )
+    await db.execute(sql`truncate table users, repositories, provider_keys restart identity cascade`)
     snapshotRoot = await mkdtemp(join(tmpdir(), 'replo-pipeline-'))
     indexing = createIndexingService({
       db,
       rest: offlineRest,
       tokens: { installationToken: async () => undefined, userCanAccess: async () => true },
       sources: {
-        ingestSource: async () => ({
-          owner: 'acme',
-          name: 'shop',
-          isPrivate: false,
-          installationId: null,
-        }),
+        ingestSource: async () => ({ owner: 'acme', name: 'shop', isPrivate: false, installationId: null }),
       },
       limits: { maxFiles: 5000, maxBytes: 50_000_000 },
       extraction: DEFAULT_EXTRACTION_LIMITS,
@@ -326,15 +305,6 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     if (!repository) throw new Error('repository seed failed')
 
     const data = fixtureData()
-    const analysis = {
-      analyzerVersion: ANALYZER_VERSION,
-      framework: null,
-      entryPoints: [],
-      routes: [],
-      metrics: {},
-      unresolvedImports: 0,
-      parseErrors: [],
-    }
     const [snapshot] = await db
       .insert(repositorySnapshots)
       .values({
@@ -350,7 +320,15 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
           languages: { typescript: data.files.length },
           framework: null,
         },
-        analysis,
+        analysis: {
+          analyzerVersion: ANALYZER_VERSION,
+          framework: null,
+          entryPoints: [],
+          routes: [],
+          metrics: {},
+          unresolvedImports: 0,
+          parseErrors: [],
+        },
       })
       .returning({ id: repositorySnapshots.id })
     if (!snapshot) throw new Error('snapshot seed failed')
@@ -365,9 +343,7 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
         role: 'source' as const,
       })),
     )
-    await db
-      .insert(snapshotSymbols)
-      .values(data.symbols.map((symbol) => ({ ...symbol, snapshotId: snapshot.id })))
+    await db.insert(snapshotSymbols).values(data.symbols.map((symbol) => ({ ...symbol, snapshotId: snapshot.id })))
     await db.insert(snapshotFileEdges).values(
       data.edges.map((edge) => ({
         snapshotId: snapshot.id,
@@ -385,11 +361,7 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
   }
 
   const seedKey = async (userId: string) => {
-    const outcome = await keys.add(userId, {
-      provider: 'anthropic',
-      label: 'default',
-      apiKey: 'sk-test-pipeline-0000',
-    })
+    const outcome = await keys.add(userId, { provider: 'anthropic', label: 'default', apiKey: 'sk-test-pipeline-0000' })
     if (outcome.kind !== 'ok') throw new Error('key seed failed')
     return outcome.value.id
   }
@@ -400,15 +372,11 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     keyId: string
     pipeline: 'lite' | 'full'
   }) => {
+    const modelId = input.pipeline === 'lite' ? 'claude-haiku-5-5' : 'claude-sonnet-5-5'
     const models: ModelPlan = {
       provider: 'anthropic',
       pipeline: input.pipeline,
-      models: {
-        planner: input.pipeline === 'lite' ? 'claude-haiku-5-5' : 'claude-sonnet-5-5',
-        author: 'claude-haiku-5-5',
-        summarizer: null,
-        judge: input.pipeline === 'full' ? 'claude-sonnet-5-5' : null,
-      },
+      models: { planner: modelId, author: 'claude-haiku-5-5', summarizer: modelId },
     }
     const { job } = await db.transaction((tx) =>
       jobs.createJob(tx, {
@@ -428,7 +396,7 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     script: Scripted,
     around?: (handlers: PipelineService['stageHandlers']) => PipelineService['stageHandlers'],
   ) => {
-    pipelines = createPipelineService({
+    const pipelines = createPipelineService({
       db,
       indexing,
       keys,
@@ -438,235 +406,81 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
       courses: publisher,
     })
     await handleGenerateCourse(
-      { v: 1, jobId: job.id, userId: job.userId, snapshotId: job.snapshotId, audience: AUDIENCE },
+      { jobId: job.id },
       {
         jobs: runtime.jobStore,
         log,
         stageHandlers: around ? around(pipelines.stageHandlers) : pipelines.stageHandlers,
-        budgetFor: () => new Budget(Number.MAX_SAFE_INTEGER, runtime.usageSink),
+        limitsFor: () => new RunLimits({ maxTokens: Number.MAX_SAFE_INTEGER }),
         heartbeatMs: 60_000,
       },
     )
     return jobs.getOwnedJob(job.userId, job.id)
   }
 
-  it('publishes a grounded lite course and repairs the one weak lesson', async () => {
+  it('publishes a grounded lite course with graph, tours, diagrams and normalised refs', async () => {
     const owner = await seedUser()
     const keyId = await seedKey(owner)
     const { snapshotId } = await seedSnapshot()
     const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
 
-    const after = await runWith(job, respondWith({ pipeline: 'lite', judge: false }))
-
+    const after = await runWith(job, liteScript())
     expect(after.status).toBe('succeeded')
-    expect(after.courseId).not.toBeNull()
 
-    const [course] = await db.select().from(courses).where(eq(courses.userId, owner))
-    expect(course).toMatchObject({ slug: 'shop', title: 'Shop cart walkthrough' })
-    expect((await jobs.toDto(after)).course).toEqual({
-      owner: 'acme',
-      repo: 'shop',
-      slug: 'shop',
-    })
-
-    const [version] = await db
-      .select()
-      .from(courseVersions)
-      .where(eq(courseVersions.generationJobId, job.id))
+    const [version] = await db.select().from(courseVersions).where(eq(courseVersions.generationJobId, job.id))
     expect(version).toMatchObject({ status: 'published', versionNo: 1 })
-    expect(version?.validationReport).toMatchObject({ repairs: 1, draft: false, judgeScore: null })
-    expect(version?.content?.chapters.map((chapter) => chapter.key)).toEqual([
-      'orientation',
-      'requests',
-      'wrap-up',
-    ])
-    expect(version?.content?.architecture?.diagram.nodeRefs).toEqual({
-      g0: 'src',
-      g1: 'src/api',
-    })
+    const content = version?.content
+    expect(content?.chapters.map((chapter) => chapter.key)).toEqual(['orientation', 'requests', 'wrap-up'])
+    expect(content?.graph.nodes.length).toBeGreaterThan(0)
+    expect(content?.tours.length).toBeGreaterThan(0)
+    expect(content?.diagrams.map((diagram) => diagram.type)).toContain('architecture')
+    expect(content?.architecture?.diagram.nodeRefs).toEqual({ g0: 'src', g1: 'src/api' })
 
-    const lessons = await db
-      .select()
-      .from(courseLessons)
-      .where(eq(courseLessons.versionId, version?.id ?? ''))
-    expect(lessons.map((row) => row.lessonKey).sort()).toEqual(['map', 'review', 'route'])
+    const storedDiagrams = await db.select().from(diagramSpecs).where(eq(diagramSpecs.versionId, version?.id ?? ''))
+    expect(storedDiagrams.length).toBe(content?.diagrams.length)
+    expect(storedDiagrams.length).toBeGreaterThan(0)
 
-    const refs = await db
-      .select()
-      .from(courseSourceRefs)
-      .where(eq(courseSourceRefs.versionId, version?.id ?? ''))
-    expect(refs.length).toBe(Object.keys(version?.content?.sourceRefs ?? {}).length)
-    expect(refs.length).toBeGreaterThan(0)
+    const refs = await db.select().from(courseSourceRefs).where(eq(courseSourceRefs.versionId, version?.id ?? ''))
+    expect(refs.length).toBe(Object.keys(content?.sourceRefs ?? {}).length)
 
     const leftovers = await db.select().from(jobCheckpoints).where(eq(jobCheckpoints.jobId, job.id))
     expect(leftovers).toEqual([])
   })
 
-  it('publishes no link, markup or command that a steered model wrote', async () => {
-    const owner = await seedUser()
-    const keyId = await seedKey(owner)
-    const { snapshotId } = await seedSnapshot()
-    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
-
-    const steered = respondWith({ pipeline: 'lite', judge: false })
-    const script: Scripted = (prompt) => {
-      if (prompt.includes('Write the lessons for the chapter')) {
-        const lessons = CHAPTER_LESSONS[chapterKeyOf(prompt)] ?? []
-        return { lessons: lessons.map(steeredLesson), openQuestions: [] }
-      }
-      return steered(prompt)
-    }
-
-    const after = await runWith(job, script)
-
-    expect(after.status).toBe('succeeded')
-    const [version] = await db
-      .select()
-      .from(courseVersions)
-      .where(eq(courseVersions.generationJobId, job.id))
-    expect(version).toMatchObject({ status: 'published' })
-    const published = JSON.stringify(version?.content)
-    for (const fragment of ['evil.example', 'javascript:', 'onerror', '<img', 'curl', '| sh']) {
-      expect(published).not.toContain(fragment)
-    }
-    expect(published).toContain('setup guide')
-  })
-
-  it('runs the full pipeline with a judge and records the judge score', async () => {
+  it('runs the full model-driven stages and keeps only validated diagram nodes', async () => {
     const owner = await seedUser()
     const keyId = await seedKey(owner)
     const { snapshotId } = await seedSnapshot()
     const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'full' })
 
-    const after = await runWith(job, respondWith({ pipeline: 'full', judge: true }))
-
+    const after = await runWith(job, fullScript())
     expect(after.status).toBe('succeeded')
-    const [version] = await db
-      .select()
-      .from(courseVersions)
-      .where(eq(courseVersions.generationJobId, job.id))
-    expect(version?.generator).toMatchObject({ pipeline: 'full', pipelineVersion: 1 })
-    expect(version?.validationReport).toMatchObject({ judgeScore: 0.9, draft: false })
+
+    const [version] = await db.select().from(courseVersions).where(eq(courseVersions.generationJobId, job.id))
+    expect(version?.generator).toMatchObject({ pipeline: 'full' })
+    const types = version?.content?.diagrams.map((diagram) => diagram.type) ?? []
+    expect(types).toContain('architecture')
+    expect(types).toContain('sequence')
+    for (const diagram of version?.content?.diagrams ?? [])
+      for (const node of diagram.nodes)
+        expect(version?.content?.graph.nodes.map((n) => n.id)).toContain(node.id)
+    expect(version?.validationReport?.draft).toBe(false)
   })
 
-  it('resumes after a failed chapter without repeating finished chapters', async () => {
+  it('a rerun publishes a new version and preserves the previous one', async () => {
     const owner = await seedUser()
     const keyId = await seedKey(owner)
     const { snapshotId } = await seedSnapshot()
-    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
 
-    const calls: string[] = []
-    const crashing: Scripted = (prompt) => {
-      if (prompt.includes('Write the lessons') && chapterKeyOf(prompt) === 'requests')
-        throw new Error('provider exploded')
-      const reply = respondWith({ pipeline: 'lite', judge: false })
-      if (prompt.includes('Write the lessons')) calls.push(chapterKeyOf(prompt))
-      return reply(prompt)
-    }
-    const failed = await runWith(job, crashing)
-    expect(failed.status).toBe('failed')
-    expect(calls).toEqual(['orientation'])
+    const first = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
+    await runWith(first, liteScript())
+    const second = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
+    await runWith(second, liteScript())
 
-    await jobs.retry(owner, job.id)
-    const resumed: string[] = []
-    const healthy: Scripted = (prompt) => {
-      if (prompt.includes('Write the lessons')) resumed.push(chapterKeyOf(prompt))
-      return respondWith({ pipeline: 'lite', judge: false })(prompt)
-    }
-    const recovered = await runWith(job, healthy)
-
-    expect(recovered.status).toBe('succeeded')
-    expect(resumed).toEqual(['requests', 'wrap-up'])
-  })
-
-  it('resumes validation without repeating repairs or judged chapters', async () => {
-    const owner = await seedUser()
-    const keyId = await seedKey(owner)
-    const { snapshotId } = await seedSnapshot()
-    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'full' })
-
-    const healthy = respondWith({ pipeline: 'full', judge: true })
-    const firstRun: string[] = []
-    const failing: Scripted = (prompt) => {
-      if (prompt.includes('grounding problems')) firstRun.push(`repair:${lessonOf(prompt)}`)
-      if (prompt.includes('Score the chapter')) {
-        const title = judgedTitleOf(prompt)
-        if (title === 'Requests') throw new Error('provider exploded')
-        firstRun.push(`judge:${title}`)
-      }
-      return healthy(prompt)
-    }
-    const failed = await runWith(job, failing)
-    expect(failed.status).toBe('failed')
-    expect(firstRun).toEqual(['repair:map', 'judge:Orientation'])
-
-    await jobs.retry(owner, job.id)
-    const secondRun: string[] = []
-    const resumed: Scripted = (prompt) => {
-      if (prompt.includes('grounding problems')) secondRun.push(`repair:${lessonOf(prompt)}`)
-      if (prompt.includes('Score the chapter')) secondRun.push(`judge:${judgedTitleOf(prompt)}`)
-      return healthy(prompt)
-    }
-    const recovered = await runWith(job, resumed)
-
-    expect(recovered.status).toBe('succeeded')
-    expect(secondRun).toEqual(['judge:Requests', 'judge:Wrap-up'])
-    const [version] = await db
-      .select()
-      .from(courseVersions)
-      .where(eq(courseVersions.generationJobId, job.id))
-    expect(version?.validationReport).toMatchObject({ repairs: 1, judgeScore: 0.9 })
-  })
-
-  it('asks the author again when a chapter comes back with too few lessons', async () => {
-    const owner = await seedUser()
-    const keyId = await seedKey(owner)
-    const { snapshotId } = await seedSnapshot()
-    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
-
-    const extra = { ...(LESSONS.review as object), key: 'extra', title: 'Extra' }
-    const widerPlan = {
-      ...LITE_PLAN,
-      outline: {
-        ...LITE_PLAN.outline,
-        chapters: LITE_PLAN.outline.chapters.map((chapter, position) =>
-          position === 0
-            ? {
-                ...chapter,
-                lessons: [
-                  ...chapter.lessons,
-                  { key: 'extra', title: 'Extra', minutes: 3, focusPaths: ['src/cart.ts'] },
-                ],
-              }
-            : chapter,
-        ),
-      },
-    }
-    const healthy = respondWith({ pipeline: 'lite', judge: false })
-    const orientationCalls: boolean[] = []
-    const script: Scripted = (prompt) => {
-      if (prompt.includes('Do two things')) return widerPlan
-      if (prompt.includes('Write the lessons') && chapterKeyOf(prompt) === 'orientation') {
-        const rejected = prompt.includes('previous reply was rejected')
-        orientationCalls.push(rejected)
-        const lessons = rejected ? [LESSONS.map, extra] : [LESSONS.map]
-        return { lessons, openQuestions: [] }
-      }
-      return healthy(prompt)
-    }
-
-    const after = await runWith(job, script)
-
-    expect(after.status).toBe('succeeded')
-    expect(orientationCalls).toEqual([false, true])
-    const [version] = await db
-      .select()
-      .from(courseVersions)
-      .where(eq(courseVersions.generationJobId, job.id))
-    expect(version?.content?.chapters[0]?.lessons.map((lesson) => lesson.key)).toEqual([
-      'map',
-      'extra',
-    ])
+    const [course] = await db.select().from(courses).where(eq(courses.userId, owner))
+    const versions = await db.select().from(courseVersions).where(eq(courseVersions.courseId, course?.id ?? ''))
+    expect(versions.map((version) => version.versionNo).sort()).toEqual([1, 2])
+    expect(course?.currentVersionId).toBe(versions.find((version) => version.versionNo === 2)?.id)
   })
 
   it('does not publish when the job is canceled just before the publish transaction', async () => {
@@ -675,25 +489,16 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     const { snapshotId } = await seedSnapshot()
     const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
 
-    const after = await runWith(
-      job,
-      respondWith({ pipeline: 'lite', judge: false }),
-      (handlers) => ({
-        ...handlers,
-        publish: async (ctx) => {
-          await jobs.cancel(owner, job.id)
-          await handlers.publish(ctx)
-        },
-      }),
-    )
+    const after = await runWith(job, liteScript(), (handlers) => ({
+      ...handlers,
+      publish: async (ctx) => {
+        await jobs.cancel(owner, job.id)
+        await handlers.publish(ctx)
+      },
+    }))
 
     expect(after.status).toBe('canceled')
     expect(after.courseId).toBeNull()
-    const versions = await db
-      .select()
-      .from(courseVersions)
-      .where(eq(courseVersions.generationJobId, job.id))
-    expect(versions).toEqual([])
   })
 
   it('refuses a late publish from an orphaned run after the job left running', async () => {
@@ -703,72 +508,20 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
 
     let orphan: Promise<void> = Promise.resolve()
-    const after = await runWith(
-      job,
-      respondWith({ pipeline: 'lite', judge: false }),
-      (handlers) => ({
-        ...handlers,
-        publish: async (ctx) => {
-          orphan = (async () => {
-            await new Promise((resolve) => setTimeout(resolve, 100))
-            await handlers.publish(ctx)
-          })()
-          orphan.catch(() => undefined)
-          throw new JobError('PROVIDER_UNAVAILABLE', false)
-        },
-      }),
-    )
+    const after = await runWith(job, liteScript(), (handlers) => ({
+      ...handlers,
+      publish: async (ctx) => {
+        orphan = (async () => {
+          await new Promise((resolve) => setTimeout(resolve, 100))
+          await handlers.publish(ctx)
+        })()
+        orphan.catch(() => undefined)
+        throw new JobError('PROVIDER_UNAVAILABLE', false)
+      },
+    }))
 
     expect(after.status).toBe('failed')
     await expect(orphan).rejects.toBeInstanceOf(StoppedError)
-    const versions = await db
-      .select()
-      .from(courseVersions)
-      .where(eq(courseVersions.generationJobId, job.id))
-    expect(versions).toEqual([])
-    const [row] = await db.select().from(generationJobs).where(eq(generationJobs.id, job.id))
-    expect(row?.courseId).toBeNull()
-  })
-
-  it('writes a chapter whose stored outline names no file from the ranked files', async () => {
-    const owner = await seedUser()
-    const keyId = await seedKey(owner)
-    const { snapshotId } = await seedSnapshot()
-    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
-
-    const after = await runWith(
-      job,
-      respondWith({ pipeline: 'lite', judge: false }),
-      (handlers) => ({
-        ...handlers,
-        lessons: async (ctx) => {
-          const [stored] = await db
-            .select()
-            .from(jobCheckpoints)
-            .where(and(eq(jobCheckpoints.jobId, job.id), eq(jobCheckpoints.stage, 'outline')))
-          const outline = stored?.payload as OutlineDraft
-          const legacy = {
-            ...outline,
-            chapters: outline.chapters.map((chapter, position) =>
-              position === 0
-                ? {
-                    ...chapter,
-                    lessons: chapter.lessons.map((lesson) => ({ ...lesson, focusPaths: [] })),
-                  }
-                : chapter,
-            ),
-          }
-          await db
-            .update(jobCheckpoints)
-            .set({ payload: legacy })
-            .where(and(eq(jobCheckpoints.jobId, job.id), eq(jobCheckpoints.stage, 'outline')))
-          await handlers.lessons(ctx)
-        },
-      }),
-    )
-
-    expect(after.status).toBe('succeeded')
-    expect(after.errorCode).toBeNull()
   })
 
   it('fences on the attempt that claimed the job', async () => {

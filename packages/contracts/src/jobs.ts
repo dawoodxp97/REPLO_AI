@@ -18,8 +18,10 @@ export type JobStatus = z.infer<typeof JobStatus>
 export const STAGES = [
   'ingest',
   'index',
-  'summaries',
-  'architecture',
+  'enrich',
+  'graph-review',
+  'tours',
+  'diagrams',
   'outline',
   'lessons',
   'validate',

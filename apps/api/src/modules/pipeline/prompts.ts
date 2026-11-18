@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { Audience } from '@replo/contracts'
 
-export const PIPELINE_VERSION = 1
+export const PIPELINE_VERSION = 2
 
 const AUDIENCE: Record<Audience, string> = {
   newcomer: 'someone new to this stack who needs terms explained',
@@ -19,34 +19,35 @@ Rules:
 5. Reply with one JSON object that matches the requested shape. Write nothing outside the JSON.`
 
 const PROMPT_TEXT = {
-  summaries: `Summarise each file in the files section in one sentence of at most 25 words: what the file is responsible for. Repeat each path exactly as given.`,
+  enrich: `For each file in the files section, write one sentence of at most 25 words describing what it is responsible for, choose the architectural layer it belongs to (api, service, data, ui, util, other), and name the business domain it serves in a few words. Repeat each path exactly as given. Add up to eight concepts (terms) the repository is built around, each with a one-sentence summary.`,
+  graphRepair: `Some files in the files section still have no summary. For each, write one sentence of at most 25 words describing what it is responsible for, its layer (api, service, data, ui, util, other), and its domain. Repeat each path exactly as given.`,
+  flows: `Describe up to six end-to-end flows through this repository. Each flow has a name, a one-sentence summary, and its ordered steps as repository file paths taken from the files section. A step must be a path that appears in the files section.`,
+  tours: `Plan up to four guided tours through this repository graph. Order each tour's steps so a reader can follow dependencies: start at an entry point or a central module and move outward. Each step names a node id exactly as it appears in the graph section, with a title and one-sentence summary. A tour needs at least two steps and states its objective.`,
+  diagrams: `You are given a repository graph and a course outline. Produce up to four diagrams of the requested types (sequence, workflow, dataflow, lifecycle). Name every node by a node id that appears in the graph section; connect nodes only with edges that make sense for the diagram type. Never invent a node id. Give each diagram an id, title and caption.`,
   architecture: `Describe how this repository is structured: its main layers, how control and data move between them, and where a reader should start. Use only the repo_map section. Cite the files and symbols behind each statement.`,
-  architectureAndOutline: `Do two things with the repo_map section.
-First, describe how this repository is structured: its main layers, how control and data move between them, and where a reader should start.
-Second, plan the learning path: between {min} and {max} chapters, ordered from orientation to depth. Each lesson names the repository files it focuses on in focusPaths, using paths exactly as they appear in the repo_map section. Chapter and lesson keys are short lowercase slugs, unique across the plan.`,
   outline: `Plan the learning path for this repository: between {min} and {max} chapters, ordered from orientation to depth. Each lesson names the repository files it focuses on in focusPaths, using paths exactly as they appear in the repo_map section. Chapter and lesson keys are short lowercase slugs, unique across the plan.`,
   lessons: `Write the lessons for the chapter in the chapter section, in the order given. Use each lesson key, title and minute count exactly as given.
 Each lesson has 3 to 8 blocks:
 - prose: kind observed or interpretation, with evidence.
 - code: one source reference (path plus symbol or quote) and a caption.
-- diagram: a Mermaid flowchart whose nodes map to repository paths in nodeRefs. Every edge must follow a real import between those files.
 - callout: a note, warning or tip.
 - exercise: a reading exercise about the sources. Nothing is run.
 Add 3 to 5 quiz questions for the chapter, spread over its lessons. A question is multiple_choice with 3 to 5 options, or true_false with exactly two options whose keys are true and false. Its correct key names one option, and its explanation cites the evidence. Put anything you cannot answer from the sources into openQuestions.`,
   repair: `The lesson in the lesson section has grounding problems at the locations listed in problems. Return the complete corrected lesson in the same shape. Change only the flagged blocks or questions: either remove what the sources cannot support, or fix the evidence with a path, a symbol key or an exact quote from the sources. Keep the lesson key and title.`,
-  judge: `Score the chapter in the chapter section from 0 to 1 for accuracy against the sources and for clarity at the stated audience. List at most five concrete problems. Do not reward length.`,
 } as const
 
 type PromptName = keyof typeof PROMPT_TEXT
 
 export const PROMPT_VERSIONS: Record<PromptName, number> = {
-  summaries: 1,
+  enrich: 1,
+  graphRepair: 1,
+  flows: 1,
+  tours: 1,
+  diagrams: 1,
   architecture: 1,
-  architectureAndOutline: 1,
   outline: 1,
   lessons: 1,
   repair: 1,
-  judge: 1,
 }
 
 function hashOf(name: PromptName): string {
@@ -56,13 +57,15 @@ function hashOf(name: PromptName): string {
 }
 
 export const PROMPT_HASHES: Record<PromptName, string> = {
-  summaries: hashOf('summaries'),
+  enrich: hashOf('enrich'),
+  graphRepair: hashOf('graphRepair'),
+  flows: hashOf('flows'),
+  tours: hashOf('tours'),
+  diagrams: hashOf('diagrams'),
   architecture: hashOf('architecture'),
-  architectureAndOutline: hashOf('architectureAndOutline'),
   outline: hashOf('outline'),
   lessons: hashOf('lessons'),
   repair: hashOf('repair'),
-  judge: hashOf('judge'),
 }
 
 export function promptFor(name: PromptName, values: Record<string, number> = {}): string {

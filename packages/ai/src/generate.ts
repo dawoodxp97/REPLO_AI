@@ -1,17 +1,16 @@
 import { generateText, Output, type LanguageModel } from 'ai'
 import type { z } from 'zod'
-import type { Budget } from './budget'
 import { DEFAULT_MAX_OUTPUT_TOKENS } from './constants'
-import { estimateCostMicros, type ModelSpec } from './registry'
+import type { RunLimits, TokenUsage } from './limits'
+import type { ModelSpec } from './registry'
 
 export interface GenerateStructuredOptions<S extends z.ZodType> {
   spec: ModelSpec
   schema: S
   system: string
   prompt: string
-  budget: Budget
+  limits: RunLimits
   model: LanguageModel
-  meta: { jobId: string; stage: string }
   maxOutputTokens?: number
   signal?: AbortSignal
 }
@@ -38,9 +37,6 @@ export async function generateStructured<S extends z.ZodType>(
   opts: GenerateStructuredOptions<S>,
 ): Promise<z.infer<S>> {
   const maxOutputTokens = opts.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS
-  const estimate = estimateCostMicros(opts.spec, opts, maxOutputTokens)
-  opts.budget.reserve(estimate)
-  const startedAt = Date.now()
   let res
   try {
     res = await generateText({
@@ -53,22 +49,11 @@ export async function generateStructured<S extends z.ZodType>(
       abortSignal: opts.signal,
     })
   } catch (err) {
+    // A provider that billed tokens before failing still counts against the ceiling.
     const usage = billedUsage(err)
-    if (usage)
-      await opts.budget.settle(
-        opts.spec,
-        usage,
-        { ...opts.meta, latencyMs: Date.now() - startedAt },
-        estimate,
-      )
-    else opts.budget.release(estimate)
+    if (usage) opts.limits.record(usage)
     throw err
   }
-  await opts.budget.settle(
-    opts.spec,
-    res.usage,
-    { ...opts.meta, latencyMs: Date.now() - startedAt },
-    estimate,
-  )
+  opts.limits.record(res.usage as TokenUsage)
   return res.output as z.infer<S>
 }

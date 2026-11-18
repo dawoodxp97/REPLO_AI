@@ -14,7 +14,7 @@ export const RoleModels = z.object({
 export const ModelPlan = z.object({
   provider: Provider,
   pipeline: Pipeline,
-  models: RoleModels.extend({ judge: z.string().nullable() }),
+  models: RoleModels,
 })
 export type ModelPlan = z.infer<typeof ModelPlan>
 

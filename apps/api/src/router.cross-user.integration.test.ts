@@ -34,7 +34,6 @@ const models: ModelPlan = {
     planner: 'anthropic/claude-haiku-5-5',
     author: 'anthropic/claude-haiku-5-5',
     summarizer: null,
-    judge: null,
   },
 }
 
@@ -46,7 +45,6 @@ const generator = {
     planner: 'anthropic/claude-haiku-5-5',
     author: 'anthropic/claude-haiku-5-5',
     summarizer: null,
-    judge: null,
   },
   promptVersions: {},
   promptHashes: {},
@@ -188,7 +186,9 @@ describe.skipIf(DATABASE_URL === '')('cross-user isolation across every procedur
         () => 'resolved',
         (error: unknown) => (error instanceof ORPCError ? error.code : String(error)),
       )
-      if (code !== 'NOT_FOUND') misses.push(`${name}: ${code}`)
+      // workspace.diagram declares DIAGRAM_NOT_FOUND as its not-found code (still a 404);
+      // every other private read answers NOT_FOUND.
+      if (code !== 'NOT_FOUND' && code !== 'DIAGRAM_NOT_FOUND') misses.push(`${name}: ${code}`)
     }
     expect(misses).toEqual([])
   })

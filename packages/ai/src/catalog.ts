@@ -6,9 +6,6 @@ export type ProviderId = (typeof PROVIDERS)[number]
 export const TIERS = ['frontier', 'mid', 'cheap', 'free'] as const
 export type Tier = (typeof TIERS)[number]
 
-export const PRESETS = ['free', 'budget', 'balanced', 'quality', 'custom'] as const
-export type Preset = (typeof PRESETS)[number]
-
 export const ROLES = ['planner', 'author', 'summarizer'] as const
 export type CatalogRole = (typeof ROLES)[number]
 
@@ -76,91 +73,4 @@ export function loadCatalog(raw: unknown): Catalog {
   const file = CatalogFile.parse(raw)
   const byKey = new Map(file.models.map((model) => [`${model.provider}:${model.id}`, model]))
   return { file, model: (provider, id) => byKey.get(`${provider}:${id}`) }
-}
-
-export type PlanRoles = Record<CatalogRole, string | null>
-
-export type PlanRefusal =
-  | { code: 'PRESET_UNAVAILABLE'; reason: string }
-  | { code: 'CUSTOM_MODEL_NOT_ALLOWED'; role: CatalogRole; modelId: string }
-
-export type PlanResult =
-  { kind: 'ok'; models: PlanRoles } | { kind: 'refused'; refusal: PlanRefusal }
-
-export const PRESET_ROUTING: Record<
-  Exclude<Preset, 'free' | 'custom'>,
-  Record<CatalogRole, Tier>
-> = {
-  budget: { planner: 'cheap', author: 'cheap', summarizer: 'cheap' },
-  balanced: { planner: 'mid', author: 'mid', summarizer: 'cheap' },
-  quality: { planner: 'frontier', author: 'mid', summarizer: 'cheap' },
-}
-
-const unavailable = (reason: string): PlanResult => ({
-  kind: 'refused',
-  refusal: { code: 'PRESET_UNAVAILABLE', reason },
-})
-
-const isAccepted = (model: CatalogModel) => model.verified && model.supportsStructuredOutput
-
-export function tierModel(
-  catalog: Catalog,
-  provider: ProviderId,
-  tier: Tier,
-): CatalogModel | undefined {
-  if (tier === 'free') return undefined
-  const id = catalog.file.providers[provider][tier]
-  return id === null ? undefined : catalog.model(provider, id)
-}
-
-export function planFor(
-  catalog: Catalog,
-  provider: ProviderId,
-  preset: Preset,
-  custom: Partial<Record<CatalogRole, string>> = {},
-): PlanResult {
-  if (preset === 'free') {
-    const model = catalog.file.freeAllowList
-      .map((id) => catalog.model('openrouter', id))
-      .find((candidate) => candidate !== undefined)
-    if (provider !== 'openrouter')
-      return unavailable('the free preset runs on OpenRouter :free models')
-    if (!model) return unavailable('no free model has passed the eval gate yet')
-    return { kind: 'ok', models: { planner: model.id, author: model.id, summarizer: null } }
-  }
-
-  if (preset === 'custom') {
-    const models: PlanRoles = { planner: null, author: null, summarizer: null }
-    for (const role of ROLES) {
-      const id = custom[role]
-      if (id === undefined) continue
-      const model = catalog.model(provider, id)
-      if (!model || !isAccepted(model))
-        return { kind: 'refused', refusal: { code: 'CUSTOM_MODEL_NOT_ALLOWED', role, modelId: id } }
-      models[role] = id
-    }
-    if (ROLES.every((role) => models[role] !== null)) return { kind: 'ok', models }
-    const fallback = planFor(catalog, provider, 'balanced')
-    if (fallback.kind === 'refused') return fallback
-    return {
-      kind: 'ok',
-      models: {
-        planner: models.planner ?? fallback.models.planner,
-        author: models.author ?? fallback.models.author,
-        summarizer: models.summarizer ?? fallback.models.summarizer,
-      },
-    }
-  }
-
-  const routing = PRESET_ROUTING[preset]
-  const models: PlanRoles = { planner: null, author: null, summarizer: null }
-  for (const role of ROLES) {
-    const tier = routing[role]
-    const model = tierModel(catalog, provider, tier)
-    if (!model) return unavailable(`${provider} has no ${tier} model for ${role}`)
-    if (!isAccepted(model))
-      return unavailable(`${model.id} is unverified or lacks structured output`)
-    models[role] = model.id
-  }
-  return { kind: 'ok', models }
 }

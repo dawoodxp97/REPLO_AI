@@ -1,25 +1,12 @@
 import type { StageContext } from '../../../worker/generate-course'
 import { JobError } from '../../../worker/errors'
 import { draftPaths } from '../prompt-inputs'
-import {
-  type ArchitectureDraft,
-  ChapterDraft,
-  JudgeDraft,
-  LessonDraft,
-  type OutlineChapterDraft,
-  type OutlineDraft,
-} from '../drafts'
+import { type ArchitectureDraft, ChapterDraft, LessonDraft, type OutlineDraft } from '../drafts'
 import { groundLesson, type Failure, type GroundedLesson } from '../grounding/lesson'
 import type { LessonOutcome } from '../grounding/report'
 import type { SourceIndex } from '../grounding/source-index'
 import { dataSection, promptFor } from '../prompts'
-import {
-  judgeCheckpointKey,
-  lessonCheckpointKey,
-  OVERVIEW_CHECKPOINT,
-  StoredJudge,
-  StoredRepair,
-} from '../checkpoints'
+import { lessonCheckpointKey, OVERVIEW_CHECKPOINT, StoredRepair } from '../checkpoints'
 import { checkpointed, type StageDeps, type StageWorkspace } from '../stage-tools'
 
 export interface GroundedDraft {
@@ -28,7 +15,7 @@ export interface GroundedDraft {
 }
 
 export interface GroundedChapter {
-  spec: OutlineChapterDraft
+  spec: OutlineDraft['chapters'][number]
   lessons: GroundedDraft[]
   openQuestions: string[]
 }
@@ -37,7 +24,6 @@ export interface GroundedCourse {
   overview: GroundedDraft
   chapters: GroundedChapter[]
   outcomes: LessonOutcome[]
-  judgeScores: number[]
 }
 
 interface GroundingRun {
@@ -63,7 +49,6 @@ export async function groundChapters(
     session,
   }
   const outcomes: LessonOutcome[] = []
-  const judgeScores: number[] = []
 
   const overview = await groundAndRepair(
     {
@@ -90,12 +75,10 @@ export async function groundChapters(
       lessons.push(await groundAndRepair(lesson, lessonCheckpointKey(lesson.key), run))
     }
     outcomes.push(...lessons.map((entry) => entry.outcome))
-
-    if (session.hasRole('judge')) judgeScores.push(await judgeChapter(spec, lessons, run))
     chapters.push({ spec, lessons, openQuestions: drafted.openQuestions })
   }
 
-  return { overview, chapters, outcomes, judgeScores }
+  return { overview, chapters, outcomes }
 }
 
 async function groundAndRepair(
@@ -158,37 +141,4 @@ async function repairDraft(
     if (err instanceof JobError && err.code === 'LLM_OUTPUT_INVALID') return undefined
     throw err
   }
-}
-
-async function judgeChapter(
-  chapter: OutlineChapterDraft,
-  lessons: readonly GroundedDraft[],
-  { deps, ctx, session }: GroundingRun,
-): Promise<number> {
-  const { score } = await checkpointed(
-    deps,
-    ctx,
-    'validate',
-    judgeCheckpointKey(chapter.key),
-    StoredJudge,
-    async () => {
-      const judged = await session.ask('judge', {
-        stage: 'validate',
-        sections: [
-          promptFor('judge'),
-          dataSection(
-            'chapter',
-            JSON.stringify({
-              title: chapter.title,
-              lessons: lessons.map((entry) => entry.grounded.lesson),
-            }),
-          ),
-        ],
-        schema: JudgeDraft,
-        maxOutputTokens: 1500,
-      })
-      return { score: judged.score }
-    },
-  )
-  return score
 }

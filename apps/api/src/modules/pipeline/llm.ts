@@ -1,15 +1,14 @@
 import {
-  BudgetExceededError,
   generateStructured,
   isRetryableProviderError,
   modelFor,
   specFor,
-  type Budget,
   type Catalog,
   type LanguageModel,
   type ModelRole,
   type ModelSpec,
   type RunContext,
+  type RunLimits,
 } from '@replo/ai'
 import type { ModelPlan, Stage } from '@replo/contracts'
 import type { z } from 'zod'
@@ -47,7 +46,7 @@ interface LlmJob {
   keyId: string | null
   plan: ModelPlan
   system: string
-  budget: Budget
+  limits: RunLimits
   signal: AbortSignal
 }
 
@@ -73,9 +72,8 @@ export async function openLlm(deps: LlmDeps, job: LlmJob): Promise<LlmSession> {
           schema: request.schema,
           system: job.system,
           prompt: text,
-          budget: job.budget,
+          limits: job.limits,
           model: resolve(run, spec.id),
-          meta: { jobId: job.jobId, stage: request.stage },
           maxOutputTokens: request.maxOutputTokens,
           signal: job.signal,
         })
@@ -112,7 +110,6 @@ function specsFor(catalog: Catalog, plan: ModelPlan): Record<ModelRole, ModelSpe
     planner: spec(plan.models.planner),
     author: spec(plan.models.author),
     summarizer: spec(plan.models.summarizer),
-    judge: spec(plan.models.judge),
   }
 }
 
@@ -120,7 +117,6 @@ async function guarded<T>(call: () => Promise<T>): Promise<T> {
   try {
     return await call()
   } catch (err) {
-    if (err instanceof BudgetExceededError) throw err
     const status =
       typeof err === 'object' && err !== null && 'statusCode' in err ? err.statusCode : undefined
     if ((status === 401 || status === 403) && !isRetryableProviderError(err))

@@ -32,15 +32,15 @@ describe('stageLine', () => {
   it('counts the running stage from the live feed', () => {
     expect(
       stageLine(
-        { stages: { ...stages, ingest: 'done', index: 'done', summaries: 'running' } },
+        { stages: { ...stages, ingest: 'done', index: 'done', enrich: 'running' } },
         { status: 'running', stage: 'index' },
       ),
-    ).toBe('Stage 3 of 8: Summarise central files')
+    ).toBe('Stage 3 of 10: Summarise and layer the code')
   })
 
   it('falls back to the stored stage before events arrive', () => {
     expect(stageLine({ stages }, { status: 'running', stage: 'outline' })).toBe(
-      'Stage 5 of 8: Design the curriculum',
+      'Stage 7 of 10: Design the curriculum',
     )
   })
 
@@ -50,12 +50,12 @@ describe('stageLine', () => {
         { stages: { ...stages, ingest: 'done', index: 'failed' } },
         { status: 'failed', stage: 'index' },
       ),
-    ).toBe('Stage 2 of 8: Build static index')
+    ).toBe('Stage 2 of 10: Build the structural graph')
   })
 
   it('reports a finished job', () => {
     expect(stageLine({ stages }, { status: 'succeeded', stage: 'publish' })).toBe(
-      'All 8 stages done',
+      'All 10 stages done',
     )
   })
 })

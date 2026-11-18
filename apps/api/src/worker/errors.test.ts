@@ -1,4 +1,4 @@
-import { BudgetExceededError } from '@replo/ai'
+import { RunLimitExceededError } from '@replo/ai'
 import { describe, expect, it } from 'vitest'
 import { classifyError, JobError } from './errors'
 
@@ -29,7 +29,7 @@ describe('classifyError', () => {
     ],
     ['a timeout', Object.assign(new Error(LEAKY), { name: 'TimeoutError' }), 'TIMEOUT', true],
     ['a reset socket', Object.assign(new Error(LEAKY), { code: 'ECONNRESET' }), 'NETWORK', true],
-    ['an exceeded budget', new BudgetExceededError(2, 1), 'BUDGET_EXCEEDED', false],
+    ['an exceeded run limit', new RunLimitExceededError('tokens', 2, 1), 'RUN_LIMIT_EXCEEDED', false],
     ['a non-error throw', LEAKY, 'INTERNAL', false],
   ])('classifies %s without echoing provider text', (_label, err, code, retryable) => {
     const result = classifyError(err)

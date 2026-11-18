@@ -1,4 +1,4 @@
-import { Budget } from '@replo/ai'
+import { RunLimits } from '@replo/ai'
 import { STAGES, type Stage } from '@replo/contracts'
 import { describe, expect, it, vi } from 'vitest'
 import { CanceledError, JobError, StoppedError } from './errors'
@@ -54,7 +54,7 @@ function fakeDeps(
     log,
     stageHandlers: handlers,
     heartbeatMs: 10_000,
-    budgetFor: () => new Budget(1_000_000, async () => undefined),
+    limitsFor: () => new RunLimits({ maxTokens: 1_000_000 }),
   } as unknown as WorkerDeps
   return { deps, jobs, events, finished, retries, completed }
 }
@@ -83,11 +83,19 @@ describe('handleGenerateCourse', () => {
       async () =>
         void seen.push(s)
     const t = fakeDeps({
-      completed: ['ingest', 'index', 'summaries'],
+      completed: ['ingest', 'index', 'enrich'],
       handlers: Object.fromEntries(STAGES.map((s) => [s, track(s)])) as Record<Stage, StageHandler>,
     })
     await handleGenerateCourse(payload, t.deps)
-    expect(seen).toEqual(['architecture', 'outline', 'lessons', 'validate', 'publish'])
+    expect(seen).toEqual([
+      'graph-review',
+      'tours',
+      'diagrams',
+      'outline',
+      'lessons',
+      'validate',
+      'publish',
+    ])
   })
 
   it('fails terminally on a non-retryable error and stops', async () => {
@@ -100,7 +108,7 @@ describe('handleGenerateCourse', () => {
     })
     await handleGenerateCourse(payload, t.deps)
     expect(t.finished).toEqual([{ status: 'failed', code: 'REPO_TOO_LARGE' }])
-    expect(t.events).not.toContain('stage_started:summaries')
+    expect(t.events).not.toContain('stage_started:enrich')
   })
 
   it('hands retryable errors back to the queue for backoff', async () => {

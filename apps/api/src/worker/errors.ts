@@ -1,4 +1,4 @@
-import { BudgetExceededError } from '@replo/ai'
+import { RunLimitExceededError } from '@replo/ai'
 
 export class JobError extends Error {
   constructor(
@@ -37,7 +37,7 @@ const SAFE_MESSAGES: Record<string, string> = {
   TIMEOUT: 'The operation timed out',
   PROVIDER_UNAVAILABLE: 'The model provider was unavailable',
   NETWORK: 'A network error occurred',
-  BUDGET_EXCEEDED: 'The run budget was exceeded',
+  RUN_LIMIT_EXCEEDED: 'The run token or time limit was exceeded',
   INTERNAL: 'An internal error occurred',
 }
 
@@ -58,6 +58,6 @@ export function classifyError(err: unknown): ClassifiedError {
     return classified('PROVIDER_UNAVAILABLE', true)
   if (fields.code === 'ETIMEDOUT' || fields.code === 'ECONNRESET' || fields.code === 'ENOTFOUND')
     return classified('NETWORK', true)
-  if (err instanceof BudgetExceededError) return classified('BUDGET_EXCEEDED', false)
+  if (err instanceof RunLimitExceededError) return classified('RUN_LIMIT_EXCEEDED', false)
   return classified('INTERNAL', false)
 }

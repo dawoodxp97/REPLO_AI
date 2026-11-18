@@ -1,5 +1,5 @@
 import { createServer } from 'node:http'
-import { Budget } from '@replo/ai'
+import { RunLimits } from '@replo/ai'
 import { createDomainServices, vaultFrom } from './composition'
 import { handleGenerateCourse } from './worker/generate-course'
 import { GENERATE_COURSE, PURGE_RETENTION, REAP_STALLED_JOBS } from './worker/job-payload'
@@ -27,7 +27,7 @@ for (let i = 0; i < config.WORKER_CONCURRENCY; i++) {
         jobs: services.jobRuntime.jobStore,
         log,
         stageHandlers: services.pipeline.stageHandlers,
-        budgetFor: () => new Budget(Number.MAX_SAFE_INTEGER, services.jobRuntime.usageSink),
+        limitsFor: () => new RunLimits({ maxTokens: config.MAX_JOB_TOKENS }),
       })
   })
 }

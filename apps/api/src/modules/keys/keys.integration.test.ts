@@ -141,7 +141,6 @@ describe.skipIf(DATABASE_URL === '')('keys and models against Postgres', () => {
         planner: 'gpt-5.4-mini',
         author: 'gpt-5.4-mini',
         summarizer: 'gpt-5.4-mini',
-        judge: null,
       },
     }
     const jobs = await db

@@ -72,11 +72,13 @@ export function createModelsService(deps: { db: Db; catalog: Catalog }): ModelsS
     },
 
     plan(provider, modelId) {
-      if (!usable(provider, modelId)) return undefined
+      const model = usable(provider, modelId)
+      if (!model) return undefined
+      // Free models run the lite path: deterministic summaries, system-built diagrams only.
       return {
         provider,
-        pipeline: 'full',
-        models: { planner: modelId, author: modelId, summarizer: modelId, judge: null },
+        pipeline: model.free ? 'lite' : 'full',
+        models: { planner: modelId, author: modelId, summarizer: modelId },
       }
     },
   }

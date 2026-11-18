@@ -1,4 +1,5 @@
 import { and, desc, eq, ilike, inArray, lt, sql, type SQL } from 'drizzle-orm'
+import type { DiagramSpec } from '@replo/contracts'
 import type { DbOrTx } from '../../platform/db/client'
 import {
   courseLessons,
@@ -6,6 +7,7 @@ import {
   courseSourceRefs,
   courseVersions,
   courses,
+  diagramSpecs,
   repositorySnapshots,
   snapshotFiles,
 } from '../../platform/db/schema'
@@ -210,6 +212,19 @@ export const coursesRepo = (db: DbOrTx) => {
 
     async insertLessons(values: (typeof courseLessons.$inferInsert)[]): Promise<void> {
       if (values.length > 0) await db.insert(courseLessons).values(values)
+    },
+
+    async insertDiagrams(versionId: string, diagrams: readonly DiagramSpec[]): Promise<void> {
+      if (diagrams.length === 0) return
+      await db.insert(diagramSpecs).values(
+        diagrams.map((diagram) => ({
+          versionId,
+          diagramId: diagram.id,
+          type: diagram.type,
+          spec: diagram,
+          validation: { valid: true, issues: [] },
+        })),
+      )
     },
 
     lessonKeysOf(userId: string, versionIds: readonly string[]) {

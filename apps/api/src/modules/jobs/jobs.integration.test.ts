@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { asc, eq, sql } from 'drizzle-orm'
 import { applyDdl } from '../../platform/db/test-setup'
-import { Budget } from '@replo/ai'
+import { RunLimits } from '@replo/ai'
 import { DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
 import PgBoss from 'pg-boss'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -253,7 +253,7 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
           models: {
             provider: 'openrouter',
             pipeline: 'lite',
-            models: { planner: '', author: '', summarizer: null, judge: null },
+            models: { planner: '', author: '', summarizer: null },
           },
         })
         throw new Error('rollback')
@@ -275,14 +275,16 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
       {
         jobs: runtime.jobStore,
         log,
-        budgetFor: () => new Budget(Number.MAX_SAFE_INTEGER, runtime.usageSink),
+        limitsFor: () => new RunLimits({ maxTokens: Number.MAX_SAFE_INTEGER }),
         stageHandlers: {
           ingest: ({ job: claimed, signal }) =>
             indexing.ingest({ userId: claimed.userId, snapshotId: claimed.snapshotId, signal }),
           index: ({ job: claimed, signal }) =>
             indexing.index({ userId: claimed.userId, snapshotId: claimed.snapshotId, signal }),
-          summaries: failingStage,
-          architecture: failingStage,
+          enrich: failingStage,
+          'graph-review': failingStage,
+          tours: failingStage,
+          diagrams: failingStage,
           outline: failingStage,
           lessons: failingStage,
           validate: failingStage,
@@ -294,7 +296,7 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     const after = await jobs.getOwnedJob(owner, job.id)
     expect(after.status).toBe('failed')
     expect(after.errorCode).toBe('STAGE_FAILED')
-    expect(after.stage).toBe('summaries')
+    expect(after.stage).toBe('enrich')
     const snapshot = await db
       .select()
       .from(repositorySnapshots)

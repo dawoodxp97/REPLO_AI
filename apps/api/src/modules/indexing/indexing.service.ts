@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
-import type { SnapshotStats } from '@replo/contracts'
+import type { CourseGraph, SnapshotStats } from '@replo/contracts'
 import {
   ANALYZER_VERSION,
   createAnalyzer,
@@ -87,6 +87,7 @@ export interface IndexingService {
   snapshotRef(snapshotId: string): Promise<SnapshotRef | undefined>
   ingest(input: { userId: string; snapshotId: string; signal: AbortSignal }): Promise<void>
   index(input: { userId: string; snapshotId: string; signal: AbortSignal }): Promise<void>
+  storeGraph(snapshotId: string, graph: CourseGraph): Promise<void>
   readView(snapshotId: string): Promise<SnapshotView | undefined>
   readText(snapshotId: string, path: string): Promise<string | undefined>
   readFile(snapshotId: string, path: string): Promise<SnapshotFile | undefined>
@@ -318,6 +319,10 @@ export function createIndexingService(deps: IndexingDeps): IndexingService {
         await txRepo.lock(snapshot.id)
         await txRepo.replaceIndex(snapshot.id, result)
       })
+    },
+
+    storeGraph(snapshotId, graph) {
+      return snapshotsRepo(db).replaceGraph(snapshotId, graph)
     },
   }
 }
