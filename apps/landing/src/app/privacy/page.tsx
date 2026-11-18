@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Article, bulletListClass, DraftNotice, NextLinks, Section } from '@/components/article'
-import { DOCS_PAGES, KEY_GUIDE, POLICY_PAGES } from '@/lib/routes'
+import { KEYS_AND_PRIVACY_PAGE, LICENCE_PAGE, TERMS_PAGE } from '@/lib/routes'
 
 export const metadata: Metadata = {
   title: 'Privacy policy',
@@ -17,22 +17,18 @@ export default function PrivacyPage() {
     >
       <Section title="What we collect">
         <ul className={bulletListClass}>
-          <li>Your GitHub name and avatar, and a session that keeps you signed in.</li>
+          <li>Your name, email address, avatar and sign-in provider.</li>
           <li>
-            The repositories you link, and the runs you start on them: status, stage, errors, budget
-            and spend.
+            The repositories you link, and the runs you start on them: status, stage, model, errors
+            and timestamps.
           </li>
           <li>Your provider keys, encrypted. We show only their last four characters.</li>
           <li>Your model choices and preferences.</li>
-          <li>The tutorials you generate, your lesson progress and your quiz answers.</li>
+          <li>The courses you generate, your lesson progress and your quiz answers.</li>
           <li>Notifications about your runs.</li>
           <li>
-            For each model call: the provider, the model, token counts, cost and latency. Not the
-            prompt or the answer.
-          </li>
-          <li>
-            The text of readable files from the repository snapshot a tutorial uses, kept as
-            described below.
+            The text of readable files from the repository snapshot a course uses, kept as described
+            below.
           </li>
           <li>
             Request logs, which hold request IDs, status codes and counts. They never hold your
@@ -52,8 +48,8 @@ export default function PrivacyPage() {
 
       <Section title="How we use it">
         <p>
-          We use your data to run the tutorials you ask for, show your progress, keep you signed in,
-          protect the service from abuse, and tell you about your runs.
+          We use your data to generate the courses you ask for, show your progress, keep you signed
+          in, protect the service from abuse, and tell you about your runs.
         </p>
       </Section>
 
@@ -63,15 +59,14 @@ export default function PrivacyPage() {
           <li>
             The model provider you choose, for each run. It receives the code excerpts and prompts
             that the run needs, under its own terms. The{' '}
-            <Link href={KEY_GUIDE.href} className="link-inline">
-              key guide
+            <Link href={KEYS_AND_PRIVACY_PAGE.href} className="link-inline">
+              keys and privacy
             </Link>{' '}
-            explains this.
+            guide explains this.
           </li>
           <li>
-            Hosting providers for the service. Replo will name them before launch. Encrypted
-            database backups are planned for launch and will be stored with a hosting provider named
-            here.
+            Hosting providers for the service. This draft will name them before launch, including
+            the provider that stores encrypted database backups.
           </li>
         </ul>
       </Section>
@@ -79,26 +74,23 @@ export default function PrivacyPage() {
       <Section title="How long we keep it">
         <p>
           The{' '}
-          <Link href={DOCS_PAGES[2].href} className="link-inline">
+          <Link href={KEYS_AND_PRIVACY_PAGE.href} className="link-inline">
             keys and privacy
           </Link>{' '}
           guide lists each kind of data and how long it is kept. In short: repository archives are
-          not kept; run events and model-call records are kept for 90 days; tutorials, progress and
-          keys stay until you delete them.
+          not kept; run events and notifications are kept for 90 days; courses, progress and keys
+          stay until you delete them.
         </p>
       </Section>
 
       <Section title="Your choices">
         <ul className={bulletListClass}>
           <li>Delete a provider key at any time. It takes effect at once.</li>
-          <li>Remove a repository from your library, or delete a tutorial.</li>
+          <li>Remove a repository from your library, or delete a course.</li>
           <li>
-            Delete your account. This removes your keys, progress, private tutorials and private
-            files.
-          </li>
-          <li>
-            For public tutorials, choose when you delete your account whether to delete them or keep
-            them anonymised.
+            Delete your account. This removes your keys, repository links, generations, courses,
+            progress, quiz attempts, notifications and settings. Snapshots that no remaining run or
+            version references are removed by the retention job.
           </li>
         </ul>
       </Section>
@@ -112,8 +104,8 @@ export default function PrivacyPage() {
 
       <Section title="Questions and requests">
         <p>
-          To contact us, including about your data, use the report form on any public tutorial in
-          the app.
+          This draft is reviewed before launch. It will name the operator and a contact address for
+          privacy requests.
         </p>
       </Section>
 
@@ -121,7 +113,7 @@ export default function PrivacyPage() {
         <p>We will update this page when our practices change.</p>
       </Section>
 
-      <NextLinks links={[POLICY_PAGES[1], POLICY_PAGES[2], POLICY_PAGES[3]]} />
+      <NextLinks links={[TERMS_PAGE, LICENCE_PAGE, KEYS_AND_PRIVACY_PAGE]} />
     </Article>
   )
 }

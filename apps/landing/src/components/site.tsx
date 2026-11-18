@@ -8,7 +8,13 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:7101
 
 export const LOGIN_URL = `${APP_URL}/login`
 
-const PRIMARY_LINKS = [HOME_ANCHORS.how, HOME_ANCHORS.checks, KEY_GUIDE, DOCS_INDEX] as const
+const PRIMARY_LINKS = [
+  HOME_ANCHORS.graph,
+  HOME_ANCHORS.diagrams,
+  HOME_ANCHORS.how,
+  KEY_GUIDE,
+  DOCS_INDEX,
+] as const
 
 const navLinkClass = 'rounded-sm transition-colors hover:text-foreground'
 
@@ -56,7 +62,15 @@ export function Header() {
 const FOOTER_GROUPS = [
   {
     title: 'Product',
-    links: [HOME_ANCHORS.how, HOME_ANCHORS.checks, KEY_GUIDE, DOCS_INDEX, HOME_ANCHORS.faq],
+    links: [
+      HOME_ANCHORS.graph,
+      HOME_ANCHORS.diagrams,
+      HOME_ANCHORS.how,
+      HOME_ANCHORS.checks,
+      KEY_GUIDE,
+      DOCS_INDEX,
+      HOME_ANCHORS.faq,
+    ],
   },
   { title: 'Policies', links: POLICY_PAGES },
 ] as const
@@ -68,8 +82,8 @@ export function Footer() {
         <div className="space-y-3">
           <Brand className="text-foreground" />
           <p className="max-w-xs leading-relaxed">
-            Grounded tutorials for GitHub repositories. Free for individual developers, on your own
-            model key.
+            A graph, typed diagrams and a checked course for any GitHub repository. Free for
+            individual developers, on your own model key.
           </p>
         </div>
         {FOOTER_GROUPS.map((group) => (

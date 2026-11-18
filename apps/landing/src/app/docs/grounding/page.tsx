@@ -1,5 +1,3 @@
-import { Alert, AlertDescription } from '@replo/ui'
-import { TriangleAlert } from 'lucide-react'
 import type { Metadata } from 'next'
 import {
   Article,
@@ -8,56 +6,36 @@ import {
   NextLinks,
   Section,
 } from '@/components/article'
-import { DOCS_INDEX, DOCS_PAGES } from '@/lib/routes'
+import { CheckList } from '@/components/check-list'
+import { DOCS_INDEX, HOW_IT_WORKS_PAGE, KEYS_AND_PRIVACY_PAGE } from '@/lib/routes'
 
 export const metadata: Metadata = {
   title: 'How grounding is checked',
   description:
-    'How Replo ties each explanation to pinned code, what the checks test, what happens when one fails, and what they do not prove.',
+    'How Replo ties each explanation and diagram to pinned code, what the checks test, and what they do not prove.',
 }
 
 export default function GroundingPage() {
   return (
     <Article
       title="How grounding is checked"
-      lede="A tutorial is only useful if you can check it. Replo separates what the code shows from what the model thinks it means, and checks each reference the model makes."
+      lede="A course is only useful if you can check it. Replo separates what the code shows from what the model thinks it means, and checks every reference the model makes."
     >
       <Section title="The model points, the system quotes">
         <p>
           A model may name a symbol or quote a short anchor from the code. It may not write code or
-          line numbers into a tutorial. The validator turns each reference into a file path, a line
+          line numbers into a lesson. The validator turns each reference into a file path, a line
           range and a blob SHA at the pinned commit, then inserts the excerpt from that commit
           itself.
         </p>
         <p>
           Each reference stores its path, line range and blob SHA, so you can check the excerpt
-          against the repository at that commit.
+          against the repository at that commit. A diagram node may carry up to three references.
         </p>
       </Section>
 
       <Section title="What is checked">
-        <ul className={bulletListClass}>
-          <li>The file path exists in the pinned snapshot.</li>
-          <li>The symbol exists, or the closest match in the same file does.</li>
-          <li>
-            A quoted anchor appears in the file, after whitespace is normalised. Quotes shorter than
-            eight characters are not accepted as evidence.
-          </li>
-          <li>
-            Identifiers in backticks match a symbol, a file or a dependency the repository declares.
-            An identifier the repository does not contain drops the whole block.
-          </li>
-          <li>
-            Each step in a flow diagram matches a link the index found between files. A step with no
-            such link is dropped as an unverified hop.
-          </li>
-          <li>
-            Diagrams must parse under a restricted grammar, and every node must map to a known file.
-          </li>
-          <li>
-            Markdown is restricted. Raw HTML and unsafe links are stripped before anything is shown.
-          </li>
-        </ul>
+        <CheckList />
       </Section>
 
       <Section title="Observed and interpretation">
@@ -80,39 +58,47 @@ export default function GroundingPage() {
         </p>
       </Section>
 
+      <Section title="Diagram validation">
+        <p>
+          A diagram is a typed specification: nodes, edges, labels and references. The system lays
+          it out; a model never supplies the drawing. Every node must be a graph node, and every
+          edge must join kept nodes. A diagram that fails is dropped rather than shown with a broken
+          part.
+        </p>
+        <p>
+          Architecture, tree, class and ERD come from the graph. On the full path, sequence,
+          workflow, dataflow and lifecycle are authored by the planner and then put through the same
+          checks.
+        </p>
+      </Section>
+
       <Section title="When a check fails">
         <ol className={numberedListClass}>
           <li>The failing reference is dropped and flagged.</li>
-          <li>
-            The lesson gets one repair attempt. The repair is bounded, so the cost of a run stays
-            predictable.
-          </li>
+          <li>The lesson gets one repair attempt. The repair is bounded.</li>
           <li>Anything still failing is downgraded to interpretation, or removed.</li>
         </ol>
-        <p>The tutorial keeps a validation report that counts what was dropped and downgraded.</p>
+        <p>The course keeps a validation report that counts what was dropped and downgraded.</p>
       </Section>
 
-      <Section title="Draft tutorials">
+      <Section title="Draft courses">
         <p>
-          Each tutorial gets a confidence score. It is the share of observed claims that kept their
-          evidence after the checks, combined with a review score from a model judge where the
-          pipeline uses one. If the score is below the threshold, or a lesson has no content left,
-          the tutorial is published as a Draft and shows this banner:
+          Each course gets a coverage score: the share of observed claims that kept their evidence
+          after the checks. If the score is below the threshold, or a lesson has no content left,
+          the course is published as a Draft and shows a banner: “Draft — lower confidence. Some
+          claims could not be fully verified.”
         </p>
-        <Alert variant="interpretation" role="note">
-          <TriangleAlert aria-hidden="true" />
-          <AlertDescription className="text-foreground">
-            Draft — lower confidence. Some claims could not be fully verified.
-          </AlertDescription>
-        </Alert>
-        <p>The threshold is provisional and is adjusted as evaluation results come in.</p>
+        <p>
+          The score is deterministic. It counts the claims that kept their evidence; no model grades
+          its own output.
+        </p>
       </Section>
 
       <Section title="What the checks do not prove">
         <ul className={bulletListClass}>
           <li>
-            They show that each reference points at code that exists at that commit, and that any
-            quoted text appears there. They do not show that an explanation is complete or correct.
+            They show that each reference points at code that exists at that commit, and that quoted
+            text appears there. They do not show that an explanation is complete or correct.
           </li>
           <li>
             The analysis is static. Some links, such as calls that pass through re-exports, are not
@@ -123,7 +109,7 @@ export default function GroundingPage() {
         </ul>
       </Section>
 
-      <NextLinks links={[DOCS_PAGES[0], DOCS_PAGES[2], DOCS_INDEX]} />
+      <NextLinks links={[HOW_IT_WORKS_PAGE, KEYS_AND_PRIVACY_PAGE, DOCS_INDEX]} />
     </Article>
   )
 }

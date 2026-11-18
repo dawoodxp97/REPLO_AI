@@ -6,14 +6,14 @@ import { GUIDES, POLICY_PAGES } from '@/lib/routes'
 export const metadata: Metadata = {
   title: 'Docs',
   description:
-    'How Replo works, how it checks its claims, and how it handles your key, your code and your data.',
+    'How Replo builds a graph, diagrams and a course, how it checks its claims, and how it handles your key, your code and your data.',
 }
 
 export default function DocsPage() {
   return (
     <Article
       title="Docs"
-      lede="How Replo works, how it checks its claims, and how it handles your key, your code and your data."
+      lede="How Replo builds a course, checks it, and handles your key, your code and your data."
     >
       <Section title="Guides">
         <ul className="divide-y rounded-lg border bg-card">

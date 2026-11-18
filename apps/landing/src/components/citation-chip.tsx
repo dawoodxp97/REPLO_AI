@@ -13,14 +13,6 @@ function ChipBody({ children }: { children: string }) {
   )
 }
 
-export function CitationChip({ children }: { children: string }) {
-  return (
-    <span className={chipClass}>
-      <ChipBody>{children}</ChipBody>
-    </span>
-  )
-}
-
 export function CitationLink({
   href,
   label,

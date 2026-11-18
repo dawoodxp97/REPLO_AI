@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Article, bulletListClass, DraftNotice, NextLinks, Section } from '@/components/article'
-import { POLICY_PAGES } from '@/lib/routes'
+import { GROUNDING_PAGE, LICENCE_PAGE, PRIVACY_PAGE } from '@/lib/routes'
 
 export const metadata: Metadata = {
   title: 'Terms of use',
   description:
-    'The rules for using Replo: your key, the repositories you add, generated content and public tutorials.',
+    'The rules for using Replo: your key, the repositories you add, generated content and private courses.',
 }
 
 export default function TermsPage() {
@@ -18,9 +18,10 @@ export default function TermsPage() {
     >
       <Section title="The service">
         <p>
-          Replo turns a public or private GitHub repository that you can access into a chaptered
-          tutorial. Each tutorial runs on your own provider key. Replo has no subscriptions,
-          credits, top-ups or ads. You pay your provider directly for the models a run uses.
+          Replo turns a public or private GitHub repository that you can access into a graph, typed
+          diagrams and a chaptered course. Each course runs on your own provider key. Replo does not
+          charge for runs and shows no ads. You pay your provider directly for the models a run
+          uses. A course belongs to the account that generated it.
         </p>
       </Section>
 
@@ -42,24 +43,21 @@ export default function TermsPage() {
             you can access it on GitHub and the GitHub App has access to it.
           </li>
           <li>Replo reads repositories with read-only access and never runs their code.</li>
+          <li>
+            A run is pinned to one commit. Replo does not track changes or subscribe to webhooks. A
+            repository change reaches Replo only when you start a rerun.
+          </li>
         </ul>
       </Section>
 
       <Section title="Generated content">
         <p>
-          Tutorials are written by models and checked by software. The checks reduce errors but do
-          not remove them, so a tutorial can still be wrong or incomplete. Read the observed and
-          interpretation labels, and treat a Draft with care. Do not rely on a tutorial as a
-          security review, a licence opinion or professional advice.
-        </p>
-      </Section>
-
-      <Section title="Public tutorials">
-        <p>
-          You can keep a tutorial private, share it by a link, or make it public. A public tutorial
-          is allowed only for a repository with an OSI-approved licence. See{' '}
-          <Link href={POLICY_PAGES[2].href} className="link-inline">
-            Licence and attribution
+          Courses are written by models and checked by software. The checks reduce errors but do not
+          remove them, so a course can still be wrong or incomplete. Read the observed and
+          interpretation labels, and treat a Draft with care. Do not rely on a course as a security
+          review, a licence opinion or professional advice. See{' '}
+          <Link href={GROUNDING_PAGE.href} className="link-inline">
+            how grounding is checked
           </Link>
           .
         </p>
@@ -71,21 +69,10 @@ export default function TermsPage() {
           <li>Do not try to get around rate limits, bot checks or access controls.</li>
           <li>Do not attack the service or overload it.</li>
           <li>
-            Do not publish a tutorial that copies material you have no right to copy, or that
-            contains secrets or personal data.
+            Do not use generated material in a way that breaks the rights or confidentiality of the
+            repository or its authors.
           </li>
         </ul>
-      </Section>
-
-      <Section title="Reports and removal">
-        <p>
-          Anyone can report a public tutorial. Replo reviews reports by hand and may remove or
-          change a tutorial. See{' '}
-          <Link href={POLICY_PAGES[3].href} className="link-inline">
-            Reports and takedown
-          </Link>
-          .
-        </p>
       </Section>
 
       <Section title="Warranties and liability">
@@ -106,7 +93,7 @@ export default function TermsPage() {
         <p>We may change these terms, and we will update this page when we do.</p>
       </Section>
 
-      <NextLinks links={[POLICY_PAGES[0], POLICY_PAGES[2], POLICY_PAGES[3]]} />
+      <NextLinks links={[PRIVACY_PAGE, LICENCE_PAGE, GROUNDING_PAGE]} />
     </Article>
   )
 }

@@ -8,7 +8,7 @@ export function ClosingCta() {
     <section aria-label="Get started" className="border-t py-12 sm:py-16">
       <Container className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <p className={'heading-display max-w-xl text-xl sm:text-2xl'}>
-          Sign in, add a key and generate your first tutorial.
+          Sign in, add a key and generate your first course.
         </p>
         <a href={LOGIN_URL} className={buttonVariants({ size: 'lg', className: 'self-start' })}>
           Get started

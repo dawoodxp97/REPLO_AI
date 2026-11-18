@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { Article, bulletListClass, DraftNotice, NextLinks, Section } from '@/components/article'
-import { POLICY_PAGES } from '@/lib/routes'
+import { GROUNDING_PAGE, PRIVACY_PAGE, TERMS_PAGE } from '@/lib/routes'
 
 export const metadata: Metadata = {
   title: 'Licence and attribution',
   description:
-    'Public tutorials are allowed only for repositories with an OSI-approved licence. What a public tutorial shows.',
+    'How Replo quotes source code, how attribution works, and why a quoted excerpt keeps its repository’s licence.',
 }
 
 export default function LicencePage() {
@@ -13,43 +14,47 @@ export default function LicencePage() {
     <Article
       title="Licence and attribution"
       notice={<DraftNotice />}
-      lede="Public tutorials are allowed only for repositories with an open-source licence approved by the Open Source Initiative (OSI)."
+      lede="A course quotes short excerpts from the repository it describes. The excerpt keeps the licence of its repository, and the course names the repository and the commit it read."
     >
-      <Section title="Which repositories can be public">
-        <p>
-          Replo reads the licence that GitHub reports for the repository. If that licence is on
-          Replo’s list of OSI-approved licences, the repository can have public tutorials.
-        </p>
-        <p>
-          A repository with no licence, a licence GitHub cannot identify, or a licence that is not
-          on the list cannot have public tutorials. Its tutorials cannot be made public.
-        </p>
-      </Section>
-
-      <Section title="What a public tutorial shows">
+      <Section title="Quoted code">
         <ul className={bulletListClass}>
-          <li>The licence of the source repository, by name.</li>
-          <li>Attribution to the source repository, with a link to it.</li>
-          <li>A link to the commit the tutorial is pinned to.</li>
-          <li>Quoted code from the repository. Quoted code keeps the repository’s licence.</li>
+          <li>Replo quotes short excerpts to support a lesson or a diagram edge.</li>
+          <li>Quoted code keeps the licence of the repository it came from.</li>
+          <li>Replo does not relicense the repository and claims no ownership of it.</li>
+          <li>Every excerpt points at a file, a line range and a blob SHA at the pinned commit.</li>
         </ul>
       </Section>
 
-      <Section title="The list of licences">
+      <Section title="Attribution">
+        <ul className={bulletListClass}>
+          <li>The course names the repository and the commit it read.</li>
+          <li>The source panel links to the file on GitHub at that commit.</li>
+          <li>
+            The generated prose, diagrams and quizzes are not a copy of the repository. They
+            describe the code that the references point at.
+          </li>
+        </ul>
+      </Section>
+
+      <Section title="Your repository">
         <p>
-          The list of approved licences is part of Replo’s code. A licence is added to it only
-          through a reviewed change.
+          Your repository stays yours. Replo reads a snapshot with read-only access and never runs
+          or redistributes the repository. A course is private to the account that generated it.
         </p>
       </Section>
 
-      <Section title="Problems with a licence">
+      <Section title="Problems with an excerpt">
         <p>
-          Report a tutorial whose licence information is wrong, or whose repository has changed its
-          licence, through the report form on the tutorial. See Reports and takedown.
+          This draft is reviewed before launch. It will name the operator and a contact address for
+          reports about an excerpt or its attribution. The{' '}
+          <Link href={PRIVACY_PAGE.href} className="link-inline">
+            privacy policy
+          </Link>{' '}
+          will carry the same details.
         </p>
       </Section>
 
-      <NextLinks links={[POLICY_PAGES[3], POLICY_PAGES[0], POLICY_PAGES[1]]} />
+      <NextLinks links={[TERMS_PAGE, PRIVACY_PAGE, GROUNDING_PAGE]} />
     </Article>
   )
 }

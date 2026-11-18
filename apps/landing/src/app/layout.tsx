@@ -13,18 +13,18 @@ const serif = Newsreader({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:7100'
 
-const SITE_TITLE = 'Replo — grounded tutorials for GitHub repositories'
+const SITE_TITLE = 'Replo — a graph and a course for any GitHub repository'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: SITE_TITLE, template: '%s · Replo' },
   description:
-    'Turn a GitHub repository into a chaptered tutorial where every explanation links to the code it describes. Free to use, bring your own key, no team plans.',
+    'Replo reads a GitHub repository into a layer-grouped graph, typed diagrams and a chaptered course whose observed claims point at the commit-pinned code. Free, on your own model key.',
   openGraph: {
     type: 'website',
     siteName: 'Replo',
     title: SITE_TITLE,
-    description: 'Grounded, chaptered tutorials for GitHub repositories.',
+    description: 'A graph, typed diagrams and a checked course for any GitHub repository.',
   },
   twitter: { card: 'summary_large_image' },
 }

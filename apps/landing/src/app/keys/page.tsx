@@ -1,17 +1,8 @@
-import {
-  Badge,
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@replo/ui'
 import type { Metadata } from 'next'
 import { Article, bulletListClass, NextLinks, Section } from '@/components/article'
-import { FreeModelTag, PROVIDERS } from '@/lib/providers'
-import { DOCS_PAGES, POLICY_PAGES } from '@/lib/routes'
+import { ProviderTable } from '@/components/provider-table'
+import { FreeModelTag } from '@/lib/providers'
+import { DOCS_INDEX, GROUNDING_PAGE, KEYS_AND_PRIVACY_PAGE, PRIVACY_PAGE } from '@/lib/routes'
 
 export const metadata: Metadata = {
   title: 'Your key',
@@ -23,64 +14,21 @@ export default function KeysPage() {
   return (
     <Article
       title="Bring your own key"
-      lede="Every tutorial runs on a provider key that you add. Replo does not supply one. Pick a provider below. OpenRouter is the one we recommend."
+      lede="Every course runs on a provider key you add. Replo does not supply one and never switches to another key or provider. OpenRouter is the provider we recommend."
     >
       <Section title="Choose a provider">
-        <div className="overflow-hidden rounded-lg border bg-card">
-          <Table>
-            <TableCaption className="sr-only">Supported providers</TableCaption>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead scope="col" className="px-4">
-                  Provider
-                </TableHead>
-                <TableHead scope="col" className="px-4">
-                  Notes
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {PROVIDERS.map((provider) => (
-                <TableRow key={provider.name}>
-                  <TableHead
-                    scope="row"
-                    className="h-auto px-4 py-3 align-top whitespace-normal text-foreground"
-                  >
-                    <a href={provider.href} className="link-inline">
-                      {provider.name}
-                    </a>
-                    {provider.recommended ? (
-                      <Badge variant="secondary" className="ml-2">
-                        Recommended
-                      </Badge>
-                    ) : null}
-                  </TableHead>
-                  <TableCell className="px-4 py-3 align-top whitespace-normal text-muted-foreground">
-                    {provider.note}
-                    {provider.recommended ? (
-                      <>
-                        {' '}
-                        The free preset needs an OpenRouter key and uses only <FreeModelTag />{' '}
-                        models.
-                      </>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <ProviderTable />
         <p>
-          Each run uses one key and one model preset, both chosen before it starts. If the key
-          fails, the run fails. Replo never switches to another key or another provider.
+          One key and one model are chosen before a run. The model comes from your settings unless
+          you change it at import. If the key fails, the run fails.
         </p>
       </Section>
 
       <Section title="OpenRouter’s :free limits">
         <p>
           The <FreeModelTag /> models are limited per OpenRouter account, not per Replo account. A
-          run counts against the OpenRouter account of the key it uses. Limits at the time of
-          writing (25 October 2026):
+          run counts against the OpenRouter account of the key it uses. Limits as published in
+          November 2026:
         </p>
         <ul className={bulletListClass}>
           <li>20 requests per minute.</li>
@@ -104,7 +52,7 @@ export default function KeysPage() {
           <li>
             <strong className="font-semibold text-foreground">Stored encrypted.</strong> Keys are
             encrypted with AES-256-GCM. The encryption key is held in the server’s secret store, not
-            in the database.
+            in the database or its backups.
           </li>
           <li>
             <strong className="font-semibold text-foreground">
@@ -133,21 +81,24 @@ export default function KeysPage() {
 
       <Section title="What your provider receives">
         <p>
-          A run sends the code excerpts that each step needs to the provider you chose, under that
-          provider’s terms. Replo never runs your repository’s code. Before you run a private
-          repository, read the provider’s data-use terms.
+          A run sends the code excerpts that each stage needs to the provider you chose, under that
+          provider’s terms. Replo never runs your repository’s code. Prompts and answers for a
+          private repository are not stored; run metadata such as status, stage, model and timings
+          is kept.
         </p>
       </Section>
 
-      <Section title="Cost">
+      <Section title="Run limits and cost">
         <p>
-          Replo does not charge for runs and does not bill you. Before a run starts you see the
-          model, the estimated requests and tokens, and a budget ceiling. The default ceiling is $2.
-          The ceiling is a hard limit: a run stops before it would go past it.
+          Replo charges nothing and bills no one. Your provider bills your account for the tokens a
+          run uses.
         </p>
         <p>
-          Your provider bills you for what the run uses. Replo records the token counts and cost
-          reported by each provider response, so you can compare them with your bill.
+          The server caps the total input and output tokens for one run. When the ceiling is
+          reached, the run stops with the error{' '}
+          <code className="font-mono text-inline-code">RUN_LIMIT_EXCEEDED</code>. Retrying a failed
+          or canceled run reuses its completed stages and saved checkpoints, so finished work is not
+          paid for twice.
         </p>
       </Section>
 
@@ -159,7 +110,7 @@ export default function KeysPage() {
         </p>
       </Section>
 
-      <NextLinks links={[DOCS_PAGES[2], POLICY_PAGES[0]]} />
+      <NextLinks links={[KEYS_AND_PRIVACY_PAGE, GROUNDING_PAGE, PRIVACY_PAGE, DOCS_INDEX]} />
     </Article>
   )
 }

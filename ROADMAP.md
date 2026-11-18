@@ -102,10 +102,10 @@ Status legend: `[x]` done · `[~]` scaffolded · `[ ]` not started.
 - [x] Metadata only — no keys, prompts or source.
 - **Accept:** non-admin gets 404/redirect before shell; admin sees every user's job; gate has cross-user tests.
 
-## R6 — Landing (S)
+## R6 — Landing (S) — `[x]`
 
-- [ ] Static export only; no API calls, live data or demo course component.
-- [ ] Product, graph/diagram experience, BYOK key guide and policy pages.
+- [x] Static export only; no API calls, live data or demo course component.
+- [x] Product, graph/diagram experience, BYOK key guide and policy pages.
 - **Accept:** static build; Lighthouse a11y ≥ 90; no demo fixtures remain.
 
 ## R7 — Evals (L)

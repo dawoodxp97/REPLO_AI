@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@replo/ui'
 import { Article, bulletListClass, NextLinks, Section } from '@/components/article'
-import { DOCS_INDEX, KEY_GUIDE, POLICY_PAGES } from '@/lib/routes'
+import { DOCS_INDEX, GROUNDING_PAGE, KEY_GUIDE, PRIVACY_PAGE } from '@/lib/routes'
 
 export const metadata: Metadata = {
   title: 'Keys and privacy',
@@ -20,26 +20,26 @@ export const metadata: Metadata = {
 const RETENTION = [
   {
     item: 'Repository archive',
-    kept: 'Not kept. It is streamed, not saved as a file.',
+    kept: 'Not kept. It is streamed for the run and removed with the snapshot.',
   },
   {
     item: 'Text of readable repository files',
-    kept: 'While a tutorial or share link built from that snapshot exists. Snapshots that nothing references are deleted after one day.',
+    kept: 'While a job or course version references the snapshot. An unreferenced snapshot is deleted after one day.',
   },
   {
     item: 'Run checkpoints (intermediate model outputs)',
-    kept: 'Cleared when the tutorial is published. Leftovers are deleted after one day for succeeded runs and after 30 days for failed or canceled runs, so a failed run can be retried.',
+    kept: 'Deleted when the course is published. Leftovers are deleted after one day for succeeded runs and after 30 days for failed or canceled runs, so a retry can resume.',
   },
   {
-    item: 'Run events and per-call records',
+    item: 'Run events',
+    kept: '90 days. The job record itself stays with the repository until you remove it.',
+  },
+  {
+    item: 'Notifications',
     kept: '90 days.',
   },
   {
-    item: 'Notifications and repository push records',
-    kept: '90 days.',
-  },
-  {
-    item: 'Tutorials, lesson progress, quiz answers, keys and settings',
+    item: 'Courses, lesson progress, quiz attempts, keys and preferences',
     kept: 'Until you delete them.',
   },
 ]
@@ -55,7 +55,7 @@ export default function KeysAndPrivacyPage() {
           <li>Checked with one model-list call before it is stored. That call uses no tokens.</li>
           <li>
             Encrypted with AES-256-GCM. The encryption key lives in the server’s secret store, not
-            in the database or the backups.
+            in the database or its backups.
           </li>
           <li>Shown only as its last four characters.</li>
           <li>Decrypted in the worker’s memory for one run, and used only for your own runs.</li>
@@ -69,15 +69,14 @@ export default function KeysAndPrivacyPage() {
 
       <Section title="What Replo stores">
         <ul className={bulletListClass}>
-          <li>Your GitHub name and avatar, and your sign-in session.</li>
+          <li>Your name, email address, avatar and sign-in provider, and your session.</li>
           <li>
-            The repositories you link, and the runs on them: status, stage, errors, budget and
-            spend.
+            The repositories you link, and the runs on them: status, stage, errors, model and
+            pipeline.
           </li>
           <li>Your provider keys (encrypted), model choices and preferences.</li>
-          <li>The tutorials you generate, your lesson progress and your quiz answers.</li>
+          <li>The courses you generate, your lesson progress and your quiz answers.</li>
           <li>Notifications about your runs.</li>
-          <li>For each model call: the provider, the model, token counts, cost and latency.</li>
           <li>The text of readable repository files, kept as described below.</li>
         </ul>
       </Section>
@@ -85,10 +84,10 @@ export default function KeysAndPrivacyPage() {
       <Section title="What Replo never stores or logs">
         <ul className={bulletListClass}>
           <li>Your provider key in plain text, in a URL, in logs, or in error reports.</li>
-          <li>Repository archives. They are streamed and not saved.</li>
+          <li>Repository archives. They are streamed and removed with the snapshot.</li>
           <li>
-            Prompts and model answers in the per-call records. Those records hold token counts, cost
-            and latency only.
+            Prompts and model answers for a private repository. Replo keeps run metadata such as
+            status, stage, model and timings, not the text.
           </li>
           <li>
             Source code or private prompts in logs. Logs hold request IDs, status codes and counts.
@@ -140,13 +139,17 @@ export default function KeysAndPrivacyPage() {
             Each run gets a short-lived installation token, scoped to one repository. It is kept in
             memory and is not written to logs.
           </li>
+          <li>
+            Replo does not subscribe to webhooks and does not track commits. It reads the snapshot
+            when you start a run.
+          </li>
         </ul>
       </Section>
 
       <Section title="Repositories are never installed or run">
         <p>
           Replo does not install dependencies, build, test or run a repository’s code. It does not
-          run the examples the model writes either. Repository text is read as data. Instructions
+          run examples written in a lesson either. Repository text is read as data. Instructions
           inside a repository, such as a README or a comment, are not followed.
         </p>
       </Section>
@@ -155,21 +158,19 @@ export default function KeysAndPrivacyPage() {
         <ul className={bulletListClass}>
           <li>Deleting a key takes effect at once.</li>
           <li>
-            Removing a repository from your library deletes your tutorials, progress and links for
-            it, public ones included.
+            Removing a repository from your library deletes its courses, progress and links for your
+            account.
           </li>
+          <li>Deleting a course removes its versions, progress and quiz attempts.</li>
           <li>
-            Deleting a tutorial removes its versions, progress and quiz attempts. Its public and
-            share links stop working.
-          </li>
-          <li>
-            Deleting your account removes your keys, progress, private tutorials and private files.
-            For your public tutorials, you choose whether to delete them or keep them anonymised.
+            Deleting your account removes your keys, repository links, generations, courses,
+            progress, quiz attempts, notifications and settings. Snapshots that no remaining run or
+            version references are removed by the retention job.
           </li>
         </ul>
       </Section>
 
-      <NextLinks links={[KEY_GUIDE, POLICY_PAGES[0], DOCS_INDEX]} />
+      <NextLinks links={[KEY_GUIDE, GROUNDING_PAGE, PRIVACY_PAGE, DOCS_INDEX]} />
     </Article>
   )
 }

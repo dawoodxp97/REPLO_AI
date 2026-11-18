@@ -1,78 +1,41 @@
-import { cn, CodePanel, CodePanelHeader, MonoLabel } from '@replo/ui'
 import Link from 'next/link'
-import { REPORT, REPORT_STATUS_STYLE } from '@/lib/content'
+import { GROUNDING_PAGE } from '@/lib/routes'
+import { CheckList } from '../check-list'
 import { PageSection } from '../page-section'
-
-function CheckerReport() {
-  return (
-    <figure className="min-w-0">
-      <figcaption className="mb-3 text-xs text-muted-foreground">
-        Example checker report, not a real tutorial
-      </figcaption>
-      <CodePanel className="overflow-hidden font-sans">
-        <CodePanelHeader>
-          <MonoLabel className="text-xs text-foreground">validation report</MonoLabel>
-          <MonoLabel>snapshot @3b17b2e</MonoLabel>
-        </CodePanelHeader>
-        <div
-          role="region"
-          aria-label="Validation report"
-          tabIndex={0}
-          className="scrollbar-thin overflow-x-auto py-2 font-mono text-compact leading-6"
-        >
-          <ul>
-            {REPORT.map((entry) => {
-              const style = REPORT_STATUS_STYLE[entry.status]
-              return (
-                <li key={entry.status} className="flex w-max min-w-full gap-3 px-4 py-1">
-                  <span aria-hidden="true" className={cn('w-4 shrink-0 text-center', style.tone)}>
-                    {style.glyph}
-                  </span>
-                  <span className="w-[6.5rem] shrink-0 text-muted-foreground">{entry.status}</span>
-                  <span className="whitespace-pre text-foreground">{entry.detail}</span>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-        <p className="border-t px-4 py-2.5 font-mono text-meta text-muted-foreground">
-          1 resolved · 1 downgraded · 1 dropped
-        </p>
-      </CodePanel>
-    </figure>
-  )
-}
 
 export function Grounding() {
   return (
-    <PageSection id="checks" title="How references are checked">
-      <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+    <PageSection
+      id="checks"
+      title="The model points, the system quotes"
+      lede="A model names a symbol or quotes a short anchor. It never writes the code or the line numbers. The checker resolves each reference to a file, a range and a blob SHA at the pinned commit, then inserts the excerpt itself."
+    >
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
         <div className="max-w-xl space-y-4 leading-relaxed text-pretty text-muted-foreground">
           <p>
-            <strong className="font-semibold text-foreground">
-              The model points, the system quotes.
-            </strong>{' '}
-            Models never write code or line numbers into a tutorial. They name a symbol or quote a
-            short anchor. The validator resolves that to a file, a line range and the pinned commit,
-            and inserts the excerpt itself.
+            <strong className="font-semibold text-foreground">Observed claims</strong> carry at
+            least one checked reference. A claim the code does not confirm is labelled
+            interpretation and rendered differently.
           </p>
           <p>
-            Paths, symbols, quoted text, identifiers and diagram steps are checked against the
-            pinned snapshot. A reference that fails is dropped, repaired once, or its claim is
-            downgraded to interpretation.
+            On failure the reference is dropped, the lesson gets one repair, and anything still
+            failing is downgraded or removed. A course with weak coverage publishes as a Draft, with
+            a banner.
           </p>
           <p>
-            A claim the code does not confirm is labelled interpretation. A tutorial with weakly
-            supported claims is published as a Draft, with a banner. The checks show that a
-            reference points at code that exists, not that an explanation is complete.
+            Confidence is the deterministic share of observed claims that kept their evidence. It is
+            not a model’s opinion of its own work.
           </p>
           <p>
-            <Link href="/docs/grounding/" className="link-inline">
+            <Link href={GROUNDING_PAGE.href} className="link-inline">
               Read how grounding is checked
             </Link>
           </p>
         </div>
-        <CheckerReport />
+        <div>
+          <h3 className="mb-3 font-mono text-xs font-medium text-foreground">Checks</h3>
+          <CheckList />
+        </div>
       </div>
     </PageSection>
   )
