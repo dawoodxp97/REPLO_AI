@@ -61,6 +61,11 @@
     {
       "fromPath": "pages/index.tsx",
       "toPath": "lib/data.ts",
+      "kind": "call"
+    },
+    {
+      "fromPath": "pages/index.tsx",
+      "toPath": "lib/data.ts",
       "kind": "import"
     }
   ],

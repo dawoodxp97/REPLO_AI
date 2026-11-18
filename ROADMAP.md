@@ -69,17 +69,17 @@ Status legend: `[x]` done · `[~]` scaffolded · `[ ]` not started.
 - [x] `admin.*` behind the role gate.
 - **Accept:** every PRD §8 procedure has contract tests; cross-user 404 on every private read; removed procedures are gone; no endpoint exposes keys, prompts or private source.
 
-## R3 — Pipeline (XL)
+## R3 — Pipeline (XL) — `[x]`
 
-- [ ] Stages: `ingest → index → enrich → graph-review → tours → diagrams → outline → lessons → validate → publish`; each idempotent and checkpointed.
-- [ ] `index`: tree-sitter structural graph (files, symbols, imports, calls, extends/implements, modules).
-- [ ] `enrich`: batched summaries, layers, domains, flows, concepts; central-file ordering; checkpoint per batch.
-- [ ] `graph-review`: coverage and referential integrity; one repair pass.
-- [ ] `tours`: dependency-ordered paths with objectives and steps.
-- [ ] `diagrams`: system-built architecture/tree/class/ERD; model-authored sequence/workflow/dataflow/lifecycle; every node/edge validated.
-- [ ] `outline`, `lessons`, `validate`: graph-anchored lessons; model points, system quotes; one repair; draft label on low coverage.
-- [ ] Rerun lineage: fresh snapshot, new version, previous version preserved; stable keys carry progress.
-- [ ] Remove judge, budget/settle, `job_llm_calls` and preset resolution; add wall-clock/token limits.
+- [x] Stages: `ingest → index → enrich → graph-review → tours → diagrams → outline → lessons → validate → publish`; each idempotent and checkpointed.
+- [x] `index`: tree-sitter structural graph (files, symbols, imports, calls, extends/implements, modules).
+- [x] `enrich`: batched summaries, layers, domains, flows, concepts; central-file ordering; checkpoint per batch.
+- [x] `graph-review`: coverage and referential integrity; one repair pass.
+- [x] `tours`: dependency-ordered paths with objectives and steps.
+- [x] `diagrams`: system-built architecture/tree/class/ERD; model-authored sequence/workflow/dataflow/lifecycle; every node/edge validated.
+- [x] `outline`, `lessons`, `validate`: graph-anchored lessons; model points, system quotes; one repair; draft label on low coverage.
+- [x] Rerun lineage: fresh snapshot, new version, previous version preserved; stable keys carry progress.
+- [x] Remove judge, budget/settle, `job_llm_calls` and preset resolution; add wall-clock/token limits.
 - **Accept:** end-to-end on golden fixtures; 100% of refs and diagram edges resolve; crash/retry/cancel proven; lite path on a small repo and a free model.
 
 ## R4 — Product UI (XL)

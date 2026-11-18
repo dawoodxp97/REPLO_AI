@@ -76,6 +76,26 @@ describe('extractFacts: declarations', () => {
     expect(facts.exportedFunctions).toEqual(['GET', 'POST', 'helper'])
   })
 
+  it('records class and interface heritage by base name', () => {
+    const facts = factsOf(
+      [
+        "import { Base } from './base'",
+        'export class Repo extends Base implements Reader, Writer {}',
+        'export interface Store extends Reader, ns.Writer {}',
+        'export class Other extends ns.Base {}',
+      ].join('\n'),
+      'src/repo.ts',
+    )
+    expect(facts.heritage).toEqual([
+      { kind: 'extends', name: 'Base' },
+      { kind: 'implements', name: 'Reader' },
+      { kind: 'implements', name: 'Writer' },
+      { kind: 'extends', name: 'Reader' },
+      { kind: 'extends', name: 'Writer' },
+      { kind: 'extends', name: 'Base' },
+    ])
+  })
+
   it('reports the 1-based line span and a trimmed signature', () => {
     const facts = factsOf(
       '\n\nexport function span(\n  a: number,\n) {\n  return a\n}\n',

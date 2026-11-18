@@ -12,6 +12,8 @@ import { openLlm, type LlmDeps, type LlmSession } from './llm'
 import type { Checkpoints } from './checkpoints'
 import { systemFor } from './prompts'
 
+export const DEFAULT_LITE_MAX_FILES = 300
+
 export interface StageDeps {
   db: Db
   indexing: IndexingService
@@ -19,6 +21,7 @@ export interface StageDeps {
   llm: LlmDeps
   jobs: Pick<JobService, 'linkCourse' | 'fenceRunning'>
   courses: CoursePublisher
+  liteMaxFiles: number
 }
 
 export interface SourceWorkspace {
@@ -38,6 +41,10 @@ export async function snapshotView(deps: StageDeps, ctx: StageContext): Promise<
 
 export function planOf(ctx: StageContext) {
   return ModelPlan.parse(ctx.job.models)
+}
+
+export function isLiteRun(deps: StageDeps, ctx: StageContext, view: SnapshotView): boolean {
+  return planOf(ctx).pipeline === 'lite' || view.files.length <= deps.liteMaxFiles
 }
 
 export function openSession(deps: StageDeps, ctx: StageContext): Promise<LlmSession> {
@@ -73,12 +80,9 @@ export async function checkpointed<S extends z.ZodType>(
   schema: S,
   produce: () => Promise<z.output<S>>,
 ): Promise<z.output<S>> {
-  // Read before produce: after a crash or retry, a paid model call that already
-  // succeeded is reused instead of repeated.
   const stored = await deps.checkpoints.read(ctx.job.id, stage, checkpointKey, schema)
   if (stored !== undefined) return stored
   const value = await produce()
-  // A stage that ran past a cancel or timeout must not write its result (see withTimeout).
   ctx.signal.throwIfAborted()
   await deps.checkpoints.write(ctx.job.id, stage, checkpointKey, value)
   return value

@@ -291,7 +291,8 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     return id
   }
 
-  const seedSnapshot = async () => {
+  const seedSnapshot = async (options: { preindexed?: boolean } = {}) => {
+    const preindexed = options.preindexed ?? true
     const [repository] = await db
       .insert(repositories)
       .values({
@@ -320,15 +321,19 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
           languages: { typescript: data.files.length },
           framework: null,
         },
-        analysis: {
-          analyzerVersion: ANALYZER_VERSION,
-          framework: null,
-          entryPoints: [],
-          routes: [],
-          metrics: {},
-          unresolvedImports: 0,
-          parseErrors: [],
-        },
+        ...(preindexed
+          ? {
+              analysis: {
+                analyzerVersion: ANALYZER_VERSION,
+                framework: null,
+                entryPoints: [],
+                routes: [],
+                metrics: {},
+                unresolvedImports: 0,
+                parseErrors: [],
+              },
+            }
+          : {}),
       })
       .returning({ id: repositorySnapshots.id })
     if (!snapshot) throw new Error('snapshot seed failed')
@@ -343,15 +348,17 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
         role: 'source' as const,
       })),
     )
-    await db.insert(snapshotSymbols).values(data.symbols.map((symbol) => ({ ...symbol, snapshotId: snapshot.id })))
-    await db.insert(snapshotFileEdges).values(
-      data.edges.map((edge) => ({
-        snapshotId: snapshot.id,
-        fromPath: edge.fromPath,
-        toPath: edge.toPath,
-        kind: edge.kind,
-      })),
-    )
+    if (preindexed) {
+      await db.insert(snapshotSymbols).values(data.symbols.map((symbol) => ({ ...symbol, snapshotId: snapshot.id })))
+      await db.insert(snapshotFileEdges).values(
+        data.edges.map((edge) => ({
+          snapshotId: snapshot.id,
+          fromPath: edge.fromPath,
+          toPath: edge.toPath,
+          kind: edge.kind,
+        })),
+      )
+    }
     for (const [path, text] of Object.entries(FIXTURE_FILES)) {
       const target = join(snapshotRoot, snapshot.id, path)
       await mkdir(dirname(target), { recursive: true })
@@ -395,6 +402,7 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     job: { id: string; userId: string; snapshotId: string },
     script: Scripted,
     around?: (handlers: PipelineService['stageHandlers']) => PipelineService['stageHandlers'],
+    liteMaxFiles?: number,
   ) => {
     const pipelines = createPipelineService({
       db,
@@ -404,6 +412,7 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
       resolve: () => scriptedModel(script),
       jobs,
       courses: publisher,
+      ...(liteMaxFiles === undefined ? {} : { liteMaxFiles }),
     })
     await handleGenerateCourse(
       { jobId: job.id },
@@ -447,13 +456,56 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     expect(leftovers).toEqual([])
   })
 
+  it('runs the lite path on a small repository even with a full model plan', async () => {
+    const owner = await seedUser()
+    const keyId = await seedKey(owner)
+    const { snapshotId } = await seedSnapshot()
+    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'full' })
+
+    const after = await runWith(job, liteScript())
+    expect(after.status).toBe('succeeded')
+
+    const [version] = await db.select().from(courseVersions).where(eq(courseVersions.generationJobId, job.id))
+    expect(version?.generator).toMatchObject({ pipeline: 'lite' })
+    expect(version?.content?.diagrams.map((diagram) => diagram.type)).toContain('architecture')
+    expect(version?.content?.diagrams.map((diagram) => diagram.type)).not.toContain('sequence')
+  })
+
+  it('indexes tree-sitter structural edges into the course graph', async () => {
+    const owner = await seedUser()
+    const keyId = await seedKey(owner)
+    const { snapshotId } = await seedSnapshot({ preindexed: false })
+    const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'lite' })
+
+    const after = await runWith(job, liteScript())
+    expect(after.status).toBe('succeeded')
+
+    const [version] = await db.select().from(courseVersions).where(eq(courseVersions.generationJobId, job.id))
+    expect(version?.content?.graph.edges).toEqual(
+      expect.arrayContaining([
+        {
+          id: 'imports|file:src/api/routes.ts|file:src/cart.ts',
+          from: 'file:src/api/routes.ts',
+          to: 'file:src/cart.ts',
+          kind: 'imports',
+        },
+        {
+          id: 'calls|file:src/api/routes.ts|file:src/cart.ts',
+          from: 'file:src/api/routes.ts',
+          to: 'file:src/cart.ts',
+          kind: 'calls',
+        },
+      ]),
+    )
+  })
+
   it('runs the full model-driven stages and keeps only validated diagram nodes', async () => {
     const owner = await seedUser()
     const keyId = await seedKey(owner)
     const { snapshotId } = await seedSnapshot()
     const job = await startJob({ userId: owner, snapshotId, keyId, pipeline: 'full' })
 
-    const after = await runWith(job, fullScript())
+    const after = await runWith(job, fullScript(), undefined, 0)
     expect(after.status).toBe('succeeded')
 
     const [version] = await db.select().from(courseVersions).where(eq(courseVersions.generationJobId, job.id))
@@ -461,9 +513,24 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     const types = version?.content?.diagrams.map((diagram) => diagram.type) ?? []
     expect(types).toContain('architecture')
     expect(types).toContain('sequence')
-    for (const diagram of version?.content?.diagrams ?? [])
+    const content = version?.content
+    const snapshotFiles = new Map(fixtureData().files.map((file) => [file.path, file]))
+    for (const diagram of content?.diagrams ?? []) {
+      const nodeIds = new Set(diagram.nodes.map((node) => node.id))
+      for (const edge of diagram.edges) {
+        expect(nodeIds.has(edge.from)).toBe(true)
+        expect(nodeIds.has(edge.to)).toBe(true)
+      }
       for (const node of diagram.nodes)
-        expect(version?.content?.graph.nodes.map((n) => n.id)).toContain(node.id)
+        for (const refId of node.refIds) expect(content?.sourceRefs[refId]).toBeDefined()
+    }
+    for (const ref of Object.values(content?.sourceRefs ?? {})) {
+      const file = snapshotFiles.get(ref.path)
+      expect(file).toBeDefined()
+      expect(ref.blobSha).toBe(file?.blobSha)
+      expect(ref.startLine).toBeGreaterThanOrEqual(1)
+      expect(ref.endLine).toBeGreaterThanOrEqual(ref.startLine)
+    }
     expect(version?.validationReport?.draft).toBe(false)
   })
 
@@ -481,6 +548,11 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     const versions = await db.select().from(courseVersions).where(eq(courseVersions.courseId, course?.id ?? ''))
     expect(versions.map((version) => version.versionNo).sort()).toEqual([1, 2])
     expect(course?.currentVersionId).toBe(versions.find((version) => version.versionNo === 2)?.id)
+    const lessonKeys = (versionNo: number) =>
+      versions
+        .find((version) => version.versionNo === versionNo)
+        ?.content?.chapters.flatMap((chapter) => chapter.lessons.map((lesson) => lesson.key))
+    expect(lessonKeys(1)).toEqual(lessonKeys(2))
   })
 
   it('does not publish when the job is canceled just before the publish transaction', async () => {

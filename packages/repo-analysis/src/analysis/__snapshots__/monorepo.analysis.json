@@ -55,7 +55,17 @@
     {
       "fromPath": "apps/web/src/catalog.ts",
       "toPath": "packages/core/src/price.ts",
+      "kind": "call"
+    },
+    {
+      "fromPath": "apps/web/src/catalog.ts",
+      "toPath": "packages/core/src/price.ts",
       "kind": "import"
+    },
+    {
+      "fromPath": "apps/web/src/main.ts",
+      "toPath": "apps/web/src/catalog.ts",
+      "kind": "call"
     },
     {
       "fromPath": "apps/web/src/main.ts",
@@ -66,6 +76,11 @@
       "fromPath": "apps/web/src/main.ts",
       "toPath": "packages/core/src/index.ts",
       "kind": "import"
+    },
+    {
+      "fromPath": "apps/web/src/main.ts",
+      "toPath": "packages/core/src/price.ts",
+      "kind": "call"
     },
     {
       "fromPath": "packages/core/src/index.ts",

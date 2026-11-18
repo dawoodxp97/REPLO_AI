@@ -2,12 +2,10 @@ import type { StageContext } from '../../../worker/generate-course'
 import { JobError } from '../../../worker/errors'
 import { PIPELINE_VERSION, PROMPT_HASHES, PROMPT_VERSIONS } from '../prompts'
 import { StoredValidation, WHOLE_JOB } from '../checkpoints'
-import { planOf, snapshotView, type StageDeps } from '../stage-tools'
+import { isLiteRun, planOf, snapshotView, type StageDeps } from '../stage-tools'
 import type { CourseGenerator } from '../../../platform/db/schema'
 
 export async function runPublish(deps: StageDeps, ctx: StageContext): Promise<void> {
-  // The worker can die after the publish commit but before completeStage. On redelivery
-  // the version already exists, so only the cleanup is left.
   if (await deps.courses.versionForJob(ctx.job.id)) {
     await deps.checkpoints.clear(ctx.job.id)
     return
@@ -21,7 +19,7 @@ export async function runPublish(deps: StageDeps, ctx: StageContext): Promise<vo
   const analysis = view.analysis
   if (!analysis) throw new JobError('ANALYSIS_MISSING', false, 'publish needs a snapshot analysis')
   const generator: CourseGenerator = {
-    pipeline: plan.pipeline,
+    pipeline: isLiteRun(deps, ctx, view) ? 'lite' : 'full',
     pipelineVersion: PIPELINE_VERSION,
     analyzerVersion: analysis.analyzerVersion,
     models: plan.models,

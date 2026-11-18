@@ -1,4 +1,4 @@
-import { Tour, type CourseGraph, type TourStep } from '@replo/contracts'
+import { Tour, type CourseGraph, type GraphNode, type TourStep } from '@replo/contracts'
 import type { StageContext } from '../../../worker/generate-course'
 import { JobError } from '../../../worker/errors'
 import { graphSection } from '../prompt-inputs'
@@ -7,21 +7,20 @@ import { ToursDraft, type TourDraft } from '../drafts'
 import { fileNodeId, nodeIds } from '../graph'
 import type { Flow } from '../enrichment'
 import { FLOWS_CHECKPOINT, StoredFlows, StoredGraph, StoredTours, WHOLE_JOB } from '../checkpoints'
-import { checkpointed, openSession, planOf, sourceWorkspace, type StageDeps } from '../stage-tools'
+import { checkpointed, isLiteRun, openSession, sourceWorkspace, type StageDeps } from '../stage-tools'
 
 const MAX_TOURS = 3
 
 export async function runTours(deps: StageDeps, ctx: StageContext): Promise<void> {
   if (await deps.checkpoints.read(ctx.job.id, 'tours', WHOLE_JOB, StoredTours)) return
 
-  // Reuse the snapshot even though the LLM is not involved here.
-  await sourceWorkspace(deps, ctx)
+  const { view } = await sourceWorkspace(deps, ctx)
   const stored = await deps.checkpoints.read(ctx.job.id, 'graph-review', WHOLE_JOB, StoredGraph)
   if (!stored) throw new JobError('GRAPH_MISSING', false, 'tours need a reviewed graph')
   const { graph } = stored
   const ids = nodeIds(graph)
 
-  let tours = await modelTours(deps, ctx, graph, ids)
+  let tours = await modelTours(deps, ctx, graph, ids, isLiteRun(deps, ctx, view))
   if (tours.length === 0) {
     const flows = await deps.checkpoints.read(ctx.job.id, 'enrich', FLOWS_CHECKPOINT, StoredFlows)
     tours = deterministicTours(graph, flows?.flows ?? [])
@@ -35,8 +34,9 @@ async function modelTours(
   ctx: StageContext,
   graph: CourseGraph,
   ids: ReadonlySet<string>,
+  lite: boolean,
 ): Promise<Tour[]> {
-  if (planOf(ctx).pipeline === 'lite') return []
+  if (lite) return []
   const session = await openSession(deps, ctx)
   if (!session.hasRole('planner')) return []
 
@@ -97,10 +97,7 @@ function deterministicTours(graph: CourseGraph, flows: readonly Flow[]): Tour[] 
 
   if (flowTours.length > 0) return flowTours.slice(0, MAX_TOURS)
 
-  const files = graph.nodes
-    .filter((node) => node.kind === 'file' && node.path)
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .slice(0, 8)
+  const files = orderedFiles(graph).slice(0, 8)
   if (files.length < 2) return []
   const steps: TourStep[] = files.map((node) => ({
     title: node.label,
@@ -115,4 +112,43 @@ function deterministicTours(graph: CourseGraph, flows: readonly Flow[]): Tour[] 
       steps,
     }),
   ]
+}
+
+const DEPENDENCY_EDGES = new Set(['imports', 'extends', 'implements'])
+
+function orderedFiles(graph: CourseGraph): GraphNode[] {
+  const files = graph.nodes
+    .filter((node) => node.kind === 'file' && node.path)
+    .sort((a, b) => a.id.localeCompare(b.id))
+  const byId = new Map(files.map((node) => [node.id, node]))
+  const outgoing = new Map<string, string[]>()
+  const incoming = new Map<string, number>()
+
+  for (const edge of graph.edges) {
+    if (!DEPENDENCY_EDGES.has(edge.kind)) continue
+    if (!byId.has(edge.from) || !byId.has(edge.to)) continue
+    const targets = outgoing.get(edge.from) ?? []
+    targets.push(edge.to)
+    outgoing.set(edge.from, targets)
+    incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1)
+  }
+
+  const roots = files.filter((node) => (incoming.get(node.id) ?? 0) === 0)
+  const ordered: GraphNode[] = []
+  const seen = new Set<string>()
+  const queue = roots.length > 0 ? [...roots] : [...files]
+
+  while (queue.length > 0) {
+    const node = queue.shift()
+    if (!node || seen.has(node.id)) continue
+    seen.add(node.id)
+    ordered.push(node)
+    for (const target of outgoing.get(node.id) ?? []) {
+      const next = byId.get(target)
+      if (next && !seen.has(next.id)) queue.push(next)
+    }
+  }
+
+  for (const node of files) if (!seen.has(node.id)) ordered.push(node)
+  return ordered
 }

@@ -17,7 +17,17 @@
     {
       "fromPath": "src/cli.ts",
       "toPath": "src/format.ts",
+      "kind": "call"
+    },
+    {
+      "fromPath": "src/cli.ts",
+      "toPath": "src/format.ts",
       "kind": "import"
+    },
+    {
+      "fromPath": "src/format.test.ts",
+      "toPath": "src/format.ts",
+      "kind": "call"
     },
     {
       "fromPath": "src/format.test.ts",

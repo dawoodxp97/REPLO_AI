@@ -23,7 +23,7 @@ import {
 import { compareText, dirOf, joinPath } from './paths'
 import { z } from 'zod'
 
-export const ANALYZER_VERSION = 1
+export const ANALYZER_VERSION = 2
 
 const DEFAULT_DEADLINE_MS = 2_000
 const PARSED_ROLES: ReadonlySet<FileRole> = new Set(['source', 'test'])
@@ -41,10 +41,12 @@ export interface SymbolRecord extends SymbolDraft {
   kind: SymbolKind
 }
 
+export type EdgeKind = 'import' | 'test_of' | 'call' | 'extends' | 'implements'
+
 export interface EdgeRecord {
   fromPath: string
   toPath: string
-  kind: 'import' | 'test_of'
+  kind: EdgeKind
 }
 
 export interface Analysis {
@@ -119,8 +121,9 @@ function startSession(parser: SourceParser, options: AnalysisOptions): AnalysisS
       }
       const members = memberPackages(manifest.workspaces ?? [], manifests)
       const framework = detectFramework(manifest)
-      const { edges, unresolvedImports } = buildEdges(files, resolver)
+      const { edges: importEdges, unresolvedImports } = buildEdges(files, resolver)
       const symbols = buildSymbols(files)
+      const edges = [...importEdges, ...referenceEdges(files, symbols)].sort(compareEdge)
       const adapters = FRAMEWORK_ADAPTERS.map((adapter) =>
         adapter({ files, resolver, manifest, framework, htmlScripts, packages: members }),
       )
@@ -130,7 +133,7 @@ function startSession(parser: SourceParser, options: AnalysisOptions): AnalysisS
         edges,
         entryPoints: sortEntryPoints(adapters.flatMap((output) => output.entryPoints)),
         routes: sortRoutes(adapters.flatMap((output) => output.routes)),
-        metrics: Object.fromEntries(metricsFor(parsedPaths(files), importEdges(edges))),
+        metrics: Object.fromEntries(metricsFor(parsedPaths(files), importEdgesOf(edges))),
         unresolvedImports,
         parseErrors: [...new Set(parseErrors)].sort(),
       }
@@ -206,10 +209,29 @@ const parsedPaths = (files: ReadonlyMap<string, FileRecord>): string[] =>
     .filter((file) => file.facts !== undefined)
     .map((file) => file.path)
 
-const importEdges = (edges: readonly EdgeRecord[]): Edge[] =>
+const importEdgesOf = (edges: readonly EdgeRecord[]): Edge[] =>
   edges
     .filter((edge) => edge.kind === 'import')
     .map((edge) => ({ from: edge.fromPath, to: edge.toPath }))
+
+const CALL_KEYWORDS = new Set([
+  'await',
+  'catch',
+  'if',
+  'import',
+  'new',
+  'return',
+  'super',
+  'switch',
+  'this',
+  'typeof',
+  'while',
+])
+
+const compareEdge = (a: EdgeRecord, b: EdgeRecord): number =>
+  compareText(a.fromPath, b.fromPath) ||
+  compareText(a.toPath, b.toPath) ||
+  compareText(a.kind, b.kind)
 
 function buildEdges(
   files: ReadonlyMap<string, FileRecord>,
@@ -232,13 +254,51 @@ function buildEdges(
         addEdge(edges, { fromPath: file.path, toPath: resolution.path, kind: 'test_of' })
     }
   }
-  const sorted = [...edges.values()].sort(
-    (a, b) =>
-      compareText(a.fromPath, b.fromPath) ||
-      compareText(a.toPath, b.toPath) ||
-      compareText(a.kind, b.kind),
-  )
-  return { edges: sorted, unresolvedImports }
+  return { edges: [...edges.values()].sort(compareEdge), unresolvedImports }
+}
+
+function referenceEdges(
+  files: ReadonlyMap<string, FileRecord>,
+  symbols: readonly SymbolRecord[],
+): EdgeRecord[] {
+  const exported = new Map<string, Set<string>>()
+  const declared = new Map<string, Set<string>>()
+  for (const symbol of symbols) {
+    addToSet(declared, symbol.path, symbol.name)
+    if (symbol.exported) addToSet(exported, symbol.name, symbol.path)
+  }
+
+  const edges = new Map<string, EdgeRecord>()
+  for (const file of sortedFiles(files)) {
+    const facts = file.facts
+    if (!facts) continue
+    const local = declared.get(file.path) ?? new Set<string>()
+    for (const item of facts.heritage) {
+      const target = uniqueTarget(exported.get(item.name), file.path)
+      if (target) addEdge(edges, { fromPath: file.path, toPath: target, kind: item.kind })
+    }
+    for (const call of facts.calls) {
+      if (call.receiver !== null) continue
+      const name = call.callee
+      if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) || CALL_KEYWORDS.has(name)) continue
+      if (local.has(name)) continue
+      const target = uniqueTarget(exported.get(name), file.path)
+      if (target) addEdge(edges, { fromPath: file.path, toPath: target, kind: 'call' })
+    }
+  }
+  return [...edges.values()]
+}
+
+function uniqueTarget(paths: ReadonlySet<string> | undefined, fromPath: string): string | undefined {
+  if (!paths) return undefined
+  const candidates = [...paths].filter((path) => path !== fromPath)
+  return candidates.length === 1 ? candidates[0] : undefined
+}
+
+function addToSet(map: Map<string, Set<string>>, key: string, value: string): void {
+  const bucket = map.get(key)
+  if (bucket) bucket.add(value)
+  else map.set(key, new Set([value]))
 }
 
 const addEdge = (edges: Map<string, EdgeRecord>, edge: EdgeRecord) => {

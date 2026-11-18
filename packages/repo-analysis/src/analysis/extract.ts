@@ -35,10 +35,18 @@ interface PathProperty {
   line: number
 }
 
+export type HeritageKind = 'extends' | 'implements'
+
+export interface HeritageFact {
+  kind: HeritageKind
+  name: string
+}
+
 export interface FileFacts {
   symbols: SymbolDraft[]
   imports: { specifier: string; line: number }[]
   calls: CallFact[]
+  heritage: HeritageFact[]
   pathProperties: PathProperty[]
   constructors: { name: string; callee: string }[]
   exportedFunctions: string[]
@@ -63,6 +71,17 @@ const stringValue = (node: Node | null | undefined): string | null => {
   return node.text.slice(1, -1)
 }
 
+const baseNameOf = (node: Node | null | undefined): string | undefined => {
+  if (!node) return undefined
+  if (node.type === 'member_expression' || node.type === 'nested_type_identifier') {
+    const last = node.namedChildren[node.namedChildren.length - 1]
+    return last?.text
+  }
+  if (node.type === 'generic_type') return baseNameOf(node.namedChildren[0])
+  if (node.type === 'identifier' || node.type === 'type_identifier') return node.text
+  return baseNameOf(node.namedChildren[0])
+}
+
 const signatureOf = (node: Node) => node.text.split('\n')[0]?.trim().slice(0, MAX_SIGNATURE) ?? ''
 
 export function extractFacts(root: Node, path: string): FileFacts {
@@ -71,10 +90,28 @@ export function extractFacts(root: Node, path: string): FileFacts {
     symbols: [],
     imports: [],
     calls: [],
+    heritage: [],
     pathProperties: [],
     constructors: [],
     exportedFunctions: [],
     hasErrors: root.hasError,
+  }
+
+  const addHeritage = (node: Node, kind: HeritageKind) => {
+    for (const child of node.namedChildren) {
+      const name = baseNameOf(child)
+      if (name) facts.heritage.push({ kind, name })
+    }
+  }
+
+  const recordHeritage = (node: Node) => {
+    const clause = node.namedChildren.find((child) => child.type === 'class_heritage')
+    for (const child of clause?.namedChildren ?? []) {
+      if (child.type === 'extends_clause') addHeritage(child, 'extends')
+      if (child.type === 'implements_clause') addHeritage(child, 'implements')
+    }
+    const extended = node.namedChildren.find((child) => child.type === 'extends_type_clause')
+    if (extended) addHeritage(extended, 'extends')
   }
 
   const functionKind = (name: string): SymbolKind => {
@@ -109,6 +146,7 @@ export function extractFacts(root: Node, path: string): FileFacts {
     if (declarationKind) {
       const name = fieldText(node, 'name')
       if (name) addSymbol(node, name, declarationKind, exported)
+      if (declarationKind === 'interface') recordHeritage(node)
       return
     }
     switch (node.type) {
@@ -123,6 +161,7 @@ export function extractFacts(root: Node, path: string): FileFacts {
         const name = fieldText(node, 'name')
         if (!name) return
         addSymbol(node, name, 'class', exported)
+        recordHeritage(node)
         for (const member of node.childForFieldName('body')?.namedChildren ?? []) {
           if (member.type !== 'method_definition') continue
           const method = fieldText(member, 'name')

@@ -51,8 +51,6 @@ const generator = {
   },
   promptVersions: {},
   promptHashes: {},
-  budgetMicros: 2_000_000,
-  spentMicros: 0,
 }
 
 const memory: Question = {

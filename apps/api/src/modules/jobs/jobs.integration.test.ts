@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { asc, eq, sql } from 'drizzle-orm'
 import { applyDdl } from '../../platform/db/test-setup'
 import { RunLimits } from '@replo/ai'
-import { DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
+import { ANALYZER_VERSION, DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
 import PgBoss from 'pg-boss'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { JobStatus } from '@replo/contracts'
@@ -369,7 +369,7 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
       .select()
       .from(repositorySnapshots)
       .where(eq(repositorySnapshots.id, job.snapshotId))
-    expect(snapshot?.analysis?.analyzerVersion).toBe(1)
+    expect(snapshot?.analysis?.analyzerVersion).toBe(ANALYZER_VERSION)
     expect(await readFile(join(snapshotRoot, job.snapshotId, 'src/index.ts'), 'utf8')).toContain(
       './cart',
     )

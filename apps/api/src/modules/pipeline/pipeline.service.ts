@@ -8,7 +8,7 @@ import type { KeysService } from '../keys/keys.service'
 import type { CoursePublisher } from '../courses/publisher.service'
 import { createCheckpoints } from './checkpoints'
 import { structuralGraph } from './graph'
-import type { StageDeps } from './stage-tools'
+import { DEFAULT_LITE_MAX_FILES, type StageDeps } from './stage-tools'
 import { runDiagrams } from './stages/diagrams'
 import { runEnrich } from './stages/enrich'
 import { runGraphReview } from './stages/graph-review'
@@ -26,6 +26,7 @@ export interface PipelineDeps {
   resolve?: (run: RunContext, modelId: string) => LanguageModel
   jobs: Pick<JobService, 'linkCourse' | 'fenceRunning'>
   courses: CoursePublisher
+  liteMaxFiles?: number
 }
 
 export interface PipelineService {
@@ -41,6 +42,7 @@ export function createPipelineService(deps: PipelineDeps): PipelineService {
     llm: { catalog: deps.catalog, keys: deps.keys, resolve: deps.resolve },
     jobs: deps.jobs,
     courses: deps.courses,
+    liteMaxFiles: deps.liteMaxFiles ?? DEFAULT_LITE_MAX_FILES,
   }
 
   return {
@@ -49,7 +51,6 @@ export function createPipelineService(deps: PipelineDeps): PipelineService {
         deps.indexing.ingest({ userId: job.userId, snapshotId: job.snapshotId, signal }),
       index: async ({ job, signal }) => {
         await deps.indexing.index({ userId: job.userId, snapshotId: job.snapshotId, signal })
-        // Persist the deterministic structural graph next to the raw index (D-116, §8).
         const view = await deps.indexing.readView(job.snapshotId)
         if (view) await deps.indexing.storeGraph(job.snapshotId, structuralGraph(view))
       },

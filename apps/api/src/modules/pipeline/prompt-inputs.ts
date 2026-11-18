@@ -5,11 +5,13 @@ import type { LessonDraft, OutlineDraft } from './drafts'
 import { normalisePath } from './grounding/evidence'
 import { SourceIndex } from './grounding/source-index'
 import { groupSizes } from './grounding/structure'
+import { rankedFiles } from './graph'
 import { dataSection } from './prompts'
 
 const MAP_FILES = 60
 const MAP_SYMBOLS = 8
 const MAP_GROUPS = 20
+const PROMPT_EDGES = 240
 const EXCERPT_CHARS = 8000
 const EXCERPT_FILES = 12
 const BACKFILL_PATHS = 3
@@ -32,9 +34,7 @@ export function sourceIndexOf(
 }
 
 export function rankedPaths(view: SnapshotView, limit: number): string[] {
-  return view.files
-    .map((file) => ({ path: file.path, rank: view.analysis?.metrics[file.path]?.pageRank ?? 0 }))
-    .sort((a, b) => b.rank - a.rank || a.path.localeCompare(b.path))
+  return rankedFiles(view)
     .slice(0, limit)
     .map((entry) => entry.path)
 }
@@ -147,15 +147,26 @@ export function normaliseOutline(
       key: uniqueKey(chapter.key, chapterKeys),
       lessons: chapter.lessons.map((lesson, position) => {
         const own = resolved[position] ?? []
+        const focusPaths = own.length > 0 ? own : backfill
         return {
           ...lesson,
-          key: uniqueKey(lesson.key, lessonKeys),
-          focusPaths: own.length > 0 ? own : backfill,
+          key: uniqueKey(lessonKeyFor(focusPaths, position), lessonKeys),
+          focusPaths,
         }
       }),
     }
   })
   return { ...draft, chapters }
+}
+
+function lessonKeyFor(focusPaths: readonly string[], position: number): string {
+  const primary = focusPaths[0]
+  if (!primary) return `lesson-${position + 1}`
+  const base = primary
+    .replace(/\.[^./]+$/, '')
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return base.length > 0 ? base : `lesson-${position + 1}`
 }
 
 export function fallbackFocusPaths(view: SnapshotView, index: SourceIndex): string[] {
@@ -174,7 +185,6 @@ export function dataFiles(index: SourceIndex, paths: readonly string[]): string 
   return dataSection('files', excerptsFor(index, paths))
 }
 
-// A compact, node-id-anchored rendering of the structural graph for prompts.
 export function graphSection(graph: CourseGraph): string {
   const nodes = graph.nodes
     .map((node) => {
@@ -182,7 +192,13 @@ export function graphSection(graph: CourseGraph): string {
       return `- ${node.id} (${facts})${node.label && node.label !== node.id ? `: ${node.label}` : ''}`
     })
     .slice(0, 200)
-  return dataSection('graph', nodes.join('\n'))
+  const edges = graph.edges
+    .slice(0, PROMPT_EDGES)
+    .map((edge) => `- ${edge.from} -> ${edge.to} (${edge.kind})`)
+  return dataSection(
+    'graph',
+    ['Nodes:', ...nodes, 'Edges:', ...(edges.length > 0 ? edges : ['- none'])].join('\n'),
+  )
 }
 
 export function toursSection(tours: readonly Tour[]): string {

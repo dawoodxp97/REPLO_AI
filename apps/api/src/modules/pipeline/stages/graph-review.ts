@@ -9,7 +9,7 @@ import type { SourceIndex } from '../grounding/source-index'
 import type { LlmSession } from '../llm'
 import type { Enrichment } from '../enrichment'
 import { StoredEnrichment, StoredGraph, WHOLE_JOB } from '../checkpoints'
-import { checkpointed, openSession, planOf, sourceWorkspace, type StageDeps } from '../stage-tools'
+import { checkpointed, isLiteRun, openSession, sourceWorkspace, type StageDeps } from '../stage-tools'
 
 const COVERAGE_TARGET = 0.8
 const REPAIR_FILES = 12
@@ -25,8 +25,7 @@ export async function runGraphReview(deps: StageDeps, ctx: StageContext): Promis
   let graph = buildCourseGraph(view, files)
   let coverage = coverageOf(graph, files)
 
-  // One deterministic repair pass: summarise the most central files that still lack a summary.
-  if (coverage < COVERAGE_TARGET && planOf(ctx).pipeline !== 'lite') {
+  if (coverage < COVERAGE_TARGET && !isLiteRun(deps, ctx, view)) {
     const session = await openSession(deps, ctx)
     if (session.hasRole('summarizer')) {
       const missing = graph.nodes

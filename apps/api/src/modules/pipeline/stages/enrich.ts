@@ -1,7 +1,7 @@
 import type { GraphLayer } from '@replo/contracts'
 import type { StageContext } from '../../../worker/generate-course'
 import type { FileEnrichment } from '../enrichment'
-import { rankedFiles } from '../graph'
+import { MAX_FILE_NODES, rankedFiles } from '../graph'
 import { promptFor, dataSection } from '../prompts'
 import { dataFiles } from '../prompt-inputs'
 import { EnrichDraft, FlowsDraft } from '../drafts'
@@ -13,20 +13,19 @@ import {
   type StoredFlows,
   WHOLE_JOB,
 } from '../checkpoints'
-import { checkpointed, openSession, planOf, sourceWorkspace, type StageDeps } from '../stage-tools'
+import { checkpointed, isLiteRun, openSession, sourceWorkspace, type StageDeps } from '../stage-tools'
 
-const ENRICH_FILES = 60
+const FULL_ENRICH_FILES = 60
 const ENRICH_BATCH = 8
-export const LITE_MAX_FILES = 300
 
 export async function runEnrich(deps: StageDeps, ctx: StageContext): Promise<void> {
   const { view, index } = await sourceWorkspace(deps, ctx)
-  const lite = planOf(ctx).pipeline === 'lite' || view.files.length <= LITE_MAX_FILES
+  const lite = isLiteRun(deps, ctx, view)
 
   let stored = await deps.checkpoints.read(ctx.job.id, 'enrich', WHOLE_JOB, StoredEnrichment)
   if (!stored) {
     const paths = rankedFiles(view)
-      .slice(0, ENRICH_FILES)
+      .slice(0, lite ? MAX_FILE_NODES : FULL_ENRICH_FILES)
       .map((file) => file.path)
     const files: Record<string, FileEnrichment> = {}
     const concepts: { term: string; summary: string }[] = []
@@ -71,8 +70,6 @@ export async function runEnrich(deps: StageDeps, ctx: StageContext): Promise<voi
     stored = { files, concepts }
   }
 
-  // Whole-repo flows are a second, whole-job checkpoint so a retry resumes here without paying
-  // for the summaries again (the guard above) while still finishing an interrupted flows call.
   if (!lite) await runFlows(deps, ctx, index, Object.keys(stored.files))
 }
 

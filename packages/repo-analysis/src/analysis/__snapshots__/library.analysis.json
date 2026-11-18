@@ -149,6 +149,11 @@
     {
       "fromPath": "src/index.test.ts",
       "toPath": "src/index.ts",
+      "kind": "call"
+    },
+    {
+      "fromPath": "src/index.test.ts",
+      "toPath": "src/index.ts",
       "kind": "import"
     },
     {
@@ -165,6 +170,11 @@
       "fromPath": "src/index.ts",
       "toPath": "src/legacy.js",
       "kind": "import"
+    },
+    {
+      "fromPath": "src/index.ts",
+      "toPath": "src/math/add.ts",
+      "kind": "call"
     },
     {
       "fromPath": "src/index.ts",

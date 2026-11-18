@@ -16,7 +16,9 @@ const entriesOf = (result: Analysis) => result.entryPoints.map((entry) => [entry
 const routesOf = (result: Analysis) =>
   result.routes.map((route) => [route.method, route.pattern, route.path])
 const importsOf = (result: Analysis) =>
-  result.edges.map((edge) => [edge.fromPath, edge.toPath, edge.kind])
+  result.edges
+    .filter((edge) => edge.kind === 'import' || edge.kind === 'test_of')
+    .map((edge) => [edge.fromPath, edge.toPath, edge.kind])
 
 describe('golden: next-app-router', () => {
   it('finds the root layout, middleware and root page as entry points', async () => {

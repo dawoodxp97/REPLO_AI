@@ -127,6 +127,11 @@
     {
       "fromPath": "app/api/posts/route.ts",
       "toPath": "lib/posts.ts",
+      "kind": "call"
+    },
+    {
+      "fromPath": "app/api/posts/route.ts",
+      "toPath": "lib/posts.ts",
       "kind": "import"
     },
     {
@@ -137,7 +142,17 @@
     {
       "fromPath": "app/page.tsx",
       "toPath": "lib/posts.ts",
+      "kind": "call"
+    },
+    {
+      "fromPath": "app/page.tsx",
+      "toPath": "lib/posts.ts",
       "kind": "import"
+    },
+    {
+      "fromPath": "components/Button.test.tsx",
+      "toPath": "components/Button.tsx",
+      "kind": "call"
     },
     {
       "fromPath": "components/Button.test.tsx",

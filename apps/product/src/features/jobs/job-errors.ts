@@ -12,7 +12,7 @@ const JOB_FAILURE_COPY: Readonly<Record<string, string>> = {
   LLM_OUTPUT_INVALID: 'A model returned output that failed validation.',
   KEY_REMOVED: 'The key used for this job was deleted. Save a key, then retry.',
   KEY_REJECTED: 'The provider rejected your key. Check it in Settings, then retry.',
-  BUDGET_EXCEEDED: 'The job reached its spend budget before it finished.',
+  RUN_LIMIT_EXCEEDED: 'The job reached its time or token limit before it finished.',
   TIMEOUT: 'A stage timed out. Retrying usually works.',
   NETWORK: 'A network error interrupted the job. Retrying usually works.',
   HEARTBEAT_LOST: 'The worker stopped responding. Retrying usually works.',

@@ -58,6 +58,28 @@ describe('buildCourseGraph', () => {
     expect(ids.has('sym:src/cart.ts#Cart')).toBe(true)
   })
 
+  it('maps call, extends and implements edges to their graph kinds', () => {
+    const graph = structuralGraph({
+      ...view(),
+      edges: [
+        { fromPath: 'src/api/routes.ts', toPath: 'src/cart.ts', kind: 'import' },
+        { fromPath: 'src/api/routes.ts', toPath: 'src/cart.ts', kind: 'call' },
+        { fromPath: 'src/api/routes.ts', toPath: 'src/cart.ts', kind: 'extends' },
+        { fromPath: 'src/api/routes.ts', toPath: 'src/cart.ts', kind: 'implements' },
+        { fromPath: 'src/api/routes.ts', toPath: 'src/cart.ts', kind: 'test_of' },
+      ],
+    })
+    expect(graph.edges.map((edge) => edge.kind).sort()).toEqual([
+      'calls',
+      'contains',
+      'contains',
+      'contains',
+      'extends',
+      'implements',
+      'imports',
+    ])
+  })
+
   it('folds enrichment into file nodes and adds domain nodes with containment edges', () => {
     const graph = buildCourseGraph(view(), {
       'src/cart.ts': { summary: 'Cart state', layer: 'data', domain: 'cart' },

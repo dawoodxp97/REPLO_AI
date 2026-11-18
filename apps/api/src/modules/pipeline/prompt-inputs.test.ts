@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { JobError } from '../../worker/errors'
 import { fixtureIndex } from '../../test/grounding'
-import { normaliseOutline } from './prompt-inputs'
+import { graphSection, normaliseOutline } from './prompt-inputs'
 import type { OutlineDraft } from './drafts'
 
 type Lesson = OutlineDraft['chapters'][number]['lessons'][number]
@@ -31,6 +31,27 @@ const outlineOf = (chapters: OutlineDraft['chapters']): OutlineDraft => ({
 
 const focusOf = (outline: OutlineDraft) =>
   outline.chapters.map((entry) => entry.lessons.map((item) => item.focusPaths))
+
+describe('graphSection', () => {
+  it('renders both nodes and edges so tours and diagrams can follow dependencies', () => {
+    const section = graphSection({
+      nodes: [
+        { id: 'file:src/cart.ts', kind: 'file', label: 'src/cart.ts' },
+        { id: 'file:src/api/routes.ts', kind: 'file', label: 'src/api/routes.ts' },
+      ],
+      edges: [
+        {
+          id: 'calls|file:src/api/routes.ts|file:src/cart.ts',
+          from: 'file:src/api/routes.ts',
+          to: 'file:src/cart.ts',
+          kind: 'calls',
+        },
+      ],
+    })
+    expect(section).toContain('file:src/cart.ts')
+    expect(section).toContain('file:src/api/routes.ts -> file:src/cart.ts (calls)')
+  })
+})
 
 describe('normaliseOutline', () => {
   const ranked = ['src/cart.ts', 'src/api/routes.ts']
@@ -81,8 +102,8 @@ describe('normaliseOutline', () => {
     const result = normaliseOutline(outline, fixtureIndex(), 2, ranked)
     expect(result.chapters.map((entry) => entry.key)).toEqual(['a', 'a-2'])
     expect(result.chapters.flatMap((entry) => entry.lessons.map((item) => item.key))).toEqual([
-      'one',
-      'one-2',
+      'src-cart',
+      'src-cart-2',
     ])
   })
 })

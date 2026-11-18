@@ -1,6 +1,6 @@
 import type { StageContext } from '../../../worker/generate-course'
 import { JobError } from '../../../worker/errors'
-import { dataFiles, fallbackFocusPaths, focusPathsOf } from '../prompt-inputs'
+import { dataFiles, fallbackFocusPaths, focusPathsOf, graphSection } from '../prompt-inputs'
 import {
   ChapterDraft,
   chapterDraftFor,
@@ -9,12 +9,14 @@ import {
   OutlineDraft,
 } from '../drafts'
 import { dataSection, promptFor } from '../prompts'
-import { WHOLE_JOB } from '../checkpoints'
+import { StoredGraph, WHOLE_JOB } from '../checkpoints'
 import { checkpointed, stageWorkspace, type StageDeps } from '../stage-tools'
 
 export async function runLessons(deps: StageDeps, ctx: StageContext): Promise<void> {
   const outline = await deps.checkpoints.read(ctx.job.id, 'outline', WHOLE_JOB, OutlineDraft)
+  const graph = await deps.checkpoints.read(ctx.job.id, 'graph-review', WHOLE_JOB, StoredGraph)
   if (!outline) throw new JobError('OUTLINE_MISSING', false, 'lessons need an outline')
+  if (!graph) throw new JobError('GRAPH_MISSING', false, 'lessons need a reviewed graph')
 
   const { view, index, session } = await stageWorkspace(deps, ctx)
 
@@ -31,6 +33,7 @@ export async function runLessons(deps: StageDeps, ctx: StageContext): Promise<vo
         sections: [
           promptFor('lessons'),
           dataSection('chapter', JSON.stringify(chapterSpec(chapter))),
+          graphSection(graph.graph),
           dataFiles(index, focus),
         ],
         schema: chapterDraftFor(chapter.lessons.length),

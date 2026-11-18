@@ -15,7 +15,7 @@ import { groupOf } from '../grounding/structure'
 import type { SourceIndex } from '../grounding/source-index'
 import type { SnapshotView } from '../../indexing/indexing.service'
 import { StoredDiagrams, StoredEnrichment, StoredGraph, WHOLE_JOB } from '../checkpoints'
-import { checkpointed, openSession, planOf, sourceWorkspace, type StageDeps } from '../stage-tools'
+import { checkpointed, isLiteRun, openSession, sourceWorkspace, type StageDeps } from '../stage-tools'
 
 export async function runDiagrams(deps: StageDeps, ctx: StageContext): Promise<void> {
   if (await deps.checkpoints.read(ctx.job.id, 'diagrams', WHOLE_JOB, StoredDiagrams)) return
@@ -24,11 +24,18 @@ export async function runDiagrams(deps: StageDeps, ctx: StageContext): Promise<v
   const stored = await deps.checkpoints.read(ctx.job.id, 'graph-review', WHOLE_JOB, StoredGraph)
   if (!stored) throw new JobError('GRAPH_MISSING', false, 'diagrams need a reviewed graph')
   const { graph } = stored
-  const ids = nodeIds(graph)
+  const lite = isLiteRun(deps, ctx, view)
 
   const diagrams = [...systemDiagrams(graph)]
-  diagrams.push(...(await modelDiagrams(deps, ctx, graph, ids)))
-  const architecture = await overviewArchitecture(deps, ctx, view, index)
+  diagrams.push(...(await modelDiagrams(deps, ctx, graph, lite)))
+  const architecture = await checkpointed(
+    deps,
+    ctx,
+    'diagrams',
+    'architecture',
+    ArchitectureDraft,
+    () => overviewArchitecture(deps, ctx, view, index, lite),
+  )
 
   await deps.checkpoints.write(ctx.job.id, 'diagrams', WHOLE_JOB, {
     diagrams,
@@ -36,7 +43,6 @@ export async function runDiagrams(deps: StageDeps, ctx: StageContext): Promise<v
   } satisfies StoredDiagrams)
 }
 
-// system diagrams
 function toDiagramNode(node: GraphNode): DiagramNode {
   return { id: node.id, label: node.label, kind: node.kind, refIds: [] }
 }
@@ -145,23 +151,29 @@ function treeEdges(groupNodes: readonly GraphNode[], ids: ReadonlySet<string>): 
 }
 
 function dedupeNodes(nodes: readonly DiagramNode[]): DiagramNode[] {
-  const seen = new Set<string>()
-  return nodes.filter((node) => (seen.has(node.id) ? false : (seen.add(node.id), true)))
+  return dedupeById(nodes)
 }
 
 function dedupeEdges(edges: readonly DiagramEdge[]): DiagramEdge[] {
-  const seen = new Set<string>()
-  return edges.filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)))
+  return dedupeById(edges)
 }
 
-// model diagrams
+function dedupeById<T extends { id: string }>(items: readonly T[]): T[] {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    if (seen.has(item.id)) return false
+    seen.add(item.id)
+    return true
+  })
+}
+
 async function modelDiagrams(
   deps: StageDeps,
   ctx: StageContext,
   graph: CourseGraph,
-  ids: ReadonlySet<string>,
+  lite: boolean,
 ): Promise<DiagramSpec[]> {
-  if (planOf(ctx).pipeline === 'lite') return []
+  if (lite) return []
   const session = await openSession(deps, ctx)
   if (!session.hasRole('planner')) return []
 
@@ -181,14 +193,20 @@ async function modelDiagrams(
   }
 
   return draft.diagrams
-    .map((item) => validateDiagram(item, ids))
+    .map((item) => validateDiagram(item, graph))
     .filter((diagram): diagram is DiagramSpec => diagram !== undefined)
 }
 
-function validateDiagram(draft: DiagramDraft, ids: ReadonlySet<string>): DiagramSpec | undefined {
-  const nodes: DiagramNode[] = draft.nodes
-    .filter((node) => ids.has(node.id))
-    .map((node) => ({ id: node.id, label: node.label, kind: node.kind, refIds: [] }))
+function validateDiagram(draft: DiagramDraft, graph: CourseGraph): DiagramSpec | undefined {
+  const known = new Map(graph.nodes.map((node) => [node.id, node]))
+  const nodes: DiagramNode[] = dedupeNodes(
+    draft.nodes.flatMap((node) => {
+      const source = known.get(node.id)
+      return source
+        ? [{ id: source.id, label: source.label, kind: source.kind, refIds: [] }]
+        : []
+    }),
+  )
   const kept = new Set(nodes.map((node) => node.id))
   const edges: DiagramEdge[] = draft.edges
     .filter((item) => kept.has(item.from) && kept.has(item.to))
@@ -210,17 +228,17 @@ function validateDiagram(draft: DiagramDraft, ids: ReadonlySet<string>): Diagram
   })
 }
 
-// overview architecture
 async function overviewArchitecture(
   deps: StageDeps,
   ctx: StageContext,
   view: SnapshotView,
   index: SourceIndex,
+  lite: boolean,
 ): Promise<ArchitectureDraft> {
   const fallback = (md: string): ArchitectureDraft =>
     ArchitectureDraft.parse({ blocks: [{ type: 'callout', tone: 'note', md }], openQuestions: [] })
 
-  if (planOf(ctx).pipeline === 'lite') {
+  if (lite) {
     return fallback(
       `${view.analysis?.framework ?? 'This repository'} — ${view.files.length} files. The tour below walks the graph from its entry points outward.`,
     )

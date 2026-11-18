@@ -130,6 +130,11 @@
     {
       "fromPath": "src/features/todos/todosSlice.test.ts",
       "toPath": "src/features/todos/todosSlice.ts",
+      "kind": "call"
+    },
+    {
+      "fromPath": "src/features/todos/todosSlice.test.ts",
+      "toPath": "src/features/todos/todosSlice.ts",
       "kind": "import"
     },
     {

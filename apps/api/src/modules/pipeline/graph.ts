@@ -1,5 +1,5 @@
 import type { CourseGraph, GraphEdge, GraphNode } from '@replo/contracts'
-import type { SnapshotView } from '../indexing/indexing.service'
+import type { SnapshotEdge, SnapshotView } from '../indexing/indexing.service'
 import type { Enrichment } from './enrichment'
 import { groupOf } from './grounding/structure'
 
@@ -14,22 +14,34 @@ export const MAX_GRAPH_EDGES = 800
 
 const SYMBOL_NODE_KINDS = new Set(['class', 'interface', 'type', 'enum'])
 
+const EDGE_KIND: Partial<Record<SnapshotEdge['kind'], GraphEdge['kind']>> = {
+  import: 'imports',
+  call: 'calls',
+  extends: 'extends',
+  implements: 'implements',
+}
+
+const EDGE_PRIORITY: readonly GraphEdge['kind'][] = [
+  'contains',
+  'imports',
+  'extends',
+  'implements',
+  'calls',
+]
+
+const EDGE_RANK = new Map(EDGE_PRIORITY.map((kind, rank) => [kind, rank]))
+
 export interface RankedFile {
   path: string
   rank: number
 }
 
-// Files ordered by structural importance (PageRank), then path for determinism.
 export function rankedFiles(view: SnapshotView): RankedFile[] {
   return view.files
     .map((file) => ({ path: file.path, rank: view.analysis?.metrics[file.path]?.pageRank ?? 0 }))
     .sort((a, b) => b.rank - a.rank || a.path.localeCompare(b.path))
 }
 
-// The deterministic, model-independent view of the repository: file, module (directory group),
-// domain and symbol nodes with the import and containment edges between them. Semantic fields
-// (layer, domain, summary) are folded in when enrichment is supplied; otherwise the graph is the
-// purely structural one the index stage persists.
 export function buildCourseGraph(view: SnapshotView, enrichment: Enrichment): CourseGraph {
   const selected = rankedFiles(view)
     .slice(0, MAX_FILE_NODES)
@@ -98,17 +110,24 @@ export function buildCourseGraph(view: SnapshotView, enrichment: Enrichment): Co
   }
 
   for (const edge of view.edges) {
-    if (edge.kind !== 'import') continue
+    const kind = EDGE_KIND[edge.kind]
+    if (!kind) continue
     if (!selectedSet.has(edge.fromPath) || !selectedSet.has(edge.toPath)) continue
-    addEdge(fileNodeId(edge.fromPath), fileNodeId(edge.toPath), 'imports')
+    addEdge(fileNodeId(edge.fromPath), fileNodeId(edge.toPath), kind)
   }
 
   nodes.sort((a, b) => a.id.localeCompare(b.id))
-  edges.sort((a, b) => a.id.localeCompare(b.id))
-  return { nodes, edges: edges.slice(0, MAX_GRAPH_EDGES) }
+  const limited = [...edges]
+    .sort((a, b) => rankOf(a.kind) - rankOf(b.kind) || a.id.localeCompare(b.id))
+    .slice(0, MAX_GRAPH_EDGES)
+  limited.sort((a, b) => a.id.localeCompare(b.id))
+  return { nodes, edges: limited }
 }
 
-// The purely structural graph persisted by the index stage.
+function rankOf(kind: GraphEdge['kind']): number {
+  return EDGE_RANK.get(kind) ?? EDGE_PRIORITY.length
+}
+
 export function structuralGraph(view: SnapshotView): CourseGraph {
   return buildCourseGraph(view, {})
 }
@@ -117,8 +136,6 @@ export function nodeIds(graph: CourseGraph): Set<string> {
   return new Set(graph.nodes.map((node) => node.id))
 }
 
-// Deterministic referential-integrity check: every edge endpoint must be a declared node and
-// every id must be unique. Returns the graph with dangling edges removed.
 export function repairGraph(graph: CourseGraph): CourseGraph {
   const ids = new Set<string>()
   const nodes = graph.nodes.filter((node) => {

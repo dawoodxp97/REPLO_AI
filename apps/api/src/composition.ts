@@ -151,6 +151,7 @@ export function createDomainServices(deps: {
     catalog,
     jobs,
     courses: coursePublisher,
+    liteMaxFiles: config.MAX_LITE_PIPELINE_FILES,
   })
   const repositoryImports = createRepositoryImports({
     db,
