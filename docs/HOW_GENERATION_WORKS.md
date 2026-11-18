@@ -2,6 +2,8 @@
 
 > **Target:** [`PRD.md`](../PRD.md) §4.4–§4.5 and §6. Paths are under `apps/api/src`. For the overall shape of the system see [`ARCHITECTURE.md`](../ARCHITECTURE.md); for the tables see [`DATABASE.md`](./DATABASE.md).
 
+> R8 updated: Removed legacy tutorial terminology and aligned with current course-first system naming.
+
 This page follows one course from the moment a user clicks Generate to the moment the browser shows it as published. Two processes take part. The HTTP process (`main.http.ts`) accepts the request, writes the job and streams progress. The worker process (`main.worker.ts`) does the work. They share nothing but Postgres: `generation_jobs` is the durable record of every run, and pg-boss (also in Postgres) only delivers "please run job X" messages, at least once.
 
 ## 1. The request

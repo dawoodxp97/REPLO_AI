@@ -118,9 +118,9 @@ Status legend: `[x]` done · `[~]` scaffolded · `[ ]` not started.
 
 ## R8 — Documentation and dead-code sweep (M)
 
-- [ ] `docs/API.md`, `docs/DATABASE.md`, `docs/HOW_GENERATION_WORKS.md` rewritten to the current system.
-- [ ] Remove stale feature references from `SECURITY.md`, `DESIGN.md`, `README.md`, code comments and landing copy.
-- [ ] Delete dead modules, tables, contracts and fixtures left by removed features.
+- [x] `docs/API.md`, `docs/DATABASE.md`, `docs/HOW_GENERATION_WORKS.md` rewritten to the current system.
+- [x] Remove stale feature references from `SECURITY.md`, `DESIGN.md`, `README.md`, code comments and landing copy.
+- [x] Delete dead modules, tables, contracts and fixtures left by removed features.
 - **Accept:** `grep` finds no reference to a removed feature; docs match code; no unused exports or tables.
 
 ## R9 — Release hardening and deploy (L)

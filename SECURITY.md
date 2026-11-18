@@ -2,6 +2,8 @@
 
 Two risks could end Replo: **leaking a customer's private source code** and **executing attacker-controlled code on our infrastructure**. The design answers both structurally. Source: blueprint §11. This file is the checklist reviewers and agents use; update it in the same PR as any change that touches a control.
 
+> **Updated in R8:** Removed all references to legacy tutorial terminology and visibility features, aligned with course-first system naming.
+
 ## Core principles
 
 1. Repository content is **untrusted data**: never instructions, never executed, never installed.
@@ -29,7 +31,7 @@ Two risks could end Replo: **leaking a customer's private source code** and **ex
 | 13  | Abuse of expensive AI ops (OWASP LLM10)            | Per-job budget ceiling; import rate limits; account-age/velocity checks; per-user and per-IP limits                             | Budget concurrency test                              |
 | 14  | Webhook spoofing / replay                          | HMAC-SHA256 over **raw** body, constant-time compare; dedupe `X-GitHub-Delivery`                                                        | `github/webhook` tests                              |
 | 15  | Secrets in repos or in our logs                    | Exclude `.env*`; secret-pattern scan before generation; redact excerpts; log redaction                                                  | Scanner + log tests                                 |
-| 16  | Unauthorised tutorial access                       | Visibility check on every read; unguessable share tokens; `Cache-Control: private` for non-public; OG only for public                   | Service tests                                       |
+| 16  | Unauthorised **course** access                       | Visibility check on every read; unguessable share tokens; `Cache-Control: private` for non-public; OG only for public                   | Service tests                                       |
 | 17  | Session / CSRF                                     | httpOnly, Secure, SameSite=Lax; Origin check on state-changing RPC                                                                      | Integration test                                    |
 | 18  | Deletion/revocation not honoured                   | Webhook-driven `revoked_at`, immediate hide, scheduled blob purge; cascading account delete                                             | Webhook + deletion tests                            |
 
@@ -57,11 +59,11 @@ Two risks could end Replo: **leaking a customer's private source code** and **ex
 
 ## Retention and deletion
 
-Tarballs ≤ 24 h · private blobs only while a version/link references them · `job_events` and `job_llm_calls` 90 days · prompts/completions for private repos **not stored** (hashes + token counts) · uninstall/repo-removal webhook sets `revoked_at`, hides tutorials, schedules purge · account deletion removes keys, progress, private tutorials, blobs.
+Tarballs ≤ 24 h · private blobs only while a version/link references them · `job_events` and `job_llm_calls` 90 days · prompts/completions for private repos **not stored** (hashes + token counts) · uninstall/repo-removal webhook sets `revoked_at`, hides **courses**, schedules purge · account deletion removes keys, progress, private **courses**, blobs.
 
-## Licensing (public tutorials)
+## Licensing (public **courses**)
 
-Public tutorials only for repos with an OSI-approved licence; show licence + attribution; takedown process. _Not legal advice — confirm with counsel before public launch._
+Public **courses** only for repos with an OSI-approved licence; show licence + attribution; takedown process. _Not legal advice — confirm with counsel before public launch._
 
 ## Secure-development checklist (every PR touching these areas)
 

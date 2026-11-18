@@ -6,6 +6,8 @@ Free for everyone. Bring your own provider key (BYOK) only. Built for individual
 
 > **Status:** Release 1 is in build; the sequence is R0–R9 in [`ROADMAP.md`](./ROADMAP.md). Not yet verified: the GitHub App round trip, real provider keys, staging and production deployment. See [`docs/adr/007-byok-only-no-billing.md`](./docs/adr/007-byok-only-no-billing.md).
 
+> **Updated in R8:** Documentation updated to reflect course-first system naming and removal of deprecated tutorial terminology.
+
 ## Contents
 
 - [Prerequisites](#prerequisites)

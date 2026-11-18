@@ -115,7 +115,7 @@ Audience level (newcomer, intermediate, expert) is a user choice made at import 
 
 ### D-026 · 2026-10-22 · active — Manual authoring stays out of R1
 
-Owners can change visibility, delete a tutorial, and remove a repo from the library. They cannot edit modules, lessons, quizzes or titles (non-goal, PRD §2). **Why:** hand-written prose bypasses grounding. A manual claim would have to be labelled `interpretation`, which undercuts the core promise. **How to apply:** no editor screens or authoring procedures in R1.
+Owners can change visibility, delete a **course**, and remove a repo from the library. They cannot edit modules, lessons, quizzes or titles (non-goal, PRD §2). **Why:** hand-written prose bypasses grounding. A manual claim would have to be labelled `interpretation`, which undercuts the core promise. **How to apply:** no editor screens or authoring procedures in R1.
 
 ### D-027 · 2026-10-22 · active — No ads in the roadmap
 
@@ -235,7 +235,7 @@ Model-authored diagrams accept only `flowchart`/`graph` headers, plain node decl
 
 ### D-056 · 2026-10-22 · active — Link shares use an unguessable token checked in constant time
 
-`link` visibility requires the token (24 random bytes, base64url), compared with `timingSafeEqual`. `createShareLink` returns `{PRODUCT_ORIGIN}/tutorials/{owner}/{repo}/{slug}?share=…`. Switching to `private` clears the token. Every read goes through the same viewer rule, so a private tutorial answers NOT_FOUND to everyone but its owner (FR-SHR-1, RULES §0.4).
+`link` visibility requires the token (24 random bytes, base64url), compared with `timingSafeEqual`. `createShareLink` returns `{PRODUCT_ORIGIN}/courses/{owner}/{repo}/{slug}?share=…`. Switching to `private` clears the token. Every read goes through the same viewer rule, so a private **course** answers NOT_FOUND to everyone but its owner (FR-SHR-1, RULES §0.4).
 
 ### D-057 · 2026-10-22 · active — Learner chapters never carry the answer key; progress carries over by lesson key
 
@@ -331,7 +331,7 @@ Not done, and not claimed: a full repository tree for the source explorer (resol
 
 ### D-080 · 2026-10-25 · active — The repository tree is read from `snapshot_files`
 
-`tutorials.sourceTree` lists every file recorded in the pinned snapshot, sorted by path, with its size, language, role and a `readable` flag. The flag is not stored: it is `decideFile(path, size).keepContent` from the indexing file policy, the same rule that decides whether the text is kept on disk. The tree uses `getSource`'s visibility rule (owner, public, or a valid link token), and foreign tutorials return NOT_FOUND. **Why:** the explorer needs the whole tree (FR-LRN-8), and the rows already exist, so no migration or disk walk is needed. **How to apply:** the list is bounded by the ingest caps (about 5,000 files), so it is returned whole and not paged. If the file policy or its size cap changes, bump `ANALYZER_VERSION` so snapshots built under the old rule are re-indexed, or the `readable` flag will disagree with the disk.
+`courses.sourceTree` lists every file recorded in the pinned snapshot, sorted by path, with its size, language, role and a `readable` flag. The flag is not stored: it is `decideFile(path, size).keepContent` from the indexing file policy, the same rule that decides whether the text is kept on disk. The tree uses `getSource`'s visibility rule (owner, public, or a valid link token), and foreign **courses** return NOT_FOUND. **Why:** the explorer needs the whole tree (FR-LRN-8), and the rows already exist, so no migration or disk walk is needed. **How to apply:** the list is bounded by the ingest caps (about 5,000 files), so it is returned whole and not paged. If the file policy or its size cap changes, bump `ANALYZER_VERSION` so snapshots built under the old rule are re-indexed, or the `readable` flag will disagree with the disk.
 
 ### D-081 · 2026-10-25 · active — The unread count has its own stream, `GET /notifications/stream`
 
@@ -486,7 +486,7 @@ The owner could not follow the code with reasons kept only in this file. `//` co
 
 ### D-110 · 2026-11-11 · active — Account pill in the header; Home shows workspace state
 
-The account control moved from the sidebar foot to a pill at the right of the header. It opens a popover with identity, theme, a link to each settings section with its status, and Sign out (`components/app-shell/user-pill.tsx`). Home is two columns from `lg`: reading on the left, and on the right what a new tutorial will run on (key, GitHub, preset), library counts and repositories. The workspace card and shelf read existing endpoints through `useWorkspaceSetup` and the list hooks. One addition to the API: `dashboard.summary.reading` (lessons finished, finished in the last 7 days, quiz answers, correct answers), counted in `learning.repo.readingTotals`; a lesson finished in two versions of a tutorial counts once. FR-DASH-1 is amended for it; streaks, heatmaps and hours stay out (D-018). The Library has a client-side toolbar (text, visibility, hide finished, sort) over the pages loaded so far (`features/library/library-filter.ts`). The product app's small single-use files were merged into their users (261 to about 225 source files); the player is grouped into `blocks/`, `commands/`, `lesson/` and `source/`. Tailwind in `next dev` can miss a newly added arbitrary class until the dev server restarts; the production build is unaffected.
+The account control moved from the sidebar foot to a pill at the right of the header. It opens a popover with identity, theme, a link to each settings section with its status, and Sign out (`components/app-shell/user-pill.tsx`). Home is two columns from `lg`: reading on the left, and on the right what a new **course** will run on (key, GitHub, preset), library counts and repositories. The workspace card and shelf read existing endpoints through `useWorkspaceSetup` and the list hooks. One addition to the API: `dashboard.summary.reading` (lessons finished, finished in the last 7 days, quiz answers, correct answers), counted in `learning.repo.readingTotals`; a lesson finished in two versions of a **course** counts once. FR-DASH-1 is amended for it; streaks, heatmaps and hours stay out (D-018). The Library has a client-side toolbar (text, visibility, hide finished, sort) over the pages loaded so far (`features/library/library-filter.ts`). The product app's small single-use files were merged into their users (261 to about 225 source files); the player is grouped into `blocks/`, `commands/`, `lesson/` and `source/`. Tailwind in `next dev` can miss a newly added arbitrary class until the dev server restarts; the production build is unaffected.
 
 ### D-111 · 2026-11-16 · active — Product shape and account surface
 
@@ -604,7 +604,7 @@ The landing now describes the graph, the eight typed diagrams and the course. Th
 - **Indexing authorizes on every call** (D-093): `IndexingService.ingest/index` call `authorize()` even for an already-materialised snapshot. A test stub whose `ingestSource` returns undefined fails every job with `REPO_NOT_ACCESSIBLE`.
 - **Notification cursors carry microseconds.** The opaque cursor encodes `created_at` with Postgres `to_char` at microsecond precision; a JS `Date` would truncate to milliseconds and break keyset paging for rows in the same millisecond.
 - **Mermaid reserved words** (`end`, `graph`, `subgraph`, `style`, `class`, …) are not valid node ids; grounding rejects them as `INVALID_SYNTAX`.
-- **e2e mocks must be stateful where the UI refetches.** After a mutation the product invalidates and refetches; a static mock list snaps the screen back to the old value. `e2e/fixtures/handlers.ts` keeps the tutorial's visibility in a closure for that reason.
+- **e2e mocks must be stateful where the UI refetches.** After a mutation the product invalidates and refetches; a static mock list snaps the screen back to the old value. `e2e/fixtures/handlers.ts` keeps the **course**'s visibility in a closure for that reason.
 - **Stages must not commit after an abort.** `withTimeout` waits up to `STAGE_ABORT_GRACE_MS` (5 s) for an aborted stage to settle, then rejects; the publish transaction is fenced by `JobService.fenceRunning` (row lock, status `running`, same attempt), and any stage that persists output after awaiting must call `signal.throwIfAborted()` first.
 - **GitHub 403 is retryable, 401 means re-link.** `userCanAccess` returns false only on 404; 401 becomes `GITHUB_RELINK_REQUIRED` (non-retryable) and 403 (rate limit, SSO) becomes retryable `GITHUB_FORBIDDEN`.
 - **Learning progress never downgrades a completion**: the upsert's conflict clause skips rows already `completed`, and resume candidates exclude lessons completed in any version in SQL before the limit.

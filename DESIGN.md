@@ -2,6 +2,8 @@
 
 Source of truth for UI decisions across `apps/landing` and `apps/product`. Tokens are implemented in [`packages/ui/src/styles/tokens.css`](./packages/ui/src/styles/tokens.css); components in `packages/ui` (primitives only) and `apps/product/src/features/*` (composites). Blueprint reference: §4.2, §10.
 
+> **Updated in R8:** Updated terminology to reflect course-first system naming and removed references to deprecated visibility features.
+
 ## 1. Design principles
 
 1. **Reading first.** The learning player is the product. Optimise for long, calm reading with code beside it; chrome recedes.

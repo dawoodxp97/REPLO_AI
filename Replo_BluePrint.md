@@ -4,7 +4,7 @@ Oct 14, 2026 · @Dawood
 
 ## 1. Executive summary
 
-**Build it as a free-first tool for individual developers, not a team SaaS.** Developers spend about 58% of their time understanding code, and Cognition's DeepWiki and Google's Code Wiki already give away AI wikis for public repos. The product wins on a **sequenced, verifiably grounded learning path** and on letting each developer decide the model and who pays: **their own API key (BYOK), a daily free allowance on OpenRouter's free models, or small prepaid credits sold near cost**. Ads on public tutorial pages only offset AI cost. Release 1 is TypeScript/JavaScript only, individual accounts only, and runs on one small server.
+**Build it as a free-first tool for individual developers, not a team SaaS.** Developers spend about 58% of their time understanding code, and Cognition's DeepWiki and Google's Code Wiki already give away AI wikis for public repos. The product wins on a **sequenced, verifiably grounded learning path** and on letting each developer decide the model and who pays: **their own API key (BYOK), a daily free allowance on OpenRouter's free models, or small prepaid credits sold near cost**. Ads on public **course** pages only offset AI cost. Release 1 is TypeScript/JavaScript only, individual accounts only, and runs on one small server.
 
 | Layer | Recommendation | Why, in one line (full reasoning in 4.6) |
 | --- | --- | --- |

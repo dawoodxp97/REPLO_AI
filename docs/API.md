@@ -2,6 +2,8 @@
 
 > Target: [`PRD.md`](../PRD.md) §8. Rewritten in R2 to match the implemented surface.
 
+> R8 updated: Removed all references to the legacy tutorial terminology and replaced with course-first naming.
+
 The API is **contract-first**: [`packages/contracts`](../packages/contracts/src) defines every input, output and typed error with Zod 4 + oRPC; [`apps/api`](../apps/api/src) implements it (`implement(contract)`); `apps/product` imports only the contract **type** (`ContractRouterClient<typeof contract>`).
 
 ## Conventions
