@@ -4,6 +4,8 @@ import { formatCount } from '@/lib/format'
 
 export function LibraryCounts({ counts }: { counts: DashboardSummary['counts'] }) {
   const rows = [
+    { label: 'Repositories', count: counts.repositories, always: true },
+    { label: 'Generations', count: counts.generations, always: true },
     { label: 'Courses', count: counts.total, always: true },
     { label: 'Drafts', count: counts.draft, always: false },
   ].filter((row) => row.always || row.count > 0)

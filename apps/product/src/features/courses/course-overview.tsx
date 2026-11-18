@@ -54,6 +54,9 @@ export function CourseOverview({ overview, latestVersionHref, versionNo }: Cours
               Start reading
             </LinkButton>
           ) : null}
+          <LinkButton href={links.workspace()} variant="outline">
+            Workspace
+          </LinkButton>
           <LinkButton href={links.progress()} variant="outline">
             Your progress
           </LinkButton>

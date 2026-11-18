@@ -13,7 +13,6 @@ import {
 
 export interface OverviewQuery {
   version?: string
-  share?: string
   resume?: string
 }
 

@@ -13,7 +13,6 @@ export interface SourceViewProps {
   versionId: string
   path: string
   range: LineRange | null
-  shareToken?: string
   windowed: boolean
   scrollToHighlight?: boolean
 }
@@ -22,11 +21,10 @@ export function SourceView({
   versionId,
   path,
   range,
-  shareToken,
   windowed,
   scrollToHighlight = false,
 }: SourceViewProps) {
-  const file = useSourceFile({ versionId, path, shareToken })
+  const file = useSourceFile({ versionId, path })
 
   if (file.isPending) return <Skeleton aria-busy="true" className="h-64 w-full" />
 

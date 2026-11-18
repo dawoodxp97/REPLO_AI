@@ -6,7 +6,7 @@ import { GitBranch } from 'lucide-react'
 import { InlineError } from '@/components/inline-error'
 import { LinkButton } from '@/components/link-button'
 import { QueryBoundary } from '@/components/query-boundary'
-import { RepoVisibilityBadge } from '@/components/repo-visibility-badge'
+import { PrivateRepoBadge } from '@/components/private-repo-badge'
 import { SectionHeader } from '@/components/page-header'
 import { formatRepoName } from '@/lib/format'
 import { orpc } from '@/lib/orpc'
@@ -35,7 +35,7 @@ function RepoList() {
                   </ItemTitle>
                 </ItemContent>
                 <ItemActions className="text-xs text-muted-foreground">
-                  <RepoVisibilityBadge isPrivate={repo.isPrivate} />
+                  <PrivateRepoBadge isPrivate={repo.isPrivate} />
                   <span className="inline-flex items-center gap-1 font-mono">
                     <GitBranch className="size-3.5" aria-hidden />
                     {repo.defaultBranch}

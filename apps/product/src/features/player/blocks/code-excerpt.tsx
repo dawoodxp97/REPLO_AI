@@ -10,12 +10,11 @@ const NO_LINES: readonly string[] = []
 export interface CodeExcerptProps {
   versionId: string
   reference: SourceRef
-  shareToken?: string
   highlight: readonly [number, number] | null
 }
 
-export function CodeExcerpt({ versionId, reference, shareToken, highlight }: CodeExcerptProps) {
-  const file = useSourceFile({ versionId, path: reference.path, shareToken })
+export function CodeExcerpt({ versionId, reference, highlight }: CodeExcerptProps) {
+  const file = useSourceFile({ versionId, path: reference.path })
   const content = file.data?.content
   const { startLine, endLine } = reference
   const excerpt = useMemo(

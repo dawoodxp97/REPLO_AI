@@ -1,6 +1,12 @@
-import { and, desc, eq, ilike, inArray, isNull, lt, type SQL, sql } from 'drizzle-orm'
+import { and, count, desc, eq, ilike, inArray, isNull, lt, max, type SQL, sql } from 'drizzle-orm'
 import type { DbOrTx } from '../../platform/db/client'
-import { repositories, userRepositories } from '../../platform/db/schema'
+import {
+  courses,
+  generationJobs,
+  repositories,
+  repositorySnapshots,
+  userRepositories,
+} from '../../platform/db/schema'
 import type { RepositoryMetadata } from '../github/github.ports'
 
 const metadataColumns = (repository: RepositoryMetadata) => ({
@@ -30,6 +36,23 @@ const repositoryIdsByGithubIds = (db: DbOrTx, githubRepoIds: number[]) =>
     .select({ id: repositories.id })
     .from(repositories)
     .where(inArray(repositories.githubRepoId, githubRepoIds))
+
+function toDate(value: Date | string | null): Date | null {
+  return value === null ? null : new Date(value)
+}
+
+function newest(current: Date | null, candidate: Date | null): Date | null {
+  if (candidate === null) return current
+  if (current === null) return candidate
+  return candidate > current ? candidate : current
+}
+
+export interface RepositoryStats {
+  repositoryId: string
+  courseCount: number
+  generationCount: number
+  lastActivityAt: Date | null
+}
 
 export const repositoriesRepo = (db: DbOrTx) => {
   const linkedRepositories = (userId: string, ...predicates: (SQL | undefined)[]) =>
@@ -122,6 +145,83 @@ export const repositoriesRepo = (db: DbOrTx) => {
       return linkedRepositories(userId, page.cursor ? lt(repositories.id, page.cursor) : undefined)
         .orderBy(desc(repositories.id))
         .limit(page.limit)
+    },
+
+    async counts(userId: string): Promise<{ repositories: number; generations: number }> {
+      const [linked] = await db
+        .select({ value: sql<number>`count(*)::int` })
+        .from(userRepositories)
+        .where(activeLinkOf(userId))
+      const [generations] = await db
+        .select({ value: sql<number>`count(*)::int` })
+        .from(generationJobs)
+        .innerJoin(repositorySnapshots, eq(repositorySnapshots.id, generationJobs.snapshotId))
+        .innerJoin(
+          userRepositories,
+          and(
+            eq(userRepositories.repositoryId, repositorySnapshots.repositoryId),
+            activeLinkOf(userId),
+          ),
+        )
+        .where(eq(generationJobs.userId, userId))
+      return { repositories: linked?.value ?? 0, generations: generations?.value ?? 0 }
+    },
+
+    async statsFor(
+      userId: string,
+      repositoryIds: readonly string[],
+    ): Promise<Map<string, RepositoryStats>> {
+      if (repositoryIds.length === 0) return new Map()
+      const ids = [...repositoryIds]
+      const [courseRows, jobRows] = await Promise.all([
+        db
+          .select({
+            repositoryId: courses.repositoryId,
+            courseCount: count(),
+            lastCourseAt: max(courses.updatedAt),
+          })
+          .from(courses)
+          .where(and(eq(courses.userId, userId), inArray(courses.repositoryId, ids)))
+          .groupBy(courses.repositoryId),
+        db
+          .select({
+            repositoryId: repositorySnapshots.repositoryId,
+            generationCount: count(),
+            lastJobAt: max(
+              sql`coalesce(${generationJobs.finishedAt}, ${generationJobs.createdAt})`,
+            ),
+          })
+          .from(generationJobs)
+          .innerJoin(repositorySnapshots, eq(repositorySnapshots.id, generationJobs.snapshotId))
+          .where(
+            and(eq(generationJobs.userId, userId), inArray(repositorySnapshots.repositoryId, ids)),
+          )
+          .groupBy(repositorySnapshots.repositoryId),
+      ])
+      const stats = new Map<string, RepositoryStats>()
+      for (const id of ids) {
+        stats.set(id, {
+          repositoryId: id,
+          courseCount: 0,
+          generationCount: 0,
+          lastActivityAt: null,
+        })
+      }
+      for (const row of courseRows) {
+        const current = stats.get(row.repositoryId)
+        if (current) {
+          current.courseCount = row.courseCount
+          current.lastActivityAt = newest(current.lastActivityAt, toDate(row.lastCourseAt))
+        }
+      }
+      for (const row of jobRows) {
+        const current = stats.get(row.repositoryId)
+        if (current) {
+          current.generationCount = row.generationCount
+          current.lastActivityAt = newest(current.lastActivityAt, toDate(row.lastJobAt))
+        }
+      }
+      return stats
     },
 
     async revokeInstallation(installationId: number) {

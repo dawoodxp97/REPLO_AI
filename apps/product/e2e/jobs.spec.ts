@@ -17,7 +17,7 @@ test('the progress feed resumes from Last-Event-ID without duplicating stages', 
   await page.goto(`/jobs/${JOB_ID}`)
 
   const ingest = page.getByRole('listitem').filter({ hasText: 'Download and extract repository' })
-  const index = page.getByRole('listitem').filter({ hasText: 'Build static index' })
+  const index = page.getByRole('listitem').filter({ hasText: 'Build the structural graph' })
   await expect(ingest).toContainText('done')
   await expect(index).toContainText('running')
   await expect(page.getByText('running', { exact: true })).toHaveCount(1)

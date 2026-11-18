@@ -14,11 +14,14 @@ interface RepositoryLibraryDeps {
 
 export interface RepositoryLibrary {
   list(userId: string, input: RepositoryListInput): Promise<RepositoryPage>
+  counts(userId: string): Promise<{ repositories: number; generations: number }>
   remove(userId: string, repositoryId: string): Promise<void>
   findIngestSource(
     userId: string,
     repositoryId: string,
-  ): Promise<{ owner: string; name: string; isPrivate: boolean; installationId: number | null } | undefined>
+  ): Promise<
+    { owner: string; name: string; isPrivate: boolean; installationId: number | null } | undefined
+  >
   searchOwn(
     userId: string,
     query: string,
@@ -36,28 +39,38 @@ export function createRepositoryLibrary(deps: RepositoryLibraryDeps): Repository
 
   return {
     async list(userId, input) {
-      const rows = await repositoriesRepo(db).listLinked(userId, {
+      const repo = repositoriesRepo(db)
+      const rows = await repo.listLinked(userId, {
         limit: input.limit + 1,
         cursor: input.cursor,
       })
       const page = rows.slice(0, input.limit)
-      const latest = await jobs.latestByRepository(
-        userId,
-        page.map((row) => row.repositoryId),
-      )
+      const repositoryIds = page.map((row) => row.repositoryId)
+      const [latest, stats] = await Promise.all([
+        jobs.latestByRepository(userId, repositoryIds),
+        repo.statsFor(userId, repositoryIds),
+      ])
       const last = page.at(-1)
       return {
-        items: page.map((row) => ({
-          repositoryId: row.repositoryId,
-          owner: row.owner,
-          name: row.name,
-          isPrivate: row.isPrivate,
-          defaultBranch: row.defaultBranch,
-          latestJob: latest.get(row.repositoryId) ?? null,
-        })),
+        items: page.map((row) => {
+          const stat = stats.get(row.repositoryId)
+          return {
+            repositoryId: row.repositoryId,
+            owner: row.owner,
+            name: row.name,
+            isPrivate: row.isPrivate,
+            defaultBranch: row.defaultBranch,
+            courseCount: stat?.courseCount ?? 0,
+            generationCount: stat?.generationCount ?? 0,
+            lastActivityAt: stat?.lastActivityAt?.toISOString() ?? null,
+            latestJob: latest.get(row.repositoryId) ?? null,
+          }
+        }),
         nextCursor: rows.length > input.limit ? (last?.repositoryId ?? null) : null,
       }
     },
+
+    counts: (userId) => repositoriesRepo(db).counts(userId),
 
     async remove(userId, repositoryId) {
       await db.transaction(async (tx) => {

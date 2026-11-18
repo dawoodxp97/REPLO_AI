@@ -4,7 +4,13 @@ import { applyDdl } from '../../platform/db/test-setup'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
-import { repositories, courses, userRepositories } from '../../platform/db/schema'
+import {
+  generationJobs,
+  repositories,
+  repositorySnapshots,
+  courses,
+  userRepositories,
+} from '../../platform/db/schema'
 import { createJobHistory } from '../jobs/job-history.service'
 import { createCourseManager } from '../courses/manager.service'
 import { createRepositoryLibrary, type RepositoryLibrary } from './library.service'
@@ -82,6 +88,41 @@ describe.skipIf(DATABASE_URL === '')('repository removal and search across users
       )
     return row
   }
+
+  it('reports course and generation counts with the newest activity', async () => {
+    const owner = await seedUser()
+    const repoId = await seedRepo('stats')
+    await link(owner, repoId)
+    await seedCourse(owner, repoId, 'stats-walk')
+
+    const [snapshot] = await db
+      .insert(repositorySnapshots)
+      .values({ repositoryId: repoId, commitSha: 'a'.repeat(40), analyzerVersion: 1 })
+      .returning({ id: repositorySnapshots.id })
+    if (!snapshot) throw new Error('snapshot seed failed')
+    await db.insert(generationJobs).values({
+      userId: owner,
+      snapshotId: snapshot.id,
+      status: 'succeeded',
+      idempotencyKey: randomUUID(),
+      models: {
+        provider: 'openrouter',
+        pipeline: 'full',
+        models: { planner: 'model', author: 'model', summarizer: null },
+      },
+      audience: 'intermediate',
+      finishedAt: new Date('2026-11-18T12:00:00.000Z'),
+    })
+
+    const [item] = (await repositoriesService.list(owner, { limit: 25 })).items
+    expect(item).toMatchObject({
+      repositoryId: repoId,
+      courseCount: 1,
+      generationCount: 1,
+      lastActivityAt: '2026-11-18T12:00:00.000Z',
+    })
+    expect(await repositoriesService.counts(owner)).toEqual({ repositories: 1, generations: 1 })
+  })
 
   it('revokes the caller link and deletes the caller courses for that repository', async () => {
     const owner = await seedUser()

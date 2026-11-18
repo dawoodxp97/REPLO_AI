@@ -14,6 +14,8 @@ const PAGES = [
   { name: 'repositories', path: '/repositories' },
   { name: 'import', path: '/import' },
   { name: 'job', path: `/jobs/${JOB_ID}` },
+  { name: 'generations', path: '/jobs' },
+  { name: 'workspace', path: '/workspace/acme/widgets/cart-flow' },
   { name: 'profile settings', path: '/settings/profile' },
   { name: 'preference settings', path: '/settings/preferences' },
   { name: 'GitHub settings', path: '/settings/github' },
@@ -28,6 +30,21 @@ const PAGES = [
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice']
 
+const APP_SHELL_ROUTES = new Set([
+  'dashboard',
+  'library',
+  'repositories',
+  'import',
+  'job',
+  'generations',
+  'profile settings',
+  'preference settings',
+  'GitHub settings',
+  'API keys',
+  'model settings',
+  'workspace',
+])
+
 for (const scheme of ['light', 'dark'] as const) {
   test.describe(`${scheme} theme`, () => {
     test.use({ colorScheme: scheme })
@@ -37,8 +54,22 @@ for (const scheme of ['light', 'dark'] as const) {
         await mockRpc(page, {
           'settings.get': () => ({ body: { ...DEFAULT_PREFERENCES, theme: scheme } }),
         })
+        await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: scheme })
         await page.goto(target.path)
         await expect(page.locator('h1').first()).toBeVisible()
+
+        if (APP_SHELL_ROUTES.has(target.name)) {
+          await expect
+            .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+            .toBe(scheme)
+        }
+        await page.evaluate(async () => {
+          await document.fonts.ready
+          await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+          await Promise.all(
+            document.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
+          )
+        })
 
         const results = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
         const violations = results.violations.map(

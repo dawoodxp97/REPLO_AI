@@ -19,7 +19,7 @@ export default async function ImportPage({ searchParams }: ImportPageProps) {
     <div className="mx-auto max-w-3xl space-y-8">
       <PageHeader
         title="Import a repository"
-        description="Check the repository, pick a key and preset, review the estimate, then generate."
+        description="Check the repository, pick a key and model, then generate."
       />
       <GithubSetupNotice status={status} />
       <ImportForm initialSource={sourceFromRepoParam(repoParam)} />

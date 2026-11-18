@@ -2,7 +2,7 @@ import { STAGES, type GenerationJobDto, type CourseRef } from '@replo/contracts'
 import { Alert, AlertDescription, AlertTitle } from '@replo/ui'
 import { Ban, CircleAlert, CircleCheck } from 'lucide-react'
 import { LinkButton } from '@/components/link-button'
-import { coursePath } from '@/lib/course-paths'
+import { coursePath, workspacePath } from '@/lib/course-paths'
 import { describeJobFailure } from './job-errors'
 import type { JobProgress } from './job-progress-state'
 import { STAGE_LABELS } from './job-status'
@@ -31,7 +31,7 @@ export function JobOutcome({ job, progress }: { job: GenerationJobDto; progress:
         <Ban />
         <AlertTitle>Generation canceled</AlertTitle>
         <AlertDescription>
-          <p>No further spend happens on your key. Retry to continue from the last checkpoint.</p>
+          <p>Nothing else runs on your key. Retry to continue from the last checkpoint.</p>
         </AlertDescription>
       </Alert>
     )
@@ -47,9 +47,14 @@ function CourseReady({ course }: { course: CourseRef | null }) {
       <AlertTitle>Course ready</AlertTitle>
       <AlertDescription>
         <p>Every explanation links to the code it came from.</p>
-        <div className="mt-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           {course ? (
-            <LinkButton href={coursePath(course)}>Open the course</LinkButton>
+            <>
+              <LinkButton href={workspacePath(course)}>Open the workspace</LinkButton>
+              <LinkButton href={coursePath(course)} variant="outline">
+                Open the course
+              </LinkButton>
+            </>
           ) : (
             <LinkButton href="/library" variant="outline">
               Open your library

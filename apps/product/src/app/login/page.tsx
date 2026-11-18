@@ -27,7 +27,7 @@ export default async function LoginPage({
           <ol className="divide-y border-y text-sm">
             {[
               ['01', 'Choose a GitHub repository', 'Public, or private with read-only access.'],
-              ['02', 'Set your model and budget', 'Every course runs on your own key.'],
+              ['02', 'Choose your model', 'Every course runs on your own key.'],
               ['03', 'Read, trace, and test', 'Lessons, pinned references, and chapter quizzes.'],
             ].map(([number, title, description]) => (
               <li key={number} className="flex gap-4 py-5">

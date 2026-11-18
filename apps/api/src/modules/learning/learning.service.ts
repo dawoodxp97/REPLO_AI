@@ -11,12 +11,14 @@ import { decodeOffset, offsetPage } from '../../platform/pagination'
 import { daysAgo } from '../../platform/time'
 import type { Viewer } from '../courses/access'
 import type { ReadableHead, VersionAccess } from '../courses/version-access.service'
+import type { AnalyticsEventSink } from '../analytics/analytics.repo'
 import { gradeAnswer } from './learning.quiz'
 import { learningRepo } from './learning.repo'
 
 interface LearningDeps {
   db: Db
   courses: VersionAccess
+  analytics: AnalyticsEventSink
 }
 
 export type ResumeTarget = NonNullable<DashboardSummary['resume']>
@@ -61,7 +63,7 @@ const RESUME_CANDIDATES = 20
 const RECENT_READING_DAYS = 7
 
 export function createLearningService(deps: LearningDeps): LearningService {
-  const { db, courses } = deps
+  const { db, courses, analytics } = deps
   const repo = learningRepo(db)
 
   const resolveVersion = async (userId: string, versionId: string) => {
@@ -176,8 +178,8 @@ export function createLearningService(deps: LearningDeps): LearningService {
       const version = await courses.readableHead({ userId }, input.versionId)
       const lessons = await courses.lessonsOfVersion(version.versionId)
       if (!lessons.some((lesson) => lesson.lessonKey === input.lessonKey)) notFound('Lesson')
+      const completed = await repo.completedLessonKeys(userId, [version.courseId])
       if (input.status === 'in_progress') {
-        const completed = await repo.completedLessonKeys(userId, [version.courseId])
         if (completed.some((row) => row.lessonKey === input.lessonKey))
           return progressOf(userId, version, lessons)
       }
@@ -191,6 +193,17 @@ export function createLearningService(deps: LearningDeps): LearningService {
         completedAt: input.status === 'completed' ? now : null,
         updatedAt: now,
       })
+      if (
+        input.status === 'completed' &&
+        !completed.some((row) => row.lessonKey === input.lessonKey)
+      ) {
+        await analytics.record({
+          userId,
+          type: 'lesson_completed',
+          subjectType: 'lesson',
+          subjectId: `${version.versionId}:${input.lessonKey}`,
+        })
+      }
       return progressOf(userId, version, lessons)
     },
 
@@ -209,6 +222,13 @@ export function createLearningService(deps: LearningDeps): LearningService {
         questionKey: graded.questionKey,
         choiceKey: graded.choiceKey,
         correct: graded.result.correct,
+      })
+      await analytics.record({
+        userId,
+        type: 'quiz_submitted',
+        subjectType: 'lesson',
+        subjectId: `${version.versionId}:${input.lessonKey}`,
+        metadata: { correct: graded.result.correct },
       })
       return graded.result
     },

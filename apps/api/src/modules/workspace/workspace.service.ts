@@ -1,9 +1,4 @@
-import type {
-  DiagramDto,
-  GraphNodeDto,
-  GraphViewDto,
-  SourceTreeDto,
-} from '@replo/contracts'
+import type { DiagramDto, GraphNodeDto, GraphViewDto, SourceTreeDto } from '@replo/contracts'
 import { upcastCourseContent } from '@replo/contracts'
 import type { Db } from '../../platform/db/client'
 import { notFound } from '../../platform/errors'
@@ -49,6 +44,12 @@ export function createWorkspaceService(deps: WorkspaceDeps): WorkspaceService {
         commitSha: content.meta.repo.commitSha,
         graph: content.graph,
         tours: content.tours,
+        diagrams: content.diagrams.map(({ id, type, title, caption }) => ({
+          id,
+          type,
+          title,
+          caption,
+        })),
         layers: [...layers].sort(),
         domains: [...domains].sort(),
       }
@@ -58,20 +59,32 @@ export function createWorkspaceService(deps: WorkspaceDeps): WorkspaceService {
       const { version, content } = await loadVersion(userId, input.versionId)
       const node = content.graph.nodes.find((candidate) => candidate.id === input.nodeId)
       if (!node) notFound('Graph node')
+      const labelOf = new Map(
+        content.graph.nodes.map((candidate) => [candidate.id, candidate.label]),
+      )
       const edges = [
         ...content.graph.edges
           .filter((edge) => edge.from === input.nodeId)
-          .map((edge) => edgeWithLabel(edge, edge.to, 'outgoing' as const)),
+          .map((edge) => edgeWithLabel(edge, labelOf.get(edge.to) ?? edge.to, 'outgoing' as const)),
         ...content.graph.edges
           .filter((edge) => edge.to === input.nodeId)
-          .map((edge) => edgeWithLabel(edge, edge.from, 'incoming' as const)),
+          .map((edge) =>
+            edgeWithLabel(edge, labelOf.get(edge.from) ?? edge.from, 'incoming' as const),
+          ),
       ]
-      const refIds = new Set<string>()
+      const refs =
+        node.path === undefined
+          ? {}
+          : Object.fromEntries(
+              Object.entries(content.sourceRefs).filter(
+                ([, reference]) => reference.path === node.path,
+              ),
+            )
       return {
         versionId: version.versionId,
         node,
         edges,
-        refs: refsOf(content.sourceRefs, refIds),
+        refs,
       }
     },
 

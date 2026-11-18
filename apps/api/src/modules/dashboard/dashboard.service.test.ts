@@ -48,7 +48,7 @@ function stubs(fixtures: Fixtures = {}) {
   const publishedRows = fixtures.published ?? []
   const jobRows = fixtures.jobs ?? []
   const inFlightRows = fixtures.inFlight ?? []
-  const counts = fixtures.counts ?? { total: 0, draft: 0, private: 0, link: 0, public: 0 }
+  const counts = fixtures.counts ?? { total: 0, draft: 0 }
   const resume = fixtures.resume ?? null
   const reading = fixtures.reading ?? NO_READING
   const recentPublished = vi.fn(async (_userId: string, input: PageInput & { zone: string }) =>
@@ -62,7 +62,11 @@ function stubs(fixtures: Fixtures = {}) {
     courses: { counts: async () => counts, recentPublished },
     jobs: { inFlightFor, recentFor },
     learning: { resumeTarget: async () => resume, readingStats: async () => reading },
-    repositories: { describeLinked, linkedIds: async () => LINKED_IDS },
+    repositories: {
+      describeLinked,
+      linkedIds: async () => LINKED_IDS,
+      counts: async () => ({ repositories: LINKED_IDS.length, generations: 0 }),
+    },
   }
   return { deps, recentPublished, recentFor, inFlightFor }
 }
@@ -117,10 +121,15 @@ describe('dashboard summary', () => {
     expect((await createDashboardService(deps).summary(USER)).reading).toEqual(reading)
   })
 
-  it('maps the course counts', async () => {
-    const counts = { total: 5, draft: 2, private: 1, link: 1, public: 1 }
+  it('merges course, repository and generation counts', async () => {
+    const counts = { total: 5, draft: 2 }
     const { deps } = stubs({ counts })
-    expect((await createDashboardService(deps).summary(USER)).counts).toEqual(counts)
+    expect((await createDashboardService(deps).summary(USER)).counts).toEqual({
+      total: 5,
+      draft: 2,
+      repositories: 1,
+      generations: 0,
+    })
   })
 
   it('keeps only in-flight jobs whose repository is linked to the user', async () => {

@@ -14,6 +14,6 @@ export function breadcrumbsFor(pathname: string): Crumb[] | null {
       ? [{ label: 'Settings', href: '/settings/profile' }, { label: section.title }]
       : null
   }
-  if (area === 'jobs') return [{ label: 'Library', href: '/library' }, { label: 'Generation' }]
+  if (area === 'jobs') return [{ label: 'Generations', href: '/jobs' }, { label: 'Generation' }]
   return null
 }

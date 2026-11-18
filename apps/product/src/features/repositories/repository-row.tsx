@@ -4,9 +4,9 @@ import type { RepositoryListItem } from '@replo/contracts'
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from '@replo/ui'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { LinkButton } from '@/components/link-button'
-import { RepoVisibilityBadge } from '@/components/repo-visibility-badge'
+import { PrivateRepoBadge } from '@/components/private-repo-badge'
 import { JobStatusLink } from '@/features/jobs/job-status-badge'
-import { formatRepoName } from '@/lib/format'
+import { formatCount, formatDateTime, formatRepoName } from '@/lib/format'
 import { importPath, NEW_COURSE_LABEL } from '@/lib/import-path'
 import { useRemoveRepository } from './use-repositories'
 
@@ -19,10 +19,18 @@ export function RepositoryRow({ repository }: { repository: RepositoryListItem }
       <ItemContent>
         <ItemTitle>
           <span className="font-mono break-all">{name}</span>
-          <RepoVisibilityBadge isPrivate={repository.isPrivate} />
+          <PrivateRepoBadge isPrivate={repository.isPrivate} />
         </ItemTitle>
         <ItemDescription className="text-xs">
-          Default branch <span className="font-mono">{repository.defaultBranch}</span>
+          Default branch <span className="font-mono">{repository.defaultBranch}</span> ·{' '}
+          <span className="tabular font-mono">{formatCount(repository.courseCount)}</span> courses ·{' '}
+          <span className="tabular font-mono">{formatCount(repository.generationCount)}</span>{' '}
+          generations
+          <span className="block">
+            {repository.lastActivityAt
+              ? `Last activity ${formatDateTime(repository.lastActivityAt)}`
+              : 'No activity yet'}
+          </span>
         </ItemDescription>
       </ItemContent>
       <ItemActions>

@@ -1,8 +1,10 @@
 import {
   AddKeyInput,
+  AnalyticsQuery,
   ImportRepositoryInput,
   Preferences,
   RepositorySource,
+  type AnalyticsReport,
   type ChapterDto,
   type KeyDto,
   type SearchResults,
@@ -13,12 +15,16 @@ import {
   CHAPTER_ONE,
   HISTORY_ITEMS,
   PROGRESS,
+  SAVED_DASHBOARD,
   SOURCE_FILES,
   SOURCE_TREE,
   COURSE_ID,
   COURSE_OVERVIEW,
   COURSE_SUMMARY,
   VERSION_ID,
+  WORKSPACE_DIAGRAM,
+  WORKSPACE_GRAPH,
+  WORKSPACE_NODE,
 } from './course'
 
 export const DEFAULT_PREFERENCES = Preferences.parse({
@@ -30,8 +36,17 @@ export const DEFAULT_PREFERENCES = Preferences.parse({
 })
 
 export const SEARCH_RESULTS: SearchResults = {
-  files: [],
-  dashboards: [],
+  files: [
+    {
+      courseId: COURSE_ID,
+      versionId: VERSION_ID,
+      owner: 'acme',
+      repo: 'widgets',
+      slug: 'cart-flow',
+      path: 'src/cart/thunks.ts',
+    },
+  ],
+  dashboards: [{ dashboardId: SAVED_DASHBOARD.id, name: SAVED_DASHBOARD.name }],
   repositories: [
     { repositoryId: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f', owner: 'acme', name: 'widgets' },
   ],
@@ -160,6 +175,9 @@ export function defaultHandlers(): RpcHandlers {
             name: 'widgets',
             isPrivate: false,
             defaultBranch: 'main',
+            courseCount: 1,
+            generationCount: 1,
+            lastActivityAt: '2026-10-22T09:30:00.000Z',
             latestJob: null,
           },
         ],
@@ -169,6 +187,9 @@ export function defaultHandlers(): RpcHandlers {
     'repositories.remove': () => ({ body: { ok: true } }),
 
     'jobs.get': () => ({ body: JOB }),
+    'jobs.listActive': () => ({
+      body: [{ ...JOB, status: 'running', stage: 'lessons', progress: 42 }],
+    }),
     'jobs.cancel': () => ({ body: { ...JOB, status: 'canceled' } }),
     'jobs.retry': () => ({ body: { ...JOB, status: 'queued' } }),
 
@@ -183,8 +204,15 @@ export function defaultHandlers(): RpcHandlers {
       const file = SOURCE_FILES[path]
       return file ? { body: file } : rpcError('NOT_FOUND', 404)
     },
+    'workspace.graph': () => ({ body: WORKSPACE_GRAPH }),
+    'workspace.node': () => ({ body: WORKSPACE_NODE }),
+    'workspace.diagram': () => ({ body: WORKSPACE_DIAGRAM }),
     'workspace.tree': () => ({
-      body: { commitSha: COURSE_OVERVIEW.commitSha, files: SOURCE_TREE },
+      body: {
+        versionId: VERSION_ID,
+        commitSha: COURSE_OVERVIEW.commitSha,
+        files: SOURCE_TREE,
+      },
     }),
     'courses.delete': () => ({ body: { ok: true } }),
 
@@ -216,7 +244,7 @@ export function defaultHandlers(): RpcHandlers {
 
     'dashboard.summary': () => ({
       body: {
-        counts: { total: 1, draft: 0, private: 0, link: 0, public: 1 },
+        counts: { total: 1, draft: 0, repositories: 1, generations: 1 },
         jobsInFlight: [],
         resume: {
           courseId: COURSE_ID,
@@ -235,6 +263,23 @@ export function defaultHandlers(): RpcHandlers {
         },
       },
     }),
+    'dashboard.analytics': ({ input }) => ({
+      body: analyticsReport(AnalyticsQuery.parse(input)),
+    }),
+    'dashboard.save': ({ input }) => {
+      const parsed = isRecord(input) ? input : {}
+      return {
+        body: {
+          ...SAVED_DASHBOARD,
+          name: typeof parsed.name === 'string' ? parsed.name : SAVED_DASHBOARD.name,
+          query: AnalyticsQuery.parse(parsed.query),
+        },
+      }
+    },
+    'dashboard.listDashboards': () => ({
+      body: { items: [SAVED_DASHBOARD], nextCursor: null },
+    }),
+    'dashboard.deleteDashboard': () => ({ body: { ok: true } }),
     'dashboard.recent': () => ({
       body: {
         items: [
@@ -266,4 +311,40 @@ export function defaultHandlers(): RpcHandlers {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function analyticsReport(query: AnalyticsReport['query']): AnalyticsReport {
+  return {
+    query,
+    series: [
+      {
+        key: 'job_succeeded',
+        label: 'Generations finished',
+        points: [
+          { bucket: '2026-11-02', value: 2 },
+          { bucket: '2026-11-09', value: 1 },
+        ],
+      },
+      {
+        key: 'job_failed',
+        label: 'Generations failed',
+        points: [{ bucket: '2026-11-09', value: 1 }],
+      },
+      {
+        key: 'lesson_completed',
+        label: 'Lessons completed',
+        points: [{ bucket: '2026-11-09', value: 4 }],
+      },
+    ],
+    summary: {
+      jobsSucceeded: 3,
+      jobsFailed: 1,
+      successRate: 0.75,
+      medianTimeToReadySeconds: 640,
+    },
+    models: [
+      { model: 'claude-haiku-5-5', generations: 3 },
+      { model: 'anthropic/claude-haiku-5.5', generations: 1 },
+    ],
+  }
 }

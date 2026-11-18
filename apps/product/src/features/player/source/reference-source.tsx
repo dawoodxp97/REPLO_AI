@@ -7,15 +7,9 @@ export interface ReferenceSourceProps {
   versionId: string
   refId: string | null
   references: SourceRefMap
-  shareToken?: string
 }
 
-export function ReferenceSource({
-  versionId,
-  refId,
-  references,
-  shareToken,
-}: ReferenceSourceProps) {
+export function ReferenceSource({ versionId, refId, references }: ReferenceSourceProps) {
   if (refId === null) {
     return (
       <NoSourceShown
@@ -38,7 +32,6 @@ export function ReferenceSource({
       versionId={versionId}
       path={reference.path}
       range={{ start: reference.startLine, end: reference.endLine }}
-      shareToken={shareToken}
       windowed
       scrollToHighlight
     />

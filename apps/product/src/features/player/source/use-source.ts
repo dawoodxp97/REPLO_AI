@@ -5,15 +5,13 @@ import { buildFileTree } from './file-tree'
 export interface SourceFileRequest {
   versionId: string
   path: string
-  shareToken?: string
 }
 
 export function useSourceFile({ versionId, path }: SourceFileRequest) {
   return useQuery(orpc.courses.getSource.queryOptions({ input: { versionId, path } }))
 }
 
-export function useSourceTree(versionId: string, _shareToken: string | undefined) {
-  void _shareToken
+export function useSourceTree(versionId: string) {
   return useQuery({
     ...orpc.workspace.tree.queryOptions({ input: { versionId } }),
     select: (data) => buildFileTree(data.files),

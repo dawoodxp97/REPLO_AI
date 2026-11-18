@@ -18,7 +18,7 @@ import { useSourceTree } from './use-source'
 
 export function SourceExplorer({ course }: { course: CourseRef }) {
   const selectedPath = useSearchParams().get('path')
-  const { shareToken, linkContext, overview } = useCourseOverview(course)
+  const { linkContext, overview } = useCourseOverview(course)
   const links = useCourseLinks(course, linkContext)
 
   return (
@@ -29,14 +29,7 @@ export function SourceExplorer({ course }: { course: CourseRef }) {
         errorDescription="Check the link, or return to the course overview."
         loading={<Skeleton aria-busy="true" className="h-96 w-full" />}
       >
-        {(data) => (
-          <ExplorerLayout
-            overview={data}
-            links={links}
-            selectedPath={selectedPath}
-            shareToken={shareToken}
-          />
-        )}
+        {(data) => <ExplorerLayout overview={data} links={links} selectedPath={selectedPath} />}
       </QueryBoundary>
     </div>
   )
@@ -46,11 +39,10 @@ interface ExplorerLayoutProps {
   overview: CourseOverviewDto
   links: CourseLinks
   selectedPath: string | null
-  shareToken: string | undefined
 }
 
-function ExplorerLayout({ overview, links, selectedPath, shareToken }: ExplorerLayoutProps) {
-  const tree = useSourceTree(overview.versionId, shareToken)
+function ExplorerLayout({ overview, links, selectedPath }: ExplorerLayoutProps) {
+  const tree = useSourceTree(overview.versionId)
   const shownPath = selectedPath ?? (tree.data ? defaultSourcePath(tree.data) : null)
 
   return (
@@ -73,13 +65,7 @@ function ExplorerLayout({ overview, links, selectedPath, shareToken }: ExplorerL
         <FileTreePanel tree={tree} links={links} shownPath={shownPath} />
         <section aria-label="Selected file" className="min-w-0">
           {shownPath ? (
-            <SourceView
-              versionId={overview.versionId}
-              path={shownPath}
-              range={null}
-              shareToken={shareToken}
-              windowed
-            />
+            <SourceView versionId={overview.versionId} path={shownPath} range={null} windowed />
           ) : (
             <NoSourceShown
               title="No file selected"

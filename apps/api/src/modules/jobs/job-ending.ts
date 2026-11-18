@@ -1,5 +1,6 @@
 import type { Tx } from '../../platform/db/client'
 import type { TerminalStatus } from '../../platform/job-status'
+import { analyticsRepo } from '../analytics/analytics.repo'
 import type { NotificationsService } from '../notifications/notifications.service'
 import { jobsRepo, type JobEventInput, type JobFailure, type JobRow } from './jobs.repo'
 
@@ -39,5 +40,18 @@ export async function endJob(
   // race, exactly one of them announces the end (D-094).
   if (!closed) return false
   await announceJobEnd(tx, notifications, { id: jobId, userId: closed.userId }, status, error)
+  if (status === 'succeeded' || status === 'failed') {
+    await analyticsRepo(tx).record({
+      userId: closed.userId,
+      type: `job_${status}`,
+      subjectType: 'job',
+      subjectId: jobId,
+      metadata: {
+        model: closed.models.models.author,
+        durationMs: Date.now() - closed.createdAt.getTime(),
+        ...(error ? { code: error.code } : {}),
+      },
+    })
+  }
   return true
 }

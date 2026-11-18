@@ -25,6 +25,7 @@ const fileHit = {
   versionId: 'version-1',
   owner: 'acme',
   repo: 'shop',
+  slug: 'shop-internals',
   path: 'src/cart.ts',
 }
 const dashboardHit = { dashboardId: 'dash-1', name: 'Cart funnel' }

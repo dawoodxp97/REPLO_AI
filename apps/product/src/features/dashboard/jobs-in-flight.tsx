@@ -8,6 +8,7 @@ import {
   ItemTitle,
   Progress,
 } from '@replo/ui'
+import { LinkButton } from '@/components/link-button'
 import { SectionHeader } from '@/components/page-header'
 import { JobStatusLink } from '@/features/jobs/job-status-badge'
 import { STAGE_LABELS } from '@/features/jobs/job-status'
@@ -20,7 +21,15 @@ export function JobsInFlight({ jobs }: { jobs: readonly JobInFlight[] }) {
 
   return (
     <section aria-labelledby="in-flight-heading" className="space-y-3">
-      <SectionHeader id="in-flight-heading" title="In progress" />
+      <SectionHeader
+        id="in-flight-heading"
+        title="In progress"
+        action={
+          <LinkButton href="/jobs" variant="ghost" size="sm">
+            View all
+          </LinkButton>
+        }
+      />
       <ItemGroup>
         {jobs.map((job) => (
           <Item key={job.jobId}>

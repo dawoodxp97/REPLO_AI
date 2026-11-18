@@ -11,6 +11,7 @@ import {
 import { LinkButton } from '@/components/link-button'
 import { LoadMore } from '@/components/load-more'
 import { NewCourseAction } from '@/components/new-course-action'
+import { WorkspaceTotals } from '@/features/dashboard/workspace-totals'
 import { PageHeader } from '@/components/page-header'
 import { QueryBoundary } from '@/components/query-boundary'
 import { importPath, NEW_COURSE_LABEL } from '@/lib/import-path'
@@ -18,7 +19,7 @@ import { pageItems } from '@/lib/paging'
 import { RepositoryRow } from './repository-row'
 import { useRepositoryList } from './use-repositories'
 
-export function MyRepositories() {
+export function RepositoriesPage() {
   return (
     <div className="space-y-8">
       <PageHeader
@@ -26,6 +27,7 @@ export function MyRepositories() {
         description="Repositories you have imported, with the state of their latest course job."
         action={<NewCourseAction />}
       />
+      <WorkspaceTotals />
       <RepositoryList />
     </div>
   )

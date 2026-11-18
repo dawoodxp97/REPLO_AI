@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { InlineError } from '@/components/inline-error'
 import { DescriptionItem } from '@/components/description-item'
-import { RepoVisibilityBadge } from '@/components/repo-visibility-badge'
+import { PrivateRepoBadge } from '@/components/private-repo-badge'
 import { formatBytes, formatCount, formatRepoName, shortSha } from '@/lib/format'
 import { orpc } from '@/lib/orpc'
 import { describeImportError } from './import-errors'
@@ -51,7 +51,7 @@ function PreflightSummary({ result }: { result: PreflightResult }) {
       <DescriptionItem label="Repository">
         <span className="flex flex-wrap items-center gap-2 font-mono">
           {formatRepoName(repo.owner, repo.name)}
-          <RepoVisibilityBadge isPrivate={repo.isPrivate} />
+          <PrivateRepoBadge isPrivate={repo.isPrivate} />
         </span>
       </DescriptionItem>
       <DescriptionItem label="Default branch" className="font-mono">

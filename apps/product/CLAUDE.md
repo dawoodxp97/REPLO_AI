@@ -6,13 +6,13 @@ Next.js 16 App Router: dashboard, import, job progress, learning player, course 
 
 ```
 src/proxy.ts                         per-request CSP nonce (D-068)
-src/app/(app)/…                      signed-in shell (AuthGate + AppShell sidebar): /, /library, /repositories, /import, /jobs/[jobId], /settings/[section]
+src/app/(app)/…                      signed-in shell (AuthGate + AppShell sidebar): /, /library, /repositories, /import, /jobs, /jobs/[jobId], /workspace/[owner]/[repo]/[slug], /settings/[section]
 src/app/operator/…                   operator screens; a server check returns 404 to everyone else (D-077)
 src/app/login/                       sign-in page (GitHub, Google, email and password)
 src/app/courses/[owner]/[repo]/[slug]/…   overview (SSR), learn/[chapterKey]/[lessonKey], code (source explorer), progress, opengraph-image
 src/components/                      shared composites: app-shell/ (sidebar, AppHeader, UserPill: account popover with theme and settings links), UserAvatar, StatusDot, Brand, PageHeader/SectionHeader, LinkButton,
                                      QueryBoundary, ErrorPanel, LoadMore, ConfirmDialog, RadioCardGroup, Sheet, SafeMarkdown, CopyLinkButton
-src/features/<name>/                 composites: session, import, keys, jobs, notifications, library, search, dashboard, courses, diagram, player (blocks/, commands/, lesson/, source/), quiz, progress, repositories, settings, operator
+src/features/<name>/                 composites: session, import, keys, jobs (active list and detail), notifications, library, search, dashboard (summary, analytics, saved dashboards), courses, workspace (graph, tree, table, nodes, tours, diagrams), diagram, player (blocks/, commands/, lesson/, source/), quiz, progress, repositories, settings, operator
 src/hooks/                           browser hooks (media query, debounce, visibility)
 src/lib/orpc.ts                      typed oRPC client + TanStack Query utils (contract TYPE only); per-call context carries the Idempotency-Key
 src/lib/server-client.ts             oRPC client for server components; forwards the caller's cookies to the API
@@ -39,9 +39,9 @@ e2e/                                 Playwright journeys; fixtures/ and support/
 
 ## Status
 
-The app carries the implemented screens: sign-in, import, jobs, library, settings, player, quiz, progress, search, dashboard and the operator screen. [`PRD.md`](../PRD.md) replaces parts of it: the repository workspace (graph/tree/diagram), analytics dashboard and saved dashboards, product-wide search, active generations and the admin surface; sharing and budget/preset UI go away. R4–R5 in [`ROADMAP.md`](../ROADMAP.md) own that work.
+R4 is implemented: the repository workspace (layer graph, tree, table, node detail, tours, diagram viewer), the course player, repositories and courses lists with counts, the analytics dashboard with saved dashboards, product-wide search, active generations, and settings. Sharing, visibility, budget/preset and revoke-sessions UI are removed. R5 in [`ROADMAP.md`](../ROADMAP.md) owns the admin surface.
 
-Verified locally (9 Nov 2026): unit tests (205), typecheck, lint, the production build, and 190 Playwright tests on desktop and phone against the standalone production server with the mock API (173 pass, 17 skip by design). `e2e/accessibility.spec.ts` fails on any axe violation on all 16 routes in both themes and on any control under 40 px on the phone project. Not verified: staging, the live API, the GitHub App and sign-in, real provider keys, Lighthouse.
+Verified locally (18 Nov 2026): unit tests (211), typecheck, lint, the production build, and 218 Playwright tests on desktop and phone against the standalone production server with the mock API (199 pass, 19 skip by design). `e2e/accessibility.spec.ts` fails on any axe violation on all 18 routes in both themes and on any control under 40 px on the phone project. Not verified: staging, the live API, the GitHub App and sign-in, real provider keys, Lighthouse.
 
 Open: notification counts pushed over SSE; the explorer renders the whole tree without virtualisation (MEM D-080). See [`ROADMAP.md`](../ROADMAP.md) (R4) and [`MEM.md`](../MEM.md) (D-074 to D-079).
 

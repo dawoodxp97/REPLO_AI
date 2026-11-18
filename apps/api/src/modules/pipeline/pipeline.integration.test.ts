@@ -61,7 +61,9 @@ const OUTLINE = {
       summary: 'How a request reaches the cart',
       objectives: ['Trace a request'],
       prerequisites: ['Orientation'],
-      lessons: [{ key: 'route', title: 'The route', minutes: 6, focusPaths: ['src/api/routes.ts'] }],
+      lessons: [
+        { key: 'route', title: 'The route', minutes: 6, focusPaths: ['src/api/routes.ts'] },
+      ],
     },
     {
       key: 'wrap-up',
@@ -69,9 +71,7 @@ const OUTLINE = {
       summary: 'Review the flow',
       objectives: ['Recall the flow'],
       prerequisites: [],
-      lessons: [
-        { key: 'review', title: 'Review', minutes: 3, focusPaths: ['src/cart.ts'] },
-      ],
+      lessons: [{ key: 'review', title: 'Review', minutes: 3, focusPaths: ['src/cart.ts'] }],
     },
   ],
 }
@@ -141,7 +141,11 @@ const LESSONS: Record<string, unknown> = {
     minutes: 3,
     blocks: [
       { type: 'callout', tone: 'tip', md: 'Read the cart before the route.' },
-      { type: 'exercise', prompt: 'Find where items are pushed.', hints: ['Start in `addToCart`.'] },
+      {
+        type: 'exercise',
+        prompt: 'Find where items are pushed.',
+        hints: ['Start in `addToCart`.'],
+      },
     ],
     quiz: [],
   },
@@ -183,7 +187,15 @@ function fullScript(): Scripted {
         concepts: [],
       }
     if (prompt.includes('end-to-end flows'))
-      return { flows: [{ name: 'Add to cart', summary: 'A request adds an item.', steps: ['src/api/routes.ts', 'src/cart.ts'] }] }
+      return {
+        flows: [
+          {
+            name: 'Add to cart',
+            summary: 'A request adds an item.',
+            steps: ['src/api/routes.ts', 'src/cart.ts'],
+          },
+        ],
+      }
     if (prompt.includes('guided tours'))
       return {
         tours: [
@@ -192,7 +204,11 @@ function fullScript(): Scripted {
             title: 'Follow a request',
             objective: 'See how a request reaches the cart.',
             steps: [
-              { title: 'Route', summary: 'The HTTP entry point.', nodeId: 'file:src/api/routes.ts' },
+              {
+                title: 'Route',
+                summary: 'The HTTP entry point.',
+                nodeId: 'file:src/api/routes.ts',
+              },
               { title: 'Cart', summary: 'The cart state.', nodeId: 'file:src/cart.ts' },
             ],
           },
@@ -252,14 +268,21 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     db = created.db
     pool = created.pool
     await applyDdl(pool)
-    await db.execute(sql`truncate table users, repositories, provider_keys restart identity cascade`)
+    await db.execute(
+      sql`truncate table users, repositories, provider_keys restart identity cascade`,
+    )
     snapshotRoot = await mkdtemp(join(tmpdir(), 'replo-pipeline-'))
     indexing = createIndexingService({
       db,
       rest: offlineRest,
       tokens: { installationToken: async () => undefined, userCanAccess: async () => true },
       sources: {
-        ingestSource: async () => ({ owner: 'acme', name: 'shop', isPrivate: false, installationId: null }),
+        ingestSource: async () => ({
+          owner: 'acme',
+          name: 'shop',
+          isPrivate: false,
+          installationId: null,
+        }),
       },
       limits: { maxFiles: 5000, maxBytes: 50_000_000 },
       extraction: DEFAULT_EXTRACTION_LIMITS,
@@ -275,7 +298,11 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
       courses: createVersionAccess(db),
       repositories: { describeLinked: async () => new Map() },
     })
-    runtime = createJobRuntime({ db, queue, notifications })
+    runtime = createJobRuntime({
+      db,
+      queue,
+      notifications,
+    })
     keys = createKeysService({ db, vault, checker: fakeKeyChecker('valid'), jobs })
     publisher = createCoursePublisher(db)
   })
@@ -349,7 +376,9 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
       })),
     )
     if (preindexed) {
-      await db.insert(snapshotSymbols).values(data.symbols.map((symbol) => ({ ...symbol, snapshotId: snapshot.id })))
+      await db
+        .insert(snapshotSymbols)
+        .values(data.symbols.map((symbol) => ({ ...symbol, snapshotId: snapshot.id })))
       await db.insert(snapshotFileEdges).values(
         data.edges.map((edge) => ({
           snapshotId: snapshot.id,
@@ -368,7 +397,11 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
   }
 
   const seedKey = async (userId: string) => {
-    const outcome = await keys.add(userId, { provider: 'anthropic', label: 'default', apiKey: 'sk-test-pipeline-0000' })
+    const outcome = await keys.add(userId, {
+      provider: 'anthropic',
+      label: 'default',
+      apiKey: 'sk-test-pipeline-0000',
+    })
     if (outcome.kind !== 'ok') throw new Error('key seed failed')
     return outcome.value.id
   }
@@ -436,20 +469,33 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     const after = await runWith(job, liteScript())
     expect(after.status).toBe('succeeded')
 
-    const [version] = await db.select().from(courseVersions).where(eq(courseVersions.generationJobId, job.id))
+    const [version] = await db
+      .select()
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(version).toMatchObject({ status: 'published', versionNo: 1 })
     const content = version?.content
-    expect(content?.chapters.map((chapter) => chapter.key)).toEqual(['orientation', 'requests', 'wrap-up'])
+    expect(content?.chapters.map((chapter) => chapter.key)).toEqual([
+      'orientation',
+      'requests',
+      'wrap-up',
+    ])
     expect(content?.graph.nodes.length).toBeGreaterThan(0)
     expect(content?.tours.length).toBeGreaterThan(0)
     expect(content?.diagrams.map((diagram) => diagram.type)).toContain('architecture')
     expect(content?.architecture?.diagram.nodeRefs).toEqual({ g0: 'src', g1: 'src/api' })
 
-    const storedDiagrams = await db.select().from(diagramSpecs).where(eq(diagramSpecs.versionId, version?.id ?? ''))
+    const storedDiagrams = await db
+      .select()
+      .from(diagramSpecs)
+      .where(eq(diagramSpecs.versionId, version?.id ?? ''))
     expect(storedDiagrams.length).toBe(content?.diagrams.length)
     expect(storedDiagrams.length).toBeGreaterThan(0)
 
-    const refs = await db.select().from(courseSourceRefs).where(eq(courseSourceRefs.versionId, version?.id ?? ''))
+    const refs = await db
+      .select()
+      .from(courseSourceRefs)
+      .where(eq(courseSourceRefs.versionId, version?.id ?? ''))
     expect(refs.length).toBe(Object.keys(content?.sourceRefs ?? {}).length)
 
     const leftovers = await db.select().from(jobCheckpoints).where(eq(jobCheckpoints.jobId, job.id))
@@ -465,7 +511,10 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     const after = await runWith(job, liteScript())
     expect(after.status).toBe('succeeded')
 
-    const [version] = await db.select().from(courseVersions).where(eq(courseVersions.generationJobId, job.id))
+    const [version] = await db
+      .select()
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(version?.generator).toMatchObject({ pipeline: 'lite' })
     expect(version?.content?.diagrams.map((diagram) => diagram.type)).toContain('architecture')
     expect(version?.content?.diagrams.map((diagram) => diagram.type)).not.toContain('sequence')
@@ -480,7 +529,10 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     const after = await runWith(job, liteScript())
     expect(after.status).toBe('succeeded')
 
-    const [version] = await db.select().from(courseVersions).where(eq(courseVersions.generationJobId, job.id))
+    const [version] = await db
+      .select()
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(version?.content?.graph.edges).toEqual(
       expect.arrayContaining([
         {
@@ -508,7 +560,10 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     const after = await runWith(job, fullScript(), undefined, 0)
     expect(after.status).toBe('succeeded')
 
-    const [version] = await db.select().from(courseVersions).where(eq(courseVersions.generationJobId, job.id))
+    const [version] = await db
+      .select()
+      .from(courseVersions)
+      .where(eq(courseVersions.generationJobId, job.id))
     expect(version?.generator).toMatchObject({ pipeline: 'full' })
     const types = version?.content?.diagrams.map((diagram) => diagram.type) ?? []
     expect(types).toContain('architecture')
@@ -545,7 +600,10 @@ describe.skipIf(DATABASE_URL === '')('course pipeline against Postgres', () => {
     await runWith(second, liteScript())
 
     const [course] = await db.select().from(courses).where(eq(courses.userId, owner))
-    const versions = await db.select().from(courseVersions).where(eq(courseVersions.courseId, course?.id ?? ''))
+    const versions = await db
+      .select()
+      .from(courseVersions)
+      .where(eq(courseVersions.courseId, course?.id ?? ''))
     expect(versions.map((version) => version.versionNo).sort()).toEqual([1, 2])
     expect(course?.currentVersionId).toBe(versions.find((version) => version.versionNo === 2)?.id)
     const lessonKeys = (versionNo: number) =>

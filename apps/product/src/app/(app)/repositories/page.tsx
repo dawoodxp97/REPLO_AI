@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import { MyRepositories } from '@/features/repositories/my-repositories'
+import { RepositoriesPage } from '@/features/repositories/repositories-page'
 
 export const metadata: Metadata = { title: 'Repositories' }
 
-export default function RepositoriesPage() {
-  return <MyRepositories />
+export default function RepositoriesRoute() {
+  return <RepositoriesPage />
 }

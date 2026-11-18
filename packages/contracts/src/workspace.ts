@@ -1,19 +1,22 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
 import { CommitSha } from './common'
-import {
-  CourseGraph,
-  DiagramSpec,
-  GraphNode,
-  SourceRef,
-  Tour,
-} from './course/content'
+import { CourseGraph, DiagramSpec, GraphNode, SourceRef, Tour } from './course/content'
+
+export const DiagramSummary = DiagramSpec.pick({
+  id: true,
+  type: true,
+  title: true,
+  caption: true,
+})
+export type DiagramSummary = z.infer<typeof DiagramSummary>
 
 export const GraphViewDto = z.object({
   versionId: z.uuid(),
   commitSha: CommitSha,
   graph: CourseGraph,
   tours: z.array(Tour),
+  diagrams: z.array(DiagramSummary),
   layers: z.array(z.string()),
   domains: z.array(z.string()),
 })

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { SEARCH_RESULTS } from './fixtures/handlers'
+import { SAVED_DASHBOARD } from './fixtures/course'
 import { mockRpc, type RpcCall } from './support/rpc-mock'
 
 test('home shows the library counts and resumes the last lesson', async ({ page }) => {
@@ -95,7 +96,7 @@ test('an empty workspace explains setup and offers direct next steps', async ({ 
   await mockRpc(page, {
     'dashboard.summary': () => ({
       body: {
-        counts: { total: 0, draft: 0, private: 0, link: 0, public: 0 },
+        counts: { total: 0, draft: 0, repositories: 0, generations: 0 },
         resume: null,
         jobsInFlight: [],
         reading: {
@@ -116,7 +117,7 @@ test('an empty workspace explains setup and offers direct next steps', async ({ 
     'href',
     '/settings/keys',
   )
-  await expect(setup.getByText('Review the pre-flight check and run estimate.')).toBeVisible()
+  await expect(setup.getByText('Review the pre-flight check before you start.')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
 })
 
@@ -148,6 +149,49 @@ test('a lesson hit links to its lesson without a matching course hit', async ({
 })
 
 async function searchFor(page: Page, text: string, isMobile: boolean) {
-  if (isMobile) await page.getByRole('button', { name: 'Search your library' }).click()
-  await page.getByRole('combobox', { name: 'Search your library' }).fill(text)
+  if (isMobile) await page.getByRole('button', { name: 'Search' }).click()
+  await page.getByRole('combobox', { name: 'Search' }).fill(text)
 }
+
+test('home shows analytics and saves the current range', async ({ page }) => {
+  const calls: RpcCall[] = []
+  await mockRpc(page, {}, calls)
+
+  await page.goto('/')
+
+  const analytics = page.getByRole('region', { name: 'Analytics' })
+  await expect(analytics.getByText('75%').first()).toBeVisible()
+  await expect(analytics.getByText('10m 40s').first()).toBeVisible()
+
+  await analytics.getByRole('button', { name: 'Week' }).click()
+  await expect
+    .poll(() => calls.filter((call) => call.path === 'dashboard.analytics').at(-1)?.input)
+    .toMatchObject({ granularity: 'week' })
+
+  await analytics.getByLabel('Name').fill('Weekly activity')
+  await analytics.getByRole('button', { name: 'Save this dashboard' }).click()
+  await expect
+    .poll(() => calls.find((call) => call.path === 'dashboard.save')?.input)
+    .toMatchObject({ name: 'Weekly activity', query: { granularity: 'week' } })
+
+  await page
+    .getByRole('complementary', { name: 'Saved dashboards' })
+    .getByRole('link', { name: 'Last 90 days' })
+    .click()
+  await expect(page).toHaveURL(new RegExp(`dashboard=${SAVED_DASHBOARD.id}`))
+})
+
+test('search finds a file and a saved dashboard', async ({ page, isMobile }) => {
+  await mockRpc(page)
+
+  await page.goto('/')
+  await searchFor(page, 'thunk', isMobile)
+
+  await expect(page.getByRole('link', { name: /src\/cart\/thunks\.ts/ })).toHaveAttribute(
+    'href',
+    '/courses/acme/widgets/cart-flow/code?path=src%2Fcart%2Fthunks.ts',
+  )
+  await expect(
+    page.locator('#library-search-results').getByRole('link', { name: 'Last 90 days' }),
+  ).toHaveAttribute('href', `/?dashboard=${SAVED_DASHBOARD.id}`)
+})

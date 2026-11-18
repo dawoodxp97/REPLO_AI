@@ -1,9 +1,16 @@
 import type { SearchResults } from '@replo/contracts'
-import { BookOpen, FileText, FolderGit2, type LucideIcon } from 'lucide-react'
+import {
+  BookOpen,
+  FileCode,
+  FileText,
+  FolderGit2,
+  LayoutDashboard,
+  type LucideIcon,
+} from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { formatRepoName } from '@/lib/format'
-import { lessonPath, coursePath } from '@/lib/course-paths'
+import { codePath, coursePath, lessonPath, withQuery } from '@/lib/course-paths'
 
 const HIT_CLASS =
   'flex items-start gap-2.5 rounded-md px-2 py-1.5 hover:bg-accent focus-visible:bg-accent focus-visible:-outline-offset-2'
@@ -48,8 +55,14 @@ function Hit({
 }
 
 export function SearchGroups({ results, onPick }: { results: SearchResults; onPick: () => void }) {
-  const empty = results.courses.length + results.lessons.length + results.repositories.length === 0
-  if (empty) return <p className="px-2 text-muted-foreground">Nothing in your library matches.</p>
+  const empty =
+    results.courses.length +
+      results.lessons.length +
+      results.repositories.length +
+      results.files.length +
+      results.dashboards.length ===
+    0
+  if (empty) return <p className="px-2 text-muted-foreground">Nothing matches.</p>
 
   return (
     <>
@@ -72,6 +85,34 @@ export function SearchGroups({ results, onPick }: { results: SearchResults; onPi
               onPick={onPick}
             >
               <HitText title={lesson.title} meta={lesson.courseTitle} />
+            </Hit>
+          ))}
+        </Group>
+      ) : null}
+      {results.files.length > 0 ? (
+        <Group label="Files">
+          {results.files.map((file) => (
+            <Hit
+              key={`${file.versionId}/${file.path}`}
+              icon={FileCode}
+              href={withQuery(codePath(file), { path: file.path })}
+              onPick={onPick}
+            >
+              <HitText title={file.path} meta={formatRepoName(file.owner, file.repo)} />
+            </Hit>
+          ))}
+        </Group>
+      ) : null}
+      {results.dashboards.length > 0 ? (
+        <Group label="Saved dashboards">
+          {results.dashboards.map((dashboard) => (
+            <Hit
+              key={dashboard.dashboardId}
+              icon={LayoutDashboard}
+              href={withQuery('/', { dashboard: dashboard.dashboardId })}
+              onPick={onPick}
+            >
+              <span className="min-w-0 truncate">{dashboard.name}</span>
             </Hit>
           ))}
         </Group>

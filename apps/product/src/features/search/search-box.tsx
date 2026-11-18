@@ -4,7 +4,7 @@ import { cn, Input, Kbd, Spinner } from '@replo/ui'
 import { Search } from 'lucide-react'
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { SearchGroups } from './search-results'
-import { MIN_QUERY_LENGTH, useLibrarySearch, useSearchShortcut } from './use-search'
+import { MIN_QUERY_LENGTH, useSearch, useSearchShortcut } from './use-search'
 
 const RESULTS_ID = 'library-search-results'
 
@@ -19,7 +19,7 @@ export function SearchBox({
   const [open, setOpen] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const panel = useRef<HTMLDivElement>(null)
-  const { debounced, results } = useLibrarySearch(query)
+  const { debounced, results } = useSearch(query)
   const modifierLabel = useSearchShortcut(input)
   const showResults = open && debounced.length >= MIN_QUERY_LENGTH
 
@@ -48,11 +48,11 @@ export function SearchBox({
         autoFocus={autoFocus}
         type="search"
         role="combobox"
-        aria-label="Search your library"
+        aria-label="Search"
         aria-expanded={showResults}
         aria-controls={RESULTS_ID}
         aria-autocomplete="list"
-        placeholder="Search your library"
+        placeholder="Search repositories, courses and files"
         value={query}
         onFocus={() => setOpen(true)}
         onChange={(event) => {

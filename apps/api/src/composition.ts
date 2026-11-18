@@ -50,9 +50,19 @@ import { createCourseContent, type CourseContentService } from './modules/course
 import { createCourseManager, type CourseManager } from './modules/courses/manager.service'
 import { createCoursePublisher, type CoursePublisher } from './modules/courses/publisher.service'
 import { createVersionAccess } from './modules/courses/version-access.service'
-import { createDashboardService, type DashboardService } from './modules/dashboard/dashboard.service'
-import { createAnalyticsService, type AnalyticsService } from './modules/dashboard/analytics.service'
-import { createWorkspaceService, type WorkspaceService } from './modules/workspace/workspace.service'
+import {
+  createDashboardService,
+  type DashboardService,
+} from './modules/dashboard/dashboard.service'
+import {
+  createAnalyticsService,
+  type AnalyticsService,
+} from './modules/dashboard/analytics.service'
+import {
+  createWorkspaceService,
+  type WorkspaceService,
+} from './modules/workspace/workspace.service'
+import { analyticsRepo } from './modules/analytics/analytics.repo'
 
 export interface DomainServices {
   identity: IdentityService
@@ -106,6 +116,7 @@ export function createDomainServices(deps: {
   })
   const notifications = createNotificationsService(db)
   const jobHistory = createJobHistory(db)
+  const analyticsEvents = analyticsRepo(db)
   const jobRuntime = createJobRuntime({ db, queue, notifications })
   const indexing = createIndexingService({
     db,
@@ -119,7 +130,7 @@ export function createDomainServices(deps: {
   const versionAccess = createVersionAccess(db)
   const catalog = loadCatalog(MODEL_CATALOG)
   const models = createModelsService({ db, catalog })
-  const learning = createLearningService({ db, courses: versionAccess })
+  const learning = createLearningService({ db, courses: versionAccess, analytics: analyticsEvents })
   const courseCatalog = createCourseCatalog({ db, learning })
   const courseContent = createCourseContent({ db, indexing, versionAccess, learning })
   const courseManager = createCourseManager({ db })

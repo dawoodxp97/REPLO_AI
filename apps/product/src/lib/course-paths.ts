@@ -17,7 +17,6 @@ export function withQuery(href: string, params: Record<string, QueryValue>): str
 
 export interface CourseLinkContext {
   version?: number | undefined
-  shareToken?: string | undefined
 }
 
 export function withCourseContext(href: string, context: CourseLinkContext): string {
@@ -40,6 +39,10 @@ export function codePath(course: CourseRef): string {
   return `${coursePath(course)}/code`
 }
 
+export function workspacePath({ owner, repo, slug }: CourseRef): string {
+  return `/workspace/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(slug)}`
+}
+
 export function parseVersion(value: string | undefined): number | undefined {
   const version = Number(value)
   return Number.isInteger(version) && version > 0 ? version : undefined
@@ -51,6 +54,7 @@ export function latestVersionNo(versions: readonly { versionNo: number }[]): num
 
 export interface CourseLinks {
   overview(): string
+  workspace(): string
   progress(): string
   lesson(position: { chapterKey: string; lessonKey: string }): string
   sourceExplorer(path?: string): string
@@ -59,6 +63,7 @@ export interface CourseLinks {
 export function createCourseLinks(course: CourseRef, context: CourseLinkContext = {}): CourseLinks {
   return {
     overview: () => withCourseContext(coursePath(course), context),
+    workspace: () => withCourseContext(workspacePath(course), context),
     progress: () => withCourseContext(progressPath(course), context),
     lesson: ({ chapterKey, lessonKey }) =>
       withCourseContext(lessonPath(course, chapterKey, lessonKey), context),

@@ -1,5 +1,8 @@
 import type {
   ChapterDto,
+  DiagramDto,
+  GraphNodeDto,
+  GraphViewDto,
   ProgressDto,
   SourceFileDto,
   SourceTreeEntryDto,
@@ -234,3 +237,125 @@ export const HISTORY_ITEMS = [
     at: '2026-10-22T10:00:00.000Z',
   },
 ]
+
+export const WORKSPACE_GRAPH: GraphViewDto = {
+  versionId: VERSION_ID,
+  commitSha: SHA,
+  graph: {
+    nodes: [
+      {
+        id: 'n-product',
+        kind: 'file',
+        label: 'ProductCard',
+        path: 'src/ui/ProductCard.tsx',
+        layer: 'ui',
+        domain: 'catalog',
+        summary: 'Renders a product and its add-to-cart button.',
+      },
+      {
+        id: 'n-thunks',
+        kind: 'file',
+        label: 'cart thunks',
+        path: 'src/cart/thunks.ts',
+        layer: 'service',
+        domain: 'cart',
+        summary: 'Dispatches cart updates.',
+      },
+      {
+        id: 'n-store',
+        kind: 'file',
+        label: 'store',
+        path: 'src/cart/store.ts',
+        layer: 'data',
+        domain: 'cart',
+      },
+    ],
+    edges: [
+      { id: 'g1', from: 'n-product', to: 'n-thunks', kind: 'imports' },
+      { id: 'g2', from: 'n-thunks', to: 'n-store', kind: 'writes' },
+    ],
+  },
+  tours: [
+    {
+      key: 'tour-cart',
+      title: 'Follow one click',
+      objective: 'See how a click reaches the store.',
+      steps: [
+        { title: 'The button', summary: 'The click handler.', nodeId: 'n-product' },
+        {
+          title: 'The thunk',
+          summary: 'Where the update happens.',
+          lessonKey: 'l1',
+        },
+      ],
+    },
+  ],
+  diagrams: [
+    {
+      id: 'diagram-cart',
+      type: 'dataflow',
+      title: 'Cart dataflow',
+      caption: 'How a click moves through the cart.',
+    },
+  ],
+  layers: ['ui', 'service', 'data'],
+  domains: ['cart', 'catalog'],
+}
+
+export const WORKSPACE_NODE: GraphNodeDto = {
+  versionId: VERSION_ID,
+  node: WORKSPACE_GRAPH.graph.nodes[1]!,
+  edges: [
+    {
+      id: 'g1',
+      from: 'n-product',
+      to: 'n-thunks',
+      kind: 'imports',
+      direction: 'incoming',
+      label: 'ProductCard',
+    },
+    {
+      id: 'g2',
+      from: 'n-thunks',
+      to: 'n-store',
+      kind: 'writes',
+      direction: 'outgoing',
+      label: 'store',
+    },
+  ],
+  refs: SOURCE_REFS,
+}
+
+export const WORKSPACE_DIAGRAM: DiagramDto = {
+  versionId: VERSION_ID,
+  diagram: {
+    id: 'diagram-cart',
+    type: 'dataflow',
+    title: 'Cart dataflow',
+    caption: 'How a click moves through the cart.',
+    nodes: [
+      { id: 'd-product', label: 'ProductCard', kind: 'component', refIds: ['r-button'] },
+      { id: 'd-thunk', label: 'addItem', kind: 'function', refIds: ['r-thunk'] },
+      { id: 'd-store', label: 'Cart store', kind: 'store', refIds: [] },
+    ],
+    edges: [
+      { id: 'de1', from: 'd-product', to: 'd-thunk', label: 'dispatch', refIds: ['r-button'] },
+      { id: 'de2', from: 'd-thunk', to: 'd-store', refIds: ['r-thunk'] },
+    ],
+  },
+  refs: SOURCE_REFS,
+}
+
+export const SAVED_DASHBOARD = {
+  id: 'e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b',
+  name: 'Last 90 days',
+  query: {
+    from: '2026-08-21',
+    to: '2026-11-18',
+    granularity: 'week' as const,
+    tz: 'UTC',
+    filters: {},
+  },
+  createdAt: '2026-11-18T09:00:00.000Z',
+  updatedAt: '2026-11-18T09:00:00.000Z',
+}

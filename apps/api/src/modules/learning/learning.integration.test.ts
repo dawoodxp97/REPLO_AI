@@ -7,6 +7,7 @@ import { ANALYZER_VERSION } from '@replo/repo-analysis'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
+  analyticsEvents,
   generationJobs,
   learningProgress,
   quizAttempts,
@@ -15,6 +16,7 @@ import {
 } from '../../platform/db/schema'
 import { createCoursePublisher, type CoursePublisher } from '../courses/publisher.service'
 import { createVersionAccess } from '../courses/version-access.service'
+import { analyticsRepo } from '../analytics/analytics.repo'
 import { learningRepo } from './learning.repo'
 import { createLearningService, type LearningService } from './learning.service'
 
@@ -156,7 +158,11 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
     await applyDdl(pool)
     await db.execute(sql`truncate table users, repositories restart identity cascade`)
     publisher = createCoursePublisher(db)
-    learning = createLearningService({ db, courses: createVersionAccess(db) })
+    learning = createLearningService({
+      db,
+      courses: createVersionAccess(db),
+      analytics: analyticsRepo(db),
+    })
   })
 
   afterAll(async () => {
@@ -317,6 +323,11 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
         status: 'completed',
       }),
     ).toMatchObject({ lessons: { map: 'completed' }, completed: 1 })
+    const completedEvents = await db
+      .select()
+      .from(analyticsEvents)
+      .where(and(eq(analyticsEvents.userId, owner), eq(analyticsEvents.type, 'lesson_completed')))
+    expect(completedEvents).toHaveLength(1)
     const afterUnmark = await learning.unmarkLesson(owner, {
       versionId: second.versionId,
       lessonKey: 'map',
@@ -367,6 +378,11 @@ describe.skipIf(DATABASE_URL === '')('learning progress against Postgres', () =>
 
     const attempts = await db.select().from(quizAttempts).where(eq(quizAttempts.userId, owner))
     expect(attempts).toHaveLength(2)
+    const quizEvents = await db
+      .select()
+      .from(analyticsEvents)
+      .where(and(eq(analyticsEvents.userId, owner), eq(analyticsEvents.type, 'quiz_submitted')))
+    expect(quizEvents.map((event) => event.metadata?.correct)).toEqual([false, true])
     expect(attempts.map(({ choiceKey, correct }) => ({ choiceKey, correct }))).toEqual(
       expect.arrayContaining([
         { choiceKey: 'false', correct: false },

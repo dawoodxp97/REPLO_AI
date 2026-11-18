@@ -25,6 +25,7 @@ import { LibraryToolbar } from './library-toolbar'
 import { CourseRow } from './course-row'
 import { useCourseList } from './use-library'
 import { NewCourseAction } from '@/components/new-course-action'
+import { WorkspaceTotals } from '@/features/dashboard/workspace-totals'
 
 export function LibraryPage() {
   const list = useCourseList()
@@ -34,9 +35,11 @@ export function LibraryPage() {
     <div className="space-y-8">
       <PageHeader
         title="Library"
-        description="Your courses, who can read them, and how far you have read."
+        description="Your courses and how far you have read."
         action={<NewCourseAction />}
       />
+
+      <WorkspaceTotals />
 
       <QueryBoundary query={list} errorTitle="We could not load your library">
         {(data) => {

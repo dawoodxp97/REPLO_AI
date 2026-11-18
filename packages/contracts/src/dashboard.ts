@@ -1,12 +1,22 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { NonNegativeInt, OffsetCursor, IdCursor, OkResult, pageInput, pageOutput, TimeZone } from './common'
+import {
+  NonNegativeInt,
+  OffsetCursor,
+  IdCursor,
+  OkResult,
+  pageInput,
+  pageOutput,
+  TimeZone,
+} from './common'
 import { JobProgressFields } from './jobs'
 
 export const DashboardSummary = z.object({
   counts: z.object({
     total: NonNegativeInt,
     draft: NonNegativeInt,
+    repositories: NonNegativeInt,
+    generations: NonNegativeInt,
   }),
   jobsInFlight: z.array(
     z.object({
@@ -91,9 +101,25 @@ export const AnalyticsSeries = z.object({
 })
 export type AnalyticsSeries = z.infer<typeof AnalyticsSeries>
 
+export const AnalyticsModelUse = z.object({
+  model: z.string(),
+  generations: NonNegativeInt,
+})
+export type AnalyticsModelUse = z.infer<typeof AnalyticsModelUse>
+
+export const AnalyticsSummary = z.object({
+  jobsSucceeded: NonNegativeInt,
+  jobsFailed: NonNegativeInt,
+  successRate: z.number().min(0).max(1).nullable(),
+  medianTimeToReadySeconds: NonNegativeInt.nullable(),
+})
+export type AnalyticsSummary = z.infer<typeof AnalyticsSummary>
+
 export const AnalyticsReport = z.object({
   query: AnalyticsQuery,
   series: z.array(AnalyticsSeries),
+  summary: AnalyticsSummary,
+  models: z.array(AnalyticsModelUse),
 })
 export type AnalyticsReport = z.infer<typeof AnalyticsReport>
 

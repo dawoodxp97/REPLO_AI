@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, sql } from 'drizzle-orm'
 import { applyDdl } from '../../platform/db/test-setup'
 import { RunLimits } from '@replo/ai'
 import { ANALYZER_VERSION, DEFAULT_EXTRACTION_LIMITS } from '@replo/repo-analysis'
@@ -12,6 +12,7 @@ import type { JobStatus } from '@replo/contracts'
 import { users } from '../../platform/db/auth-schema'
 import { createDb, type Db } from '../../platform/db/client'
 import {
+  analyticsEvents,
   snapshotFileEdges,
   generationJobs,
   jobEvents,
@@ -154,7 +155,11 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
         courses: { removeForRepository: async () => undefined },
       }),
     })
-    runtime = createJobRuntime({ db, queue, notifications })
+    runtime = createJobRuntime({
+      db,
+      queue,
+      notifications,
+    })
     imports = createRepositoryImports({
       db,
       preflight: createPreflight({ rest, installations: noInstallations, limits }),
@@ -510,13 +515,28 @@ describe.skipIf(DATABASE_URL === '')('generation pipeline against Postgres and p
     expect(terminal[0]!.data).toEqual({ code: 'NETWORK' })
     const sent = await db.select().from(notifications).where(eq(notifications.jobId, jobId))
     expect(sent.map((n) => n.userId)).toEqual([owner])
+    const recorded = await db
+      .select()
+      .from(analyticsEvents)
+      .where(and(eq(analyticsEvents.userId, owner), eq(analyticsEvents.type, 'job_failed')))
+    expect(recorded).toHaveLength(1)
+    expect(recorded[0]?.metadata).toMatchObject({ code: 'NETWORK' })
+    expect(typeof recorded[0]?.metadata?.durationMs).toBe('number')
   })
 
-  it('emits a single succeeded event for a successful finish', async () => {
-    const { jobId } = await newJob()
+  it('emits a single succeeded event and records the model and duration', async () => {
+    const { owner, jobId } = await newJob()
     await setStatus(jobId, 'running')
     expect(await runtime.jobStore.finish(jobId, 'succeeded')).toBe(true)
     expect((await eventTypes(jobId)).filter((t) => t === 'succeeded')).toHaveLength(1)
+
+    const recorded = await db
+      .select()
+      .from(analyticsEvents)
+      .where(and(eq(analyticsEvents.userId, owner), eq(analyticsEvents.type, 'job_succeeded')))
+    expect(recorded).toHaveLength(1)
+    expect(recorded[0]?.metadata).toMatchObject({ model: 'claude-haiku-5-5' })
+    expect(typeof recorded[0]?.metadata?.durationMs).toBe('number')
   })
 
   it('does not persist raw provider text in the failure detail', async () => {

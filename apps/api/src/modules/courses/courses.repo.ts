@@ -292,6 +292,7 @@ export const coursesRepo = (db: DbOrTx) => {
           versionId: courseVersions.id,
           owner: repositories.owner,
           repo: repositories.name,
+          slug: courses.slug,
           path: snapshotFiles.path,
         })
         .from(courses)

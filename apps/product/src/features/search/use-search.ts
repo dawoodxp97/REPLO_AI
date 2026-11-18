@@ -10,7 +10,7 @@ const noSubscription = () => () => undefined
 const clientLabel = () => (/mac|iphone|ipad/i.test(navigator.platform) ? '⌘' : 'Ctrl')
 const serverLabel = () => 'Ctrl'
 
-export function useLibrarySearch(query: string) {
+export function useSearch(query: string) {
   const debounced = useDebouncedValue(query.trim(), DEBOUNCE_MS)
   const results = useQuery(
     orpc.search.all.queryOptions({

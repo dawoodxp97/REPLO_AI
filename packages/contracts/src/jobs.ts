@@ -48,6 +48,7 @@ export const GenerationJobDto = z.object({
   audience: Audience.default('intermediate'),
   model: z.string().nullable().default(null),
   progress: Progress.default(0),
+  createdAt: z.iso.datetime(),
   courseId: z.uuid().nullable().default(null),
   course: CourseRef.nullable().default(null),
   error: z.object({ code: z.string() }).nullable().default(null),
@@ -82,9 +83,7 @@ export type JobEventDto = z.infer<typeof JobEventDto>
 
 export const jobsContract = {
   get: oc.route({ method: 'GET', path: '/jobs/{jobId}' }).input(JobRef).output(GenerationJobDto),
-  listActive: oc
-    .route({ method: 'GET', path: '/jobs/active' })
-    .output(z.array(GenerationJobDto)),
+  listActive: oc.route({ method: 'GET', path: '/jobs/active' }).output(z.array(GenerationJobDto)),
   cancel: oc
     .route({ method: 'POST', path: '/jobs/{jobId}/cancel' })
     .input(JobRef)

@@ -12,10 +12,9 @@ import { decodeOffset, offsetPage } from '../../platform/pagination'
 import { analyticsRepo } from '../analytics/analytics.repo'
 import { dashboardsRepo } from './dashboards.repo'
 
-const SERIES: { key: string; label: string }[] = [
+const ANALYTICS_SERIES: { key: string; label: string }[] = [
   { key: 'job_succeeded', label: 'Generations finished' },
   { key: 'job_failed', label: 'Generations failed' },
-  { key: 'course_published', label: 'Courses published' },
   { key: 'lesson_completed', label: 'Lessons completed' },
   { key: 'quiz_submitted', label: 'Quiz answers' },
 ]
@@ -25,7 +24,11 @@ export interface AnalyticsService {
   save(userId: string, input: { name: string; query: AnalyticsQuery }): Promise<SavedDashboard>
   list(userId: string, input: { limit: number; cursor?: string }): Promise<SavedDashboardPage>
   remove(userId: string, dashboardId: string): Promise<void>
-  searchOwn(userId: string, query: string, limit: number): Promise<{ dashboardId: string; name: string }[]>
+  searchOwn(
+    userId: string,
+    query: string,
+    limit: number,
+  ): Promise<{ dashboardId: string; name: string }[]>
 }
 
 const toDto = (row: {
@@ -48,10 +51,14 @@ export function createAnalyticsService(db: Db): AnalyticsService {
 
   return {
     async report(userId, query) {
-      const series = await Promise.all(
-        SERIES.map((item) => events.series(userId, query, item.key, item.label)),
-      )
-      return { query, series: series.filter(isNonEmpty) }
+      const [series, summary, models] = await Promise.all([
+        Promise.all(
+          ANALYTICS_SERIES.map((item) => events.series(userId, query, item.key, item.label)),
+        ),
+        events.summary(userId, query),
+        events.models(userId, query),
+      ])
+      return { query, series: series.filter(isNonEmpty), summary, models }
     },
 
     async save(userId, input) {

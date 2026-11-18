@@ -11,6 +11,9 @@ const REPOSITORIES: RepositoryListItem[] = [
     name: 'widgets',
     isPrivate: false,
     defaultBranch: 'main',
+    courseCount: 1,
+    generationCount: 2,
+    lastActivityAt: '2026-10-22T09:30:00.000Z',
     latestJob: { jobId: JOB_ID, status: 'running' },
   },
   {
@@ -19,11 +22,14 @@ const REPOSITORIES: RepositoryListItem[] = [
     name: 'internal-tools',
     isPrivate: true,
     defaultBranch: 'develop',
+    courseCount: 0,
+    generationCount: 0,
+    lastActivityAt: null,
     latestJob: null,
   },
 ]
 
-test('my repositories shows each repository with its latest job state', async ({ page }) => {
+test('repositories shows each repository with its latest job state', async ({ page }) => {
   await mockRpc(page, {
     'me.get': () => ({ body: USER }),
     'repositories.list': () => ({ body: { items: REPOSITORIES, nextCursor: null } }),
@@ -41,7 +47,7 @@ test('my repositories shows each repository with its latest job state', async ({
   await expect(page.getByText('Private')).toBeVisible()
 })
 
-test('my repositories with no imports offers the import action', async ({ page }) => {
+test('repositories with no imports offers the import action', async ({ page }) => {
   await mockRpc(page, {
     'me.get': () => ({ body: USER }),
     'repositories.list': () => ({ body: { items: [], nextCursor: null } }),

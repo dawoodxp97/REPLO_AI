@@ -1,4 +1,4 @@
-import { FolderGit2, House, LibraryBig, Settings, type LucideIcon } from 'lucide-react'
+import { Activity, FolderGit2, House, LibraryBig, Settings, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   href: string
@@ -16,7 +16,13 @@ export const PRIMARY_NAV: readonly NavItem[] = [
     href: '/library',
     label: 'Library',
     icon: LibraryBig,
-    isActive: (pathname) => startsWith('/library')(pathname) || startsWith('/jobs')(pathname),
+    isActive: startsWith('/library'),
+  },
+  {
+    href: '/jobs',
+    label: 'Generations',
+    icon: Activity,
+    isActive: startsWith('/jobs'),
   },
   {
     href: '/repositories',

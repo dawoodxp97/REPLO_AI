@@ -20,17 +20,21 @@ test('a theme change is saved and applied to the page', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark')
 })
 
-test('other sessions are signed out and the result is reported', async ({ page }) => {
+test('account deletion needs the typed confirmation', async ({ page }) => {
   const calls: RpcCall[] = []
   await mockRpc(page, {}, calls)
 
   await page.goto('/settings/profile')
-  await page.getByRole('button', { name: 'Sign out other sessions' }).click()
+  await page.getByRole('button', { name: 'Delete account' }).click()
+  const dialog = page.getByRole('alertdialog')
+  const confirm = dialog.getByRole('button', { name: 'Delete my account' })
+  await expect(confirm).toBeDisabled()
 
-  await expect(
-    page.getByRole('status').filter({ hasText: 'Other sessions are signed out.' }),
-  ).toBeVisible()
-  expect(calls.map((call) => call.path)).toContain('auth.revokeOtherSessions')
+  await dialog.getByLabel('Type delete to confirm').fill('DELETE')
+  await expect(confirm).toBeEnabled()
+  await confirm.click()
+
+  await expect.poll(() => calls.some((call) => call.path === 'me.deleteAccount')).toBe(true)
 })
 
 test('the default model is saved', async ({ page }) => {

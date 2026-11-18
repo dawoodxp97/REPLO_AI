@@ -84,14 +84,14 @@ Status legend: `[x]` done · `[~]` scaffolded · `[ ]` not started.
 
 ## R4 — Product UI (XL)
 
-- [ ] **Workspace**: graph (layer-grouped), tree and table views; node detail; tours; diagram viewer with evidence chips.
-- [ ] **Course player**: lesson + pinned source, keyboard, command palette, quizzes, progress, resume; no share/visibility controls.
-- [ ] **Repositories / Courses**: counts, status, last activity, cascade delete; no "My" wording.
-- [ ] **Dashboard**: analytics cards, charts, day/week/month timelines, saved dashboards with filters.
-- [ ] **Search**: one box across repositories, courses, lessons, files and saved dashboards.
-- [ ] **Active generations**: live list with stage, progress, elapsed and cancel.
-- [ ] **Settings**: default model, audience, theme, quiz/auto-advance/browser notification preferences; account deletion with typed confirmation.
-- [ ] Remove sharing, visibility, preset/budget and revoke-sessions UI.
+- [x] **Workspace**: graph (layer-grouped), tree and table views; node detail; tours; diagram viewer with evidence chips.
+- [x] **Course player**: lesson + pinned source, keyboard, command palette, quizzes, progress, resume; no share/visibility controls.
+- [x] **Repositories / Courses**: counts, status, last activity, cascade delete; no "My" wording.
+- [x] **Dashboard**: analytics cards, charts, day/week/month timelines, saved dashboards with filters.
+- [x] **Search**: one box across repositories, courses, lessons, files and saved dashboards.
+- [x] **Active generations**: live list with stage, progress, elapsed and cancel.
+- [x] **Settings**: default model, audience, theme, quiz/auto-advance/browser notification preferences; account deletion with typed confirmation.
+- [x] Remove sharing, visibility, preset/budget and revoke-sessions UI.
 - **Accept:** Playwright `sign in → import → workspace → lesson → quiz`; analytics and saved dashboards work at all three granularities; axe ≥ 90 on player and workspace.
 
 ## R5 — Admin (L)

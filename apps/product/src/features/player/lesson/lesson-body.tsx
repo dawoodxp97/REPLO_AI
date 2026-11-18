@@ -14,7 +14,6 @@ import type { LessonPosition } from './lesson-navigation'
 export interface LessonBodyProps {
   links: CourseLinks
   versionId: string
-  shareToken?: string
   chapterTitle: string
   lesson: LearnerLesson
   quiz: ReactNode
@@ -30,7 +29,6 @@ export interface LessonBodyProps {
 export function LessonBody({
   links,
   versionId,
-  shareToken,
   chapterTitle,
   lesson,
   quiz,
@@ -58,7 +56,6 @@ export function LessonBody({
         versionId={versionId}
         blocks={lesson.blocks}
         references={references}
-        shareToken={shareToken}
         onOpenReference={onOpenReference}
       />
 

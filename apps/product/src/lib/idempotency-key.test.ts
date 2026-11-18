@@ -10,12 +10,12 @@ describe('createIdempotencyKeys', () => {
 
   it('issues a new key when the payload changes', () => {
     const keys = createIdempotencyKeys()
-    const first = keys.keyFor({ preset: 'free' })
-    expect(keys.keyFor({ preset: 'balanced' })).not.toBe(first)
+    const first = keys.keyFor({ modelId: 'a' })
+    expect(keys.keyFor({ modelId: 'b' })).not.toBe(first)
   })
 
   it('gives independent stores independent keys', () => {
-    const payload = { preset: 'free' }
+    const payload = { modelId: 'a' }
     expect(createIdempotencyKeys().keyFor(payload)).not.toBe(
       createIdempotencyKeys().keyFor(payload),
     )

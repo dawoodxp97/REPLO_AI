@@ -87,6 +87,7 @@ export function createJobService(deps: JobServiceDeps): JobService {
       status: job.status,
       stage: job.stage,
       progress: job.progress,
+      createdAt: job.createdAt.toISOString(),
       courseId: job.courseId,
       course: course ?? null,
       error: job.errorCode ? { code: job.errorCode } : null,

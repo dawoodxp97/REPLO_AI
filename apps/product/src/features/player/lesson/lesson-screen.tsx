@@ -27,7 +27,6 @@ export interface LessonScreenProps {
   chapterData: ChapterDto
   lesson: LearnerLesson
   progress: ProgressDto | undefined
-  shareToken?: string
   version?: number
 }
 
@@ -37,10 +36,9 @@ export function LessonScreen({
   chapterData,
   lesson,
   progress,
-  shareToken,
   version,
 }: LessonScreenProps) {
-  const links = useCourseLinks(course, { version, shareToken })
+  const links = useCourseLinks(course, { version })
   const reference = useActiveReference()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { quizzesEnabled, autoAdvance } = usePlayerSettings()
@@ -105,7 +103,6 @@ export function LessonScreen({
           <LessonBody
             links={links}
             versionId={overview.versionId}
-            shareToken={shareToken}
             chapterTitle={navigation.chapterTitle}
             lesson={lesson}
             quiz={quiz}
@@ -123,7 +120,6 @@ export function LessonScreen({
             versionId={overview.versionId}
             refId={shownRefId}
             references={chapterData.sourceRefs}
-            shareToken={shareToken}
           />
         }
         sourceOpen={reference.refId !== null}

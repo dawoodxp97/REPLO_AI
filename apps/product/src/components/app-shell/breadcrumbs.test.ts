@@ -20,9 +20,9 @@ describe('breadcrumbsFor', () => {
     expect(breadcrumbsFor('/settings/nope')).toBeNull()
   })
 
-  it('files a generation job under Library', () => {
+  it('files a generation job under Generations', () => {
     expect(breadcrumbsFor('/jobs/7d2e9c10-5a1b-4f6e-8c3d-9a0b1c2d3e4f')).toEqual([
-      { label: 'Library', href: '/library' },
+      { label: 'Generations', href: '/jobs' },
       { label: 'Generation' },
     ])
   })
@@ -32,8 +32,8 @@ describe('primary navigation', () => {
   const activeFor = (path: string) =>
     PRIMARY_NAV.filter((item) => item.isActive(path)).map((item) => item.label)
 
-  it('marks Library while a job runs', () => {
-    expect(activeFor('/jobs/abc')).toEqual(['Library'])
+  it('marks Generations while a job runs', () => {
+    expect(activeFor('/jobs/abc')).toEqual(['Generations'])
   })
 
   it('keeps Repositories for its own page only', () => {

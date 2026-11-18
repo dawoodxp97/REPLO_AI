@@ -21,6 +21,7 @@ export const SearchResults = z.object({
       versionId: z.uuid(),
       owner: z.string(),
       repo: z.string(),
+      slug: z.string(),
       path: z.string(),
     }),
   ),

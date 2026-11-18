@@ -148,7 +148,7 @@ export const jobsRepo = (db: DbOrTx) => ({
     status: TerminalStatus,
     error?: JobFailure,
     from: readonly JobRow['status'][] = IN_FLIGHT_STATUSES,
-  ): Promise<{ userId: string } | undefined> {
+  ): Promise<Pick<JobRow, 'userId' | 'models' | 'createdAt'> | undefined> {
     const [row] = await db
       .update(generationJobs)
       .set({
@@ -158,7 +158,11 @@ export const jobsRepo = (db: DbOrTx) => ({
         ...(error ? { errorCode: error.code, errorDetail: error.detail ?? null } : {}),
       })
       .where(and(eq(generationJobs.id, jobId), inArray(generationJobs.status, [...from])))
-      .returning({ userId: generationJobs.userId })
+      .returning({
+        userId: generationJobs.userId,
+        models: generationJobs.models,
+        createdAt: generationJobs.createdAt,
+      })
     return row
   },
 

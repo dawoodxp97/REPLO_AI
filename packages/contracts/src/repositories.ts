@@ -1,6 +1,14 @@
 import { oc } from '@orpc/contract'
 import { z } from 'zod'
-import { Audience, CommitSha, IdCursor, OkResult, pageInput, pageOutput } from './common'
+import {
+  Audience,
+  CommitSha,
+  IdCursor,
+  NonNegativeInt,
+  OkResult,
+  pageInput,
+  pageOutput,
+} from './common'
 import { GenerationJobDto, JobStatus } from './jobs'
 
 export const RepositorySource = z.discriminatedUnion('kind', [
@@ -58,6 +66,9 @@ export const RepositoryListItem = z.object({
   name: z.string(),
   isPrivate: z.boolean(),
   defaultBranch: z.string(),
+  courseCount: NonNegativeInt,
+  generationCount: NonNegativeInt,
+  lastActivityAt: z.iso.datetime().nullable(),
   latestJob: z.object({ jobId: z.uuid(), status: JobStatus }).nullable(),
 })
 export type RepositoryListItem = z.infer<typeof RepositoryListItem>

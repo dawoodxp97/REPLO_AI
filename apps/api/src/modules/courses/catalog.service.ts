@@ -14,7 +14,7 @@ import { coursePath } from './access'
 import { toCourseSummary } from './course-summary'
 import { coursesRepo } from './courses.repo'
 
-export type CourseCounts = DashboardSummary['counts']
+export type CourseCounts = Pick<DashboardSummary['counts'], 'total' | 'draft'>
 
 export interface CourseCatalogDeps {
   db: Db
@@ -34,11 +34,7 @@ export interface CourseCatalog {
     query: string,
     limit: number,
   ): Promise<Pick<SearchResults, 'courses' | 'lessons'>>
-  searchFiles(
-    userId: string,
-    query: string,
-    limit: number,
-  ): Promise<SearchResults['files']>
+  searchFiles(userId: string, query: string, limit: number): Promise<SearchResults['files']>
 }
 
 export function createCourseCatalog(deps: CourseCatalogDeps): CourseCatalog {
@@ -118,6 +114,7 @@ export function createCourseCatalog(deps: CourseCatalogDeps): CourseCatalog {
         versionId: row.versionId,
         owner: row.owner,
         repo: row.repo,
+        slug: row.slug,
         path: row.path,
       }))
     },

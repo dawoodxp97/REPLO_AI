@@ -13,7 +13,6 @@ export interface LessonBlocksProps {
   versionId: string
   blocks: readonly Block[]
   references: SourceRefMap
-  shareToken?: string
   onOpenReference: (refId: string) => void
 }
 
@@ -28,7 +27,7 @@ export function LessonBlocks(props: LessonBlocksProps) {
 }
 
 function BlockView({ block, ...shared }: LessonBlocksProps & { block: Block }) {
-  const { versionId, references, shareToken, onOpenReference } = shared
+  const { versionId, references, onOpenReference } = shared
   switch (block.type) {
     case 'prose':
       return (
@@ -49,7 +48,6 @@ function BlockView({ block, ...shared }: LessonBlocksProps & { block: Block }) {
           <CodeExcerpt
             versionId={versionId}
             reference={reference}
-            shareToken={shareToken}
             highlight={block.highlight?.[0] ?? null}
           />
           <figcaption className="text-sm text-muted-foreground">{block.caption}</figcaption>

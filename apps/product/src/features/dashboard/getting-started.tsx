@@ -35,7 +35,7 @@ export function GettingStarted() {
             <span className="pt-0.5 font-mono text-xs text-muted-foreground">02</span>
             <div className="space-y-1">
               <p className="font-medium">Choose a repository</p>
-              <p className="text-muted-foreground">Review the pre-flight check and run estimate.</p>
+              <p className="text-muted-foreground">Review the pre-flight check before you start.</p>
             </div>
           </li>
           <li className="flex gap-3 pt-4">

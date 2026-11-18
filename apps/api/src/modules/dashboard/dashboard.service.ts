@@ -14,7 +14,7 @@ export interface DashboardDeps {
   courses: Pick<CourseCatalog, 'counts' | 'recentPublished'>
   jobs: Pick<JobHistory, 'inFlightFor' | 'recentFor'>
   learning: Pick<LearningService, 'resumeTarget' | 'readingStats'>
-  repositories: Pick<RepositoryLibrary, 'describeLinked' | 'linkedIds'>
+  repositories: Pick<RepositoryLibrary, 'describeLinked' | 'linkedIds' | 'counts'>
 }
 
 export interface DashboardService {
@@ -33,18 +33,23 @@ export function createDashboardService(deps: DashboardDeps): DashboardService {
 
   return {
     async summary(userId) {
-      const [counts, inFlight, resume, reading] = await Promise.all([
+      const [courseCounts, inFlight, resume, reading, repositoryCounts] = await Promise.all([
         courses.counts(userId),
         jobs.inFlightFor(userId, IN_FLIGHT_LIMIT),
         learning.resumeTarget(userId),
         learning.readingStats(userId),
+        repositories.counts(userId),
       ])
       const linked = await repositories.describeLinked(
         userId,
         inFlight.map((job) => job.repositoryId),
       )
       return {
-        counts,
+        counts: {
+          ...courseCounts,
+          repositories: repositoryCounts.repositories,
+          generations: repositoryCounts.generations,
+        },
         jobsInFlight: inFlight.flatMap((job) => {
           const repository = linked.get(job.repositoryId)
           if (!repository) return []

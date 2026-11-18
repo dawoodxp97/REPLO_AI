@@ -16,9 +16,9 @@ export interface LessonPageProps {
 }
 
 export function LessonPage({ course, chapterKey, lessonKey }: LessonPageProps) {
-  const { shareToken, versionNo, overview } = useCourseOverview(course)
+  const { versionNo, overview } = useCourseOverview(course)
   const versionId = overview.data?.versionId
-  const chapter = useChapter(versionId, chapterKey, shareToken)
+  const chapter = useChapter(versionId, chapterKey)
   const progress = useCourseProgress(
     overview.data === undefined
       ? skipToken
@@ -44,20 +44,15 @@ export function LessonPage({ course, chapterKey, lessonKey }: LessonPageProps) {
       chapterData={chapter.data}
       lesson={lesson}
       progress={progress.data}
-      shareToken={shareToken}
       version={versionNo}
     />
   )
 }
 
-function useChapter(
-  versionId: string | undefined,
-  chapterKey: string,
-  shareToken: string | undefined,
-) {
+function useChapter(versionId: string | undefined, chapterKey: string) {
   return useQuery(
     orpc.courses.getChapter.queryOptions({
-      input: versionId === undefined ? skipToken : { versionId, chapterKey, shareToken },
+      input: versionId === undefined ? skipToken : { versionId, chapterKey },
     }),
   )
 }

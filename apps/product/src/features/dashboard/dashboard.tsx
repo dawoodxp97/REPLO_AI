@@ -14,6 +14,7 @@ import { ResumeCard } from './resume-card'
 import { CourseShelf } from './course-shelf'
 import { useDashboardSummary } from './use-dashboard'
 import { WorkspaceCard } from './workspace-card'
+import { AnalyticsSection } from './analytics-section'
 
 export function Dashboard() {
   const summary = useDashboardSummary()
@@ -49,6 +50,8 @@ export function Dashboard() {
           </div>
         )}
       </QueryBoundary>
+
+      <AnalyticsSection />
     </div>
   )
 }

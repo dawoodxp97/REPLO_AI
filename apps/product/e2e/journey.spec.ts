@@ -36,11 +36,14 @@ test('the journey: import, watch progress, read a lesson and answer its quiz', a
   await page.getByRole('button', { name: 'Generate course' }).click()
 
   await expect(page).toHaveURL(new RegExp(`/jobs/${JOB_ID}$`))
-  await expect(page.getByRole('link', { name: 'Open the course' })).toBeVisible()
-  await page.getByRole('link', { name: 'Open the course' }).click()
+  await expect(page.getByRole('link', { name: 'Open the workspace' })).toBeVisible()
+  await page.getByRole('link', { name: 'Open the workspace' }).click()
 
   await expect(page.getByRole('heading', { level: 1, name: 'How the cart works' })).toBeVisible()
-  await page.getByRole('link', { name: 'The button dispatches a thunk' }).first().click()
+  await page.getByRole('link', { name: 'Start reading' }).click()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'The button dispatches a thunk' }),
+  ).toBeVisible()
   await page.getByRole('radio', { name: 'A thunk' }).check()
   await page.getByRole('button', { name: 'Check answer' }).click()
   await expect(page.getByText('Correct.', { exact: true })).toBeVisible()

@@ -68,6 +68,7 @@ export const JOB: GenerationJobDto = {
   status: 'queued',
   stage: null,
   progress: 0,
+  createdAt: '2026-10-23T10:00:00.000Z',
   courseId: null,
   course: null,
   error: null,

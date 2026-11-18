@@ -12,21 +12,20 @@ import {
 
 export function useCourseOverview({ owner, repo, slug }: CourseRef) {
   const params = useSearchParams()
-  const shareToken = params.get('share') ?? undefined
   const versionNo = parseVersion(params.get('version') ?? undefined)
-  const linkContext: CourseLinkContext = { version: versionNo, shareToken }
+  const linkContext: CourseLinkContext = { version: versionNo }
   const overview = useQuery(
     orpc.courses.get.queryOptions({ input: { owner, repo, slug, versionNo } }),
   )
-  return { shareToken, versionNo, linkContext, overview }
+  return { versionNo, linkContext, overview }
 }
 
 export function useCourseLinks(
   { owner, repo, slug }: CourseRef,
-  { version, shareToken }: CourseLinkContext,
+  { version }: CourseLinkContext,
 ): CourseLinks {
   return useMemo(
-    () => createCourseLinks({ owner, repo, slug }, { version, shareToken }),
-    [owner, repo, slug, version, shareToken],
+    () => createCourseLinks({ owner, repo, slug }, { version }),
+    [owner, repo, slug, version],
   )
 }
