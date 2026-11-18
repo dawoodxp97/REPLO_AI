@@ -1,0 +1,718 @@
+{
+  "repo": "commerce-platform",
+  "pipeline": "lite",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "commerce-platform walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "commerce-platform",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:db/schema.sql",
+          "kind": "file",
+          "label": "db/schema.sql",
+          "path": "db/schema.sql"
+        },
+        {
+          "id": "file:src/app.ts",
+          "kind": "file",
+          "label": "src/app.ts",
+          "path": "src/app.ts"
+        },
+        {
+          "id": "file:src/domain/product.ts",
+          "kind": "file",
+          "label": "src/domain/product.ts",
+          "path": "src/domain/product.ts"
+        },
+        {
+          "id": "file:src/repositories/order-repository.ts",
+          "kind": "file",
+          "label": "src/repositories/order-repository.ts",
+          "path": "src/repositories/order-repository.ts"
+        },
+        {
+          "id": "file:src/repositories/product-repository.ts",
+          "kind": "file",
+          "label": "src/repositories/product-repository.ts",
+          "path": "src/repositories/product-repository.ts"
+        },
+        {
+          "id": "file:src/routes/orders.ts",
+          "kind": "file",
+          "label": "src/routes/orders.ts",
+          "path": "src/routes/orders.ts"
+        },
+        {
+          "id": "file:src/server.ts",
+          "kind": "file",
+          "label": "src/server.ts",
+          "path": "src/server.ts"
+        },
+        {
+          "id": "file:src/services/orders.ts",
+          "kind": "file",
+          "label": "src/services/orders.ts",
+          "path": "src/services/orders.ts"
+        },
+        {
+          "id": "file:src/services/pricing.ts",
+          "kind": "file",
+          "label": "src/services/pricing.ts",
+          "path": "src/services/pricing.ts"
+        },
+        {
+          "id": "file:src/services/products.ts",
+          "kind": "file",
+          "label": "src/services/products.ts",
+          "path": "src/services/products.ts"
+        },
+        {
+          "id": "group:db/schema.sql",
+          "kind": "module",
+          "label": "db/schema.sql"
+        },
+        {
+          "id": "group:src/app.ts",
+          "kind": "module",
+          "label": "src/app.ts"
+        },
+        {
+          "id": "group:src/domain",
+          "kind": "module",
+          "label": "src/domain"
+        },
+        {
+          "id": "group:src/repositories",
+          "kind": "module",
+          "label": "src/repositories"
+        },
+        {
+          "id": "group:src/routes",
+          "kind": "module",
+          "label": "src/routes"
+        },
+        {
+          "id": "group:src/server.ts",
+          "kind": "module",
+          "label": "src/server.ts"
+        },
+        {
+          "id": "group:src/services",
+          "kind": "module",
+          "label": "src/services"
+        },
+        {
+          "id": "sym:src/config.ts#Config",
+          "kind": "symbol",
+          "label": "Config",
+          "path": "src/config.ts",
+          "symbolKey": "src/config.ts#Config"
+        },
+        {
+          "id": "sym:src/domain/order.ts#OrderLine",
+          "kind": "symbol",
+          "label": "OrderLine",
+          "path": "src/domain/order.ts",
+          "symbolKey": "src/domain/order.ts#OrderLine"
+        },
+        {
+          "id": "sym:src/domain/order.ts#Order",
+          "kind": "symbol",
+          "label": "Order",
+          "path": "src/domain/order.ts",
+          "symbolKey": "src/domain/order.ts#Order"
+        },
+        {
+          "id": "sym:src/domain/order.ts#OrderInput",
+          "kind": "symbol",
+          "label": "OrderInput",
+          "path": "src/domain/order.ts",
+          "symbolKey": "src/domain/order.ts#OrderInput"
+        },
+        {
+          "id": "sym:src/domain/product.ts#Product",
+          "kind": "symbol",
+          "label": "Product",
+          "path": "src/domain/product.ts",
+          "symbolKey": "src/domain/product.ts#Product"
+        },
+        {
+          "id": "sym:src/domain/product.ts#ProductInput",
+          "kind": "symbol",
+          "label": "ProductInput",
+          "path": "src/domain/product.ts",
+          "symbolKey": "src/domain/product.ts#ProductInput"
+        },
+        {
+          "id": "sym:src/services/orders.ts#OrderDeps",
+          "kind": "symbol",
+          "label": "OrderDeps",
+          "path": "src/services/orders.ts",
+          "symbolKey": "src/services/orders.ts#OrderDeps"
+        },
+        {
+          "id": "sym:src/services/products.ts#ProductDeps",
+          "kind": "symbol",
+          "label": "ProductDeps",
+          "path": "src/services/products.ts",
+          "symbolKey": "src/services/products.ts#ProductDeps"
+        }
+      ],
+      "edges": [
+        {
+          "id": "calls|file:src/app.ts|file:src/routes/orders.ts",
+          "from": "file:src/app.ts",
+          "to": "file:src/routes/orders.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:src/app.ts|file:src/routes/orders.ts",
+          "from": "file:src/app.ts",
+          "to": "file:src/routes/orders.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:src/repositories/product-repository.ts|file:src/domain/product.ts",
+          "from": "file:src/repositories/product-repository.ts",
+          "to": "file:src/domain/product.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:src/routes/orders.ts|file:src/repositories/order-repository.ts",
+          "from": "file:src/routes/orders.ts",
+          "to": "file:src/repositories/order-repository.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:src/routes/orders.ts|file:src/repositories/order-repository.ts",
+          "from": "file:src/routes/orders.ts",
+          "to": "file:src/repositories/order-repository.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:src/routes/orders.ts|file:src/repositories/product-repository.ts",
+          "from": "file:src/routes/orders.ts",
+          "to": "file:src/repositories/product-repository.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:src/routes/orders.ts|file:src/repositories/product-repository.ts",
+          "from": "file:src/routes/orders.ts",
+          "to": "file:src/repositories/product-repository.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:src/routes/orders.ts|file:src/services/orders.ts",
+          "from": "file:src/routes/orders.ts",
+          "to": "file:src/services/orders.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:src/routes/orders.ts|file:src/services/orders.ts",
+          "from": "file:src/routes/orders.ts",
+          "to": "file:src/services/orders.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:src/server.ts|file:src/app.ts",
+          "from": "file:src/server.ts",
+          "to": "file:src/app.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:src/server.ts|file:src/app.ts",
+          "from": "file:src/server.ts",
+          "to": "file:src/app.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:src/services/orders.ts|file:src/domain/product.ts",
+          "from": "file:src/services/orders.ts",
+          "to": "file:src/domain/product.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:src/services/orders.ts|file:src/services/pricing.ts",
+          "from": "file:src/services/orders.ts",
+          "to": "file:src/services/pricing.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:src/services/orders.ts|file:src/services/pricing.ts",
+          "from": "file:src/services/orders.ts",
+          "to": "file:src/services/pricing.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:src/services/products.ts|file:src/domain/product.ts",
+          "from": "file:src/services/products.ts",
+          "to": "file:src/domain/product.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:db/schema.sql|file:db/schema.sql",
+          "from": "group:db/schema.sql",
+          "to": "file:db/schema.sql",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/app.ts|file:src/app.ts",
+          "from": "group:src/app.ts",
+          "to": "file:src/app.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/domain|file:src/domain/product.ts",
+          "from": "group:src/domain",
+          "to": "file:src/domain/product.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/repositories|file:src/repositories/order-repository.ts",
+          "from": "group:src/repositories",
+          "to": "file:src/repositories/order-repository.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/repositories|file:src/repositories/product-repository.ts",
+          "from": "group:src/repositories",
+          "to": "file:src/repositories/product-repository.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/routes|file:src/routes/orders.ts",
+          "from": "group:src/routes",
+          "to": "file:src/routes/orders.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/server.ts|file:src/server.ts",
+          "from": "group:src/server.ts",
+          "to": "file:src/server.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/services|file:src/services/orders.ts",
+          "from": "group:src/services",
+          "to": "file:src/services/orders.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/services|file:src/services/pricing.ts",
+          "from": "group:src/services",
+          "to": "file:src/services/pricing.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/services|file:src/services/products.ts",
+          "from": "group:src/services",
+          "to": "file:src/services/products.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/config.ts|sym:src/config.ts#Config",
+          "from": "file:src/config.ts",
+          "to": "sym:src/config.ts#Config",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/domain/order.ts|sym:src/domain/order.ts#OrderLine",
+          "from": "file:src/domain/order.ts",
+          "to": "sym:src/domain/order.ts#OrderLine",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/domain/order.ts|sym:src/domain/order.ts#Order",
+          "from": "file:src/domain/order.ts",
+          "to": "sym:src/domain/order.ts#Order",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/domain/order.ts|sym:src/domain/order.ts#OrderInput",
+          "from": "file:src/domain/order.ts",
+          "to": "sym:src/domain/order.ts#OrderInput",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/domain/product.ts|sym:src/domain/product.ts#Product",
+          "from": "file:src/domain/product.ts",
+          "to": "sym:src/domain/product.ts#Product",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/domain/product.ts|sym:src/domain/product.ts#ProductInput",
+          "from": "file:src/domain/product.ts",
+          "to": "sym:src/domain/product.ts#ProductInput",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/services/orders.ts|sym:src/services/orders.ts#OrderDeps",
+          "from": "file:src/services/orders.ts",
+          "to": "sym:src/services/orders.ts#OrderDeps",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/services/products.ts|sym:src/services/products.ts#ProductDeps",
+          "from": "file:src/services/products.ts",
+          "to": "sym:src/services/products.ts#ProductDeps",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "src/server.ts",
+            "summary": "Open src/server.ts.",
+            "nodeId": "file:src/server.ts"
+          },
+          {
+            "title": "src/app.ts",
+            "summary": "Open src/app.ts.",
+            "nodeId": "file:src/app.ts"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:db/schema.sql",
+            "label": "db/schema.sql",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:src/app.ts",
+            "label": "src/app.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          },
+          {
+            "id": "file:src/domain/product.ts",
+            "label": "src/domain/product.ts",
+            "kind": "file",
+            "refIds": ["r_4"]
+          },
+          {
+            "id": "file:src/repositories/order-repository.ts",
+            "label": "src/repositories/order-repository.ts",
+            "kind": "file",
+            "refIds": ["r_5"]
+          },
+          {
+            "id": "file:src/repositories/product-repository.ts",
+            "label": "src/repositories/product-repository.ts",
+            "kind": "file",
+            "refIds": ["r_6"]
+          },
+          {
+            "id": "file:src/routes/orders.ts",
+            "label": "src/routes/orders.ts",
+            "kind": "file",
+            "refIds": ["r_7"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:db/schema.sql",
+            "to": "file:src/app.ts",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:src/app.ts",
+            "to": "file:src/domain/product.ts",
+            "refIds": []
+          },
+          {
+            "id": "a2",
+            "from": "file:src/domain/product.ts",
+            "to": "file:src/repositories/order-repository.ts",
+            "refIds": []
+          },
+          {
+            "id": "a3",
+            "from": "file:src/repositories/order-repository.ts",
+            "to": "file:src/repositories/product-repository.ts",
+            "refIds": []
+          },
+          {
+            "id": "a4",
+            "from": "file:src/repositories/product-repository.ts",
+            "to": "file:src/routes/orders.ts",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:src/server.ts",
+            "label": "src/server.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:src/app.ts",
+            "label": "src/app.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "e0",
+            "from": "file:src/server.ts",
+            "to": "file:src/app.ts",
+            "refIds": []
+          },
+          {
+            "id": "e-broken",
+            "from": "file:src/server.ts",
+            "to": "file:missing.ts",
+            "refIds": []
+          }
+        ]
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"db/schema.sql\"]\n  g1[\"src/app.ts\"]\n  g2[\"src/domain/product.ts\"]\n  g3[\"src/repositories/order-repository.ts\"]\n  g4[\"src/repositories/product-repository.ts\"]\n  g5[\"src/routes/orders.ts\"]\n  db/schema.sql --> src/app.ts\n  src/app.ts --> src/domain/product.ts\n  src/domain/product.ts --> src/repositories/order-repository.ts\n  src/repositories/order-repository.ts --> src/repositories/product-repository.ts\n  src/repositories/product-repository.ts --> src/routes/orders.ts",
+        "nodeRefs": {
+          "g0": "db/schema.sql",
+          "g1": "src/app.ts",
+          "g2": "src/domain/product.ts",
+          "g3": "src/repositories/order-repository.ts",
+          "g4": "src/repositories/product-repository.ts",
+          "g5": "src/routes/orders.ts"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_3"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through src/app.ts.",
+        "objectives": ["Read src/app.ts"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/app.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`src/routes/orders.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_7"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "A block whose evidence is missing.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_missing"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_2",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "src/app.ts"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites src/app.ts as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-2",
+        "title": "Chapter 2",
+        "summary": "The path through src/services/orders.ts.",
+        "objectives": ["Read src/services/orders.ts"],
+        "prerequisites": ["chapter-1"],
+        "lessons": [
+          {
+            "key": "chapter-2-lesson",
+            "title": "Lesson 2",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/services/orders.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_8"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_8",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": []
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "src/server.ts",
+        "startLine": 4,
+        "endLine": 4,
+        "blobSha": "0000000000000000000000000000000000000000",
+        "symbolKey": "src/server.ts#config"
+      },
+      "r_2": {
+        "path": "src/app.ts",
+        "startLine": 10,
+        "endLine": 22,
+        "blobSha": "ec38af0e30184c9e7bcd730fa7c1e2582d2ba514",
+        "symbolKey": "src/app.ts#createApp"
+      },
+      "r_3": {
+        "path": "db/schema.sql",
+        "startLine": 1,
+        "endLine": 14,
+        "blobSha": "58376ac807d6a4a51e3af8fbe82dabb5b5370862"
+      },
+      "r_4": {
+        "path": "src/domain/product.ts",
+        "startLine": 1,
+        "endLine": 6,
+        "blobSha": "5d6f80764f0d257c8bbc1ddaea19e97d64889a26",
+        "symbolKey": "src/domain/product.ts#Product"
+      },
+      "r_5": {
+        "path": "src/repositories/order-repository.ts",
+        "startLine": 4,
+        "endLine": 18,
+        "blobSha": "b93f6f5b47d728451671fd01c2ab3c4b92989816",
+        "symbolKey": "src/repositories/order-repository.ts#orderRepository"
+      },
+      "r_6": {
+        "path": "src/repositories/product-repository.ts",
+        "startLine": 4,
+        "endLine": 18,
+        "blobSha": "69cfb3546cd5cf632f0293b911849b0b14d47eba",
+        "symbolKey": "src/repositories/product-repository.ts#productRepository"
+      },
+      "r_7": {
+        "path": "src/routes/orders.ts",
+        "startLine": 7,
+        "endLine": 25,
+        "blobSha": "89a7df8eb87edd418acf35357adcecb6c088bb06",
+        "symbolKey": "src/routes/orders.ts#ordersRouter"
+      },
+      "r_8": {
+        "path": "src/services/orders.ts",
+        "startLine": 7,
+        "endLine": 10,
+        "blobSha": "33f6e5a96513b412d6ca9cc60661edcab84c90c9",
+        "symbolKey": "src/services/orders.ts#OrderDeps"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 900000,
+    "inputTokens": 300000,
+    "outputTokens": 150000
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "commerce-platform",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "seed": "node scripts/seed.js",
+    "report": "node scripts/report.js"
+  },
+  "main": "dist/server.js",
+  "dependencies": { "express": "5.1.0", "pg": "8.13.0", "zod": "4.0.0" }
+}

@@ -34,6 +34,4 @@ jobs:
         with: { node-version-file: .nvmrc, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run lint typecheck test build --affected
-      # Eval smoke: golden index metrics against the baseline, and recorded model probes through the gate.
       - run: pnpm --filter @replo/evals smoke
-      # TODO(P5): non-blocking job running @typescript/native-preview (TS 7) typecheck.

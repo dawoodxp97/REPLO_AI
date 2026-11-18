@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { Analysis } from '@replo/repo-analysis'
+import { mean, ratio } from './statistics'
 import { routeKey, type IndexExpectations } from './truth-sheet'
 
 export const IndexMetricsSchema = z.object({
@@ -16,8 +17,6 @@ export const IndexMetricsSchema = z.object({
 export type IndexMetrics = z.infer<typeof IndexMetricsSchema>
 
 const METRIC_KEYS = IndexMetricsSchema.keyof().options
-
-const ratio = (hits: number, total: number) => (total === 0 ? 1 : hits / total)
 
 function score<T>(expected: readonly T[], actual: readonly T[], key: (value: T) => string) {
   const want = new Set(expected.map(key))
@@ -62,10 +61,6 @@ export function scoreIndex(expected: IndexExpectations, actual: Analysis): Index
     unresolvedMatches: actual.unresolvedImports === expected.unresolvedImports ? 1 : 0,
     parseErrorsMatch: sameSet(expected.parseErrors, actual.parseErrors) ? 1 : 0,
   }
-}
-
-export function mean(values: readonly number[]): number {
-  return values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)
 }
 
 export function average(metrics: readonly IndexMetrics[]): IndexMetrics {

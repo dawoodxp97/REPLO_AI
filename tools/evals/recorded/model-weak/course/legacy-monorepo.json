@@ -1,0 +1,661 @@
+{
+  "repo": "legacy-monorepo",
+  "pipeline": "lite",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "legacy-monorepo walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "legacy-monorepo",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:apps/api/src/repositories/reports.ts",
+          "kind": "file",
+          "label": "apps/api/src/repositories/reports.ts",
+          "path": "apps/api/src/repositories/reports.ts"
+        },
+        {
+          "id": "file:apps/api/src/routes/auth.ts",
+          "kind": "file",
+          "label": "apps/api/src/routes/auth.ts",
+          "path": "apps/api/src/routes/auth.ts"
+        },
+        {
+          "id": "file:apps/api/src/routes/reports.ts",
+          "kind": "file",
+          "label": "apps/api/src/routes/reports.ts",
+          "path": "apps/api/src/routes/reports.ts"
+        },
+        {
+          "id": "file:apps/api/src/server.ts",
+          "kind": "file",
+          "label": "apps/api/src/server.ts",
+          "path": "apps/api/src/server.ts"
+        },
+        {
+          "id": "file:apps/web/src/main.tsx",
+          "kind": "file",
+          "label": "apps/web/src/main.tsx",
+          "path": "apps/web/src/main.tsx"
+        },
+        {
+          "id": "file:apps/web/src/pages/dashboard.tsx",
+          "kind": "file",
+          "label": "apps/web/src/pages/dashboard.tsx",
+          "path": "apps/web/src/pages/dashboard.tsx"
+        },
+        {
+          "id": "file:apps/web/src/routes.tsx",
+          "kind": "file",
+          "label": "apps/web/src/routes.tsx",
+          "path": "apps/web/src/routes.tsx"
+        },
+        {
+          "id": "file:apps/worker/src/lib/logger.js",
+          "kind": "file",
+          "label": "apps/worker/src/lib/logger.js",
+          "path": "apps/worker/src/lib/logger.js"
+        },
+        {
+          "id": "file:apps/worker/src/lib/queue.js",
+          "kind": "file",
+          "label": "apps/worker/src/lib/queue.js",
+          "path": "apps/worker/src/lib/queue.js"
+        },
+        {
+          "id": "file:apps/worker/src/worker.js",
+          "kind": "file",
+          "label": "apps/worker/src/worker.js",
+          "path": "apps/worker/src/worker.js"
+        },
+        {
+          "id": "file:packages/shared/src/index.js",
+          "kind": "file",
+          "label": "packages/shared/src/index.js",
+          "path": "packages/shared/src/index.js"
+        },
+        {
+          "id": "file:packages/shared/src/money.js",
+          "kind": "file",
+          "label": "packages/shared/src/money.js",
+          "path": "packages/shared/src/money.js"
+        },
+        {
+          "id": "file:packages/ui/src/button.tsx",
+          "kind": "file",
+          "label": "packages/ui/src/button.tsx",
+          "path": "packages/ui/src/button.tsx"
+        },
+        {
+          "id": "file:packages/ui/src/index.ts",
+          "kind": "file",
+          "label": "packages/ui/src/index.ts",
+          "path": "packages/ui/src/index.ts"
+        },
+        {
+          "id": "group:apps/api",
+          "kind": "module",
+          "label": "apps/api"
+        },
+        {
+          "id": "group:apps/web",
+          "kind": "module",
+          "label": "apps/web"
+        },
+        {
+          "id": "group:apps/worker",
+          "kind": "module",
+          "label": "apps/worker"
+        },
+        {
+          "id": "group:packages/shared",
+          "kind": "module",
+          "label": "packages/shared"
+        },
+        {
+          "id": "group:packages/ui",
+          "kind": "module",
+          "label": "packages/ui"
+        },
+        {
+          "id": "sym:apps/api/src/models/report.ts#Report",
+          "kind": "symbol",
+          "label": "Report",
+          "path": "apps/api/src/models/report.ts",
+          "symbolKey": "apps/api/src/models/report.ts#Report"
+        },
+        {
+          "id": "sym:apps/api/src/models/report.ts#ReportInput",
+          "kind": "symbol",
+          "label": "ReportInput",
+          "path": "apps/api/src/models/report.ts",
+          "symbolKey": "apps/api/src/models/report.ts#ReportInput"
+        },
+        {
+          "id": "sym:apps/api/src/models/user.ts#User",
+          "kind": "symbol",
+          "label": "User",
+          "path": "apps/api/src/models/user.ts",
+          "symbolKey": "apps/api/src/models/user.ts#User"
+        },
+        {
+          "id": "sym:apps/api/src/models/user.ts#UserInput",
+          "kind": "symbol",
+          "label": "UserInput",
+          "path": "apps/api/src/models/user.ts",
+          "symbolKey": "apps/api/src/models/user.ts#UserInput"
+        },
+        {
+          "id": "sym:apps/web/src/components/table.tsx#Column",
+          "kind": "symbol",
+          "label": "Column",
+          "path": "apps/web/src/components/table.tsx",
+          "symbolKey": "apps/web/src/components/table.tsx#Column"
+        }
+      ],
+      "edges": [
+        {
+          "id": "imports|file:apps/api/src/server.ts|file:apps/api/src/routes/auth.ts",
+          "from": "file:apps/api/src/server.ts",
+          "to": "file:apps/api/src/routes/auth.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:apps/api/src/server.ts|file:apps/api/src/routes/reports.ts",
+          "from": "file:apps/api/src/server.ts",
+          "to": "file:apps/api/src/routes/reports.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:apps/web/src/routes.tsx|file:apps/web/src/pages/dashboard.tsx",
+          "from": "file:apps/web/src/routes.tsx",
+          "to": "file:apps/web/src/pages/dashboard.tsx",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:apps/worker/src/lib/queue.js|file:apps/worker/src/lib/logger.js",
+          "from": "file:apps/worker/src/lib/queue.js",
+          "to": "file:apps/worker/src/lib/logger.js",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:apps/worker/src/worker.js|file:apps/worker/src/lib/queue.js",
+          "from": "file:apps/worker/src/worker.js",
+          "to": "file:apps/worker/src/lib/queue.js",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:packages/shared/src/index.js|file:packages/shared/src/money.js",
+          "from": "file:packages/shared/src/index.js",
+          "to": "file:packages/shared/src/money.js",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:packages/ui/src/index.ts|file:packages/ui/src/button.tsx",
+          "from": "file:packages/ui/src/index.ts",
+          "to": "file:packages/ui/src/button.tsx",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:apps/api|file:apps/api/src/repositories/reports.ts",
+          "from": "group:apps/api",
+          "to": "file:apps/api/src/repositories/reports.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/api|file:apps/api/src/routes/auth.ts",
+          "from": "group:apps/api",
+          "to": "file:apps/api/src/routes/auth.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/api|file:apps/api/src/routes/reports.ts",
+          "from": "group:apps/api",
+          "to": "file:apps/api/src/routes/reports.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/api|file:apps/api/src/server.ts",
+          "from": "group:apps/api",
+          "to": "file:apps/api/src/server.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/web|file:apps/web/src/main.tsx",
+          "from": "group:apps/web",
+          "to": "file:apps/web/src/main.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/web|file:apps/web/src/pages/dashboard.tsx",
+          "from": "group:apps/web",
+          "to": "file:apps/web/src/pages/dashboard.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/web|file:apps/web/src/routes.tsx",
+          "from": "group:apps/web",
+          "to": "file:apps/web/src/routes.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/worker|file:apps/worker/src/lib/logger.js",
+          "from": "group:apps/worker",
+          "to": "file:apps/worker/src/lib/logger.js",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/worker|file:apps/worker/src/lib/queue.js",
+          "from": "group:apps/worker",
+          "to": "file:apps/worker/src/lib/queue.js",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/worker|file:apps/worker/src/worker.js",
+          "from": "group:apps/worker",
+          "to": "file:apps/worker/src/worker.js",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:packages/shared|file:packages/shared/src/index.js",
+          "from": "group:packages/shared",
+          "to": "file:packages/shared/src/index.js",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:packages/shared|file:packages/shared/src/money.js",
+          "from": "group:packages/shared",
+          "to": "file:packages/shared/src/money.js",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:packages/ui|file:packages/ui/src/button.tsx",
+          "from": "group:packages/ui",
+          "to": "file:packages/ui/src/button.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:packages/ui|file:packages/ui/src/index.ts",
+          "from": "group:packages/ui",
+          "to": "file:packages/ui/src/index.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:apps/api/src/models/report.ts|sym:apps/api/src/models/report.ts#Report",
+          "from": "file:apps/api/src/models/report.ts",
+          "to": "sym:apps/api/src/models/report.ts#Report",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:apps/api/src/models/report.ts|sym:apps/api/src/models/report.ts#ReportInput",
+          "from": "file:apps/api/src/models/report.ts",
+          "to": "sym:apps/api/src/models/report.ts#ReportInput",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:apps/api/src/models/user.ts|sym:apps/api/src/models/user.ts#User",
+          "from": "file:apps/api/src/models/user.ts",
+          "to": "sym:apps/api/src/models/user.ts#User",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:apps/api/src/models/user.ts|sym:apps/api/src/models/user.ts#UserInput",
+          "from": "file:apps/api/src/models/user.ts",
+          "to": "sym:apps/api/src/models/user.ts#UserInput",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:apps/web/src/components/table.tsx|sym:apps/web/src/components/table.tsx#Column",
+          "from": "file:apps/web/src/components/table.tsx",
+          "to": "sym:apps/web/src/components/table.tsx#Column",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "apps/worker/src/worker.js",
+            "summary": "Open apps/worker/src/worker.js.",
+            "nodeId": "file:apps/worker/src/worker.js"
+          },
+          {
+            "title": "apps/worker/src/lib/logger.js",
+            "summary": "Open apps/worker/src/lib/logger.js.",
+            "nodeId": "file:apps/worker/src/lib/logger.js"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:apps/api/src/repositories/reports.ts",
+            "label": "apps/api/src/repositories/reports.ts",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:apps/api/src/routes/auth.ts",
+            "label": "apps/api/src/routes/auth.ts",
+            "kind": "file",
+            "refIds": ["r_4"]
+          },
+          {
+            "id": "file:apps/api/src/routes/reports.ts",
+            "label": "apps/api/src/routes/reports.ts",
+            "kind": "file",
+            "refIds": ["r_5"]
+          },
+          {
+            "id": "file:apps/api/src/server.ts",
+            "label": "apps/api/src/server.ts",
+            "kind": "file",
+            "refIds": ["r_6"]
+          },
+          {
+            "id": "file:apps/web/src/main.tsx",
+            "label": "apps/web/src/main.tsx",
+            "kind": "file",
+            "refIds": ["r_7"]
+          },
+          {
+            "id": "file:apps/web/src/pages/dashboard.tsx",
+            "label": "apps/web/src/pages/dashboard.tsx",
+            "kind": "file",
+            "refIds": ["r_8"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:apps/api/src/repositories/reports.ts",
+            "to": "file:apps/api/src/routes/auth.ts",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:apps/api/src/routes/auth.ts",
+            "to": "file:apps/api/src/routes/reports.ts",
+            "refIds": []
+          },
+          {
+            "id": "a2",
+            "from": "file:apps/api/src/routes/reports.ts",
+            "to": "file:apps/api/src/server.ts",
+            "refIds": []
+          },
+          {
+            "id": "a3",
+            "from": "file:apps/api/src/server.ts",
+            "to": "file:apps/web/src/main.tsx",
+            "refIds": []
+          },
+          {
+            "id": "a4",
+            "from": "file:apps/web/src/main.tsx",
+            "to": "file:apps/web/src/pages/dashboard.tsx",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:apps/worker/src/worker.js",
+            "label": "apps/worker/src/worker.js",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:apps/worker/src/lib/logger.js",
+            "label": "apps/worker/src/lib/logger.js",
+            "kind": "file",
+            "refIds": ["r_2"]
+          }
+        ],
+        "edges": []
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"apps/api/src/repositories/reports.ts\"]\n  g1[\"apps/api/src/routes/auth.ts\"]\n  g2[\"apps/api/src/routes/reports.ts\"]\n  g3[\"apps/api/src/server.ts\"]\n  g4[\"apps/web/src/main.tsx\"]\n  g5[\"apps/web/src/pages/dashboard.tsx\"]\n  apps/api/src/repositories/reports.ts --> apps/api/src/routes/auth.ts\n  apps/api/src/routes/auth.ts --> apps/api/src/routes/reports.ts\n  apps/api/src/routes/reports.ts --> apps/api/src/server.ts\n  apps/api/src/server.ts --> apps/web/src/main.tsx\n  apps/web/src/main.tsx --> apps/web/src/pages/dashboard.tsx",
+        "nodeRefs": {
+          "g0": "apps/api/src/repositories/reports.ts",
+          "g1": "apps/api/src/routes/auth.ts",
+          "g2": "apps/api/src/routes/reports.ts",
+          "g3": "apps/api/src/server.ts",
+          "g4": "apps/web/src/main.tsx",
+          "g5": "apps/web/src/pages/dashboard.tsx"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_3"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through apps/worker/src/worker.js.",
+        "objectives": ["Read apps/worker/src/worker.js"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`apps/worker/src/worker.js` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_1"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`packages/shared/src/index.js` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_9"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "A block whose evidence is missing.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_missing"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_1",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "apps/worker/src/worker.js"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites apps/worker/src/worker.js as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-2",
+        "title": "Chapter 2",
+        "summary": "The path through apps/api/src/routes/auth.ts.",
+        "objectives": ["Read apps/api/src/routes/auth.ts"],
+        "prerequisites": ["chapter-1"],
+        "lessons": [
+          {
+            "key": "chapter-2-lesson",
+            "title": "Lesson 2",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`apps/api/src/routes/auth.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_4"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_4",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": []
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "apps/worker/src/worker.js",
+        "startLine": 1,
+        "endLine": 9,
+        "blobSha": "0000000000000000000000000000000000000000"
+      },
+      "r_2": {
+        "path": "apps/worker/src/lib/logger.js",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "6f520905924aebca4c5580c1dc12bc37a2ed8263",
+        "symbolKey": "apps/worker/src/lib/logger.js#log"
+      },
+      "r_3": {
+        "path": "apps/api/src/repositories/reports.ts",
+        "startLine": 4,
+        "endLine": 21,
+        "blobSha": "2ef3c9b81f3221b042ec633acfb69830b6878753",
+        "symbolKey": "apps/api/src/repositories/reports.ts#reportsRepository"
+      },
+      "r_4": {
+        "path": "apps/api/src/routes/auth.ts",
+        "startLine": 3,
+        "endLine": 3,
+        "blobSha": "1bc66fa3de58551ab32d2c539aa36c076c9b7b43",
+        "symbolKey": "apps/api/src/routes/auth.ts#authRouter"
+      },
+      "r_5": {
+        "path": "apps/api/src/routes/reports.ts",
+        "startLine": 3,
+        "endLine": 3,
+        "blobSha": "879d036782ab5f950a92dc269fc6f173397b3e64",
+        "symbolKey": "apps/api/src/routes/reports.ts#reportsRouter"
+      },
+      "r_6": {
+        "path": "apps/api/src/server.ts",
+        "startLine": 7,
+        "endLine": 7,
+        "blobSha": "559ef5897ca7942458fc6c603f2bd13b8a75ac31",
+        "symbolKey": "apps/api/src/server.ts#app"
+      },
+      "r_7": {
+        "path": "apps/web/src/main.tsx",
+        "startLine": 1,
+        "endLine": 5,
+        "blobSha": "a3fd25e0c5d9e21c3b24d61dc58dc7e2cd41c2d3"
+      },
+      "r_8": {
+        "path": "apps/web/src/pages/dashboard.tsx",
+        "startLine": 4,
+        "endLine": 7,
+        "blobSha": "60de20425ebbba1d9aec55603683eb4e4a0d10ef",
+        "symbolKey": "apps/web/src/pages/dashboard.tsx#DashboardPage"
+      },
+      "r_9": {
+        "path": "packages/shared/src/index.js",
+        "startLine": 1,
+        "endLine": 6,
+        "blobSha": "617a57bebd1a803fd594af9deabe1d4f731f9321"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 1800000,
+    "inputTokens": 600000,
+    "outputTokens": 240000
+  }
+}

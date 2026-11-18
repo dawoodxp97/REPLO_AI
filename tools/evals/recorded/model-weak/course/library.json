@@ -1,0 +1,533 @@
+{
+  "repo": "library",
+  "pipeline": "lite",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "library walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "library",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:package.json",
+          "kind": "file",
+          "label": "package.json",
+          "path": "package.json"
+        },
+        {
+          "id": "file:src/broken.ts",
+          "kind": "file",
+          "label": "src/broken.ts",
+          "path": "src/broken.ts"
+        },
+        {
+          "id": "file:src/index.ts",
+          "kind": "file",
+          "label": "src/index.ts",
+          "path": "src/index.ts"
+        },
+        {
+          "id": "file:src/lazy.ts",
+          "kind": "file",
+          "label": "src/lazy.ts",
+          "path": "src/lazy.ts"
+        },
+        {
+          "id": "file:src/math/add.ts",
+          "kind": "file",
+          "label": "src/math/add.ts",
+          "path": "src/math/add.ts"
+        },
+        {
+          "id": "file:src/util.ts",
+          "kind": "file",
+          "label": "src/util.ts",
+          "path": "src/util.ts"
+        },
+        {
+          "id": "group:package.json",
+          "kind": "module",
+          "label": "package.json"
+        },
+        {
+          "id": "group:src/broken.ts",
+          "kind": "module",
+          "label": "src/broken.ts"
+        },
+        {
+          "id": "group:src/index.ts",
+          "kind": "module",
+          "label": "src/index.ts"
+        },
+        {
+          "id": "group:src/lazy.ts",
+          "kind": "module",
+          "label": "src/lazy.ts"
+        },
+        {
+          "id": "group:src/math",
+          "kind": "module",
+          "label": "src/math"
+        },
+        {
+          "id": "group:src/util.ts",
+          "kind": "module",
+          "label": "src/util.ts"
+        },
+        {
+          "id": "sym:src/util.ts#Shape",
+          "kind": "symbol",
+          "label": "Shape",
+          "path": "src/util.ts",
+          "symbolKey": "src/util.ts#Shape"
+        },
+        {
+          "id": "sym:src/util.ts#Id",
+          "kind": "symbol",
+          "label": "Id",
+          "path": "src/util.ts",
+          "symbolKey": "src/util.ts#Id"
+        },
+        {
+          "id": "sym:src/util.ts#Color",
+          "kind": "symbol",
+          "label": "Color",
+          "path": "src/util.ts",
+          "symbolKey": "src/util.ts#Color"
+        },
+        {
+          "id": "sym:src/util.ts#Store",
+          "kind": "symbol",
+          "label": "Store",
+          "path": "src/util.ts",
+          "symbolKey": "src/util.ts#Store"
+        }
+      ],
+      "edges": [
+        {
+          "id": "imports|file:src/index.ts|file:src/lazy.ts",
+          "from": "file:src/index.ts",
+          "to": "file:src/lazy.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:src/index.ts|file:src/math/add.ts",
+          "from": "file:src/index.ts",
+          "to": "file:src/math/add.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:src/index.ts|file:src/math/add.ts",
+          "from": "file:src/index.ts",
+          "to": "file:src/math/add.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:src/index.ts|file:src/util.ts",
+          "from": "file:src/index.ts",
+          "to": "file:src/util.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:package.json|file:package.json",
+          "from": "group:package.json",
+          "to": "file:package.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/broken.ts|file:src/broken.ts",
+          "from": "group:src/broken.ts",
+          "to": "file:src/broken.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/index.ts|file:src/index.ts",
+          "from": "group:src/index.ts",
+          "to": "file:src/index.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/lazy.ts|file:src/lazy.ts",
+          "from": "group:src/lazy.ts",
+          "to": "file:src/lazy.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/math|file:src/math/add.ts",
+          "from": "group:src/math",
+          "to": "file:src/math/add.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/util.ts|file:src/util.ts",
+          "from": "group:src/util.ts",
+          "to": "file:src/util.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/util.ts|sym:src/util.ts#Shape",
+          "from": "file:src/util.ts",
+          "to": "sym:src/util.ts#Shape",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/util.ts|sym:src/util.ts#Id",
+          "from": "file:src/util.ts",
+          "to": "sym:src/util.ts#Id",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/util.ts|sym:src/util.ts#Color",
+          "from": "file:src/util.ts",
+          "to": "sym:src/util.ts#Color",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/util.ts|sym:src/util.ts#Store",
+          "from": "file:src/util.ts",
+          "to": "sym:src/util.ts#Store",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "src/index.ts",
+            "summary": "Open src/index.ts.",
+            "nodeId": "file:src/index.ts"
+          },
+          {
+            "title": "src/math/add.ts",
+            "summary": "Open src/math/add.ts.",
+            "nodeId": "file:src/math/add.ts"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:package.json",
+            "label": "package.json",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:src/broken.ts",
+            "label": "src/broken.ts",
+            "kind": "file",
+            "refIds": ["r_4"]
+          },
+          {
+            "id": "file:src/index.ts",
+            "label": "src/index.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:src/lazy.ts",
+            "label": "src/lazy.ts",
+            "kind": "file",
+            "refIds": ["r_5"]
+          },
+          {
+            "id": "file:src/math/add.ts",
+            "label": "src/math/add.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          },
+          {
+            "id": "file:src/util.ts",
+            "label": "src/util.ts",
+            "kind": "file",
+            "refIds": ["r_6"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:package.json",
+            "to": "file:src/broken.ts",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:src/broken.ts",
+            "to": "file:src/index.ts",
+            "refIds": []
+          },
+          {
+            "id": "a2",
+            "from": "file:src/index.ts",
+            "to": "file:src/lazy.ts",
+            "refIds": []
+          },
+          {
+            "id": "a3",
+            "from": "file:src/lazy.ts",
+            "to": "file:src/math/add.ts",
+            "refIds": []
+          },
+          {
+            "id": "a4",
+            "from": "file:src/math/add.ts",
+            "to": "file:src/util.ts",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:src/index.ts",
+            "label": "src/index.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:src/math/add.ts",
+            "label": "src/math/add.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "e0",
+            "from": "file:src/index.ts",
+            "to": "file:src/math/add.ts",
+            "refIds": []
+          },
+          {
+            "id": "e-broken",
+            "from": "file:src/index.ts",
+            "to": "file:missing.ts",
+            "refIds": []
+          }
+        ]
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"package.json\"]\n  g1[\"src/broken.ts\"]\n  g2[\"src/index.ts\"]\n  g3[\"src/lazy.ts\"]\n  g4[\"src/math/add.ts\"]\n  g5[\"src/util.ts\"]\n  package.json --> src/broken.ts\n  src/broken.ts --> src/index.ts\n  src/index.ts --> src/lazy.ts\n  src/lazy.ts --> src/math/add.ts\n  src/math/add.ts --> src/util.ts",
+        "nodeRefs": {
+          "g0": "package.json",
+          "g1": "src/broken.ts",
+          "g2": "src/index.ts",
+          "g3": "src/lazy.ts",
+          "g4": "src/math/add.ts",
+          "g5": "src/util.ts"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_3"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through src/math/add.ts.",
+        "objectives": ["Read src/math/add.ts"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/math/add.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`src/util.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_6"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "A block whose evidence is missing.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_missing"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_2",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "src/math/add.ts"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites src/math/add.ts as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-2",
+        "title": "Chapter 2",
+        "summary": "The path through src/lazy.ts.",
+        "objectives": ["Read src/lazy.ts"],
+        "prerequisites": ["chapter-1"],
+        "lessons": [
+          {
+            "key": "chapter-2-lesson",
+            "title": "Lesson 2",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/lazy.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_5"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_5",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": []
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "src/index.ts",
+        "startLine": 8,
+        "endLine": 8,
+        "blobSha": "0000000000000000000000000000000000000000",
+        "symbolKey": "src/index.ts#lazy"
+      },
+      "r_2": {
+        "path": "src/math/add.ts",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "a39d4ef196bcb8f51eacf9396ecb0258ec2f362b",
+        "symbolKey": "src/math/add.ts#add"
+      },
+      "r_3": {
+        "path": "package.json",
+        "startLine": 1,
+        "endLine": 6,
+        "blobSha": "6ce3278cfc8ae10e14b6dd1a6a9494ce0555d0dc"
+      },
+      "r_4": {
+        "path": "src/broken.ts",
+        "startLine": 3,
+        "endLine": 3,
+        "blobSha": "d92307eccfa26c40ff10c153bbdc4d097359eb5d",
+        "symbolKey": "src/broken.ts#broken"
+      },
+      "r_5": {
+        "path": "src/lazy.ts",
+        "startLine": 1,
+        "endLine": 1,
+        "blobSha": "3aee44a1eb3975e94060b0588ecf4594aa14389c",
+        "symbolKey": "src/lazy.ts#value"
+      },
+      "r_6": {
+        "path": "src/util.ts",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "706dccef277d1ab37557a504ba5fc045ebff8127",
+        "symbolKey": "src/util.ts#Shape"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 360000,
+    "inputTokens": 120000,
+    "outputTokens": 60000
+  }
+}

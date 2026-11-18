@@ -1,0 +1,6 @@
+{
+  "name": "legacy-monorepo",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": { "build": "turbo run build", "migrate": "node scripts/migrate.js" }
+}

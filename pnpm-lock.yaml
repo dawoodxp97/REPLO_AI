@@ -453,6 +453,9 @@ importers:
 
   tools/evals:
     dependencies:
+      '@replo/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@replo/repo-analysis':
         specifier: workspace:*
         version: link:../../packages/repo-analysis

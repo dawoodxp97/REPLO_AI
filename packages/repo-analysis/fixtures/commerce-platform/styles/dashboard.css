@@ -1,0 +1,9 @@
+.order-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-total {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

@@ -88,5 +88,6 @@
     "symbols": ["src/format.ts#format"],
     "unresolvedImports": 0,
     "parseErrors": []
-  }
+  },
+  "graphSymbols": []
 }

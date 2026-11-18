@@ -1,0 +1,321 @@
+{
+  "repo": "legacy-js",
+  "pipeline": "lite",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "legacy-js walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "legacy-js",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:index.js",
+          "kind": "file",
+          "label": "index.js",
+          "path": "index.js"
+        },
+        {
+          "id": "file:lib/handlers.js",
+          "kind": "file",
+          "label": "lib/handlers.js",
+          "path": "lib/handlers.js"
+        },
+        {
+          "id": "file:lib/router.js",
+          "kind": "file",
+          "label": "lib/router.js",
+          "path": "lib/router.js"
+        },
+        {
+          "id": "group:index.js",
+          "kind": "module",
+          "label": "index.js"
+        },
+        {
+          "id": "group:lib/handlers.js",
+          "kind": "module",
+          "label": "lib/handlers.js"
+        },
+        {
+          "id": "group:lib/router.js",
+          "kind": "module",
+          "label": "lib/router.js"
+        }
+      ],
+      "edges": [
+        {
+          "id": "imports|file:index.js|file:lib/router.js",
+          "from": "file:index.js",
+          "to": "file:lib/router.js",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:lib/router.js|file:lib/handlers.js",
+          "from": "file:lib/router.js",
+          "to": "file:lib/handlers.js",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:index.js|file:index.js",
+          "from": "group:index.js",
+          "to": "file:index.js",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:lib/handlers.js|file:lib/handlers.js",
+          "from": "group:lib/handlers.js",
+          "to": "file:lib/handlers.js",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:lib/router.js|file:lib/router.js",
+          "from": "group:lib/router.js",
+          "to": "file:lib/router.js",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "index.js",
+            "summary": "Open index.js.",
+            "nodeId": "file:index.js"
+          },
+          {
+            "title": "lib/router.js",
+            "summary": "Open lib/router.js.",
+            "nodeId": "file:lib/router.js"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:index.js",
+            "label": "index.js",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:lib/handlers.js",
+            "label": "lib/handlers.js",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:lib/router.js",
+            "label": "lib/router.js",
+            "kind": "file",
+            "refIds": ["r_2"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:index.js",
+            "to": "file:lib/handlers.js",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:lib/handlers.js",
+            "to": "file:lib/router.js",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:index.js",
+            "label": "index.js",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:lib/router.js",
+            "label": "lib/router.js",
+            "kind": "file",
+            "refIds": ["r_2"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "e0",
+            "from": "file:index.js",
+            "to": "file:lib/router.js",
+            "refIds": []
+          },
+          {
+            "id": "e-broken",
+            "from": "file:index.js",
+            "to": "file:missing.ts",
+            "refIds": []
+          }
+        ]
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"index.js\"]\n  g1[\"lib/handlers.js\"]\n  g2[\"lib/router.js\"]\n  index.js --> lib/handlers.js\n  lib/handlers.js --> lib/router.js",
+        "nodeRefs": {
+          "g0": "index.js",
+          "g1": "lib/handlers.js",
+          "g2": "lib/router.js"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_1"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through lib/router.js.",
+        "objectives": ["Read lib/router.js"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`lib/router.js` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`lib/handlers.js` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "A block whose evidence is missing.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_missing"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_2",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "lib/router.js"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites lib/router.js as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "index.js",
+        "startLine": 1,
+        "endLine": 1,
+        "blobSha": "0000000000000000000000000000000000000000",
+        "symbolKey": "index.js#router"
+      },
+      "r_2": {
+        "path": "lib/router.js",
+        "startLine": 1,
+        "endLine": 1,
+        "blobSha": "9e3df9f41bafca3a49cc83caa45c5a5849e3864b",
+        "symbolKey": "lib/router.js#handlers"
+      },
+      "r_3": {
+        "path": "lib/handlers.js",
+        "startLine": 1,
+        "endLine": 6,
+        "blobSha": "150a64e5487b1efde6efc382f567e280f14e7f04"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 360000,
+    "inputTokens": 120000,
+    "outputTokens": 60000
+  }
+}

@@ -100,5 +100,6 @@
     ],
     "unresolvedImports": 0,
     "parseErrors": []
-  }
+  },
+  "graphSymbols": ["src/app/store.ts#RootState", "src/features/todos/todosSlice.ts#Todo"]
 }

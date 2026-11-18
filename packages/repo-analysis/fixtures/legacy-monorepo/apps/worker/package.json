@@ -1,0 +1,6 @@
+{
+  "name": "@legacy/worker",
+  "private": true,
+  "main": "src/worker.js",
+  "scripts": { "start": "node src/worker.js" }
+}

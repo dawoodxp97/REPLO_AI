@@ -108,12 +108,12 @@ Status legend: `[x]` done · `[~]` scaffolded · `[ ]` not started.
 - [x] Product, graph/diagram experience, BYOK key guide and policy pages.
 - **Accept:** static build; Lighthouse a11y ≥ 90; no demo fixtures remain.
 
-## R7 — Evals (L)
+## R7 — Evals (L) — `[x]`
 
-- [ ] Golden repositories with truth sheets (small/medium/large; TS/JS and mixed).
-- [ ] Metrics: graph coverage, citation validity (100%), diagram validity (100%), course coherence, quiz quality, latency, tokens.
-- [ ] Per-model matrix including OpenRouter `:free`; CI thresholds; stored artefacts.
-- [ ] Every allow-listed model passes before it is offered.
+- [x] Golden repositories with truth sheets (small/medium/large; TS/JS and mixed).
+- [x] Metrics: graph coverage, citation validity (100%), diagram validity (100%), course coherence, quiz quality, latency, tokens.
+- [x] Per-model matrix including OpenRouter `:free`; CI thresholds; stored artefacts.
+- [x] Every allow-listed model passes before it is offered.
 - **Accept:** CI blocks a regression; a weak model is rejected; a good model is admitted on the same fixtures.
 
 ## R8 — Documentation and dead-code sweep (M)

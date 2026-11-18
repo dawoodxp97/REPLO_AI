@@ -41,7 +41,7 @@ There is **no** revoke-other-sessions procedure.
 | `keys.add`              | POST `/keys`                  | User | Validates then stores; `KEY_INVALID`, `KEY_ALREADY_EXISTS`, `KEY_CHECK_UNAVAILABLE` |
 | `keys.validate`         | POST `/keys/{keyId}/validate` | User | Re-checks one key; `KEY_CHECK_UNAVAILABLE`                                          |
 | `keys.delete`           | DELETE `/keys/{keyId}`        | User | Deletes the key; jobs still running on it fail with `KEY_REMOVED`                   |
-| `models.catalog`        | GET `/models/catalog`         | User | Catalogue plus `freeAllowList`                                                      |
+| `models.catalog`        | GET `/models/catalog`         | User | Offered models plus `freeAllowList`; free models appear only after the eval gate    |
 | `models.getPreferences` | GET `/models/preferences`     | User | `{ defaultModel }`                                                                  |
 | `models.setPreferences` | PUT `/models/preferences`     | User | Sets the default model; `MODEL_NOT_ALLOWED { modelId }`                             |
 

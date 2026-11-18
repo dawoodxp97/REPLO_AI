@@ -1,0 +1,293 @@
+{
+  "repo": "react-router-spa",
+  "pipeline": "lite",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "react-router-spa walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "react-router-spa",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:src/main.tsx",
+          "kind": "file",
+          "label": "src/main.tsx",
+          "path": "src/main.tsx"
+        },
+        {
+          "id": "file:src/pages/Home.tsx",
+          "kind": "file",
+          "label": "src/pages/Home.tsx",
+          "path": "src/pages/Home.tsx"
+        },
+        {
+          "id": "file:src/pages/TaskPage.tsx",
+          "kind": "file",
+          "label": "src/pages/TaskPage.tsx",
+          "path": "src/pages/TaskPage.tsx"
+        },
+        {
+          "id": "group:src/main.tsx",
+          "kind": "module",
+          "label": "src/main.tsx"
+        },
+        {
+          "id": "group:src/pages",
+          "kind": "module",
+          "label": "src/pages"
+        }
+      ],
+      "edges": [
+        {
+          "id": "imports|file:src/main.tsx|file:src/pages/Home.tsx",
+          "from": "file:src/main.tsx",
+          "to": "file:src/pages/Home.tsx",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:src/main.tsx|file:src/pages/TaskPage.tsx",
+          "from": "file:src/main.tsx",
+          "to": "file:src/pages/TaskPage.tsx",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:src/main.tsx|file:src/main.tsx",
+          "from": "group:src/main.tsx",
+          "to": "file:src/main.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/pages|file:src/pages/Home.tsx",
+          "from": "group:src/pages",
+          "to": "file:src/pages/Home.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/pages|file:src/pages/TaskPage.tsx",
+          "from": "group:src/pages",
+          "to": "file:src/pages/TaskPage.tsx",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "src/main.tsx",
+            "summary": "Open src/main.tsx.",
+            "nodeId": "file:src/main.tsx"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:src/main.tsx",
+            "label": "src/main.tsx",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:src/pages/Home.tsx",
+            "label": "src/pages/Home.tsx",
+            "kind": "file",
+            "refIds": ["r_2"]
+          },
+          {
+            "id": "file:src/pages/TaskPage.tsx",
+            "label": "src/pages/TaskPage.tsx",
+            "kind": "file",
+            "refIds": ["r_3"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:src/main.tsx",
+            "to": "file:src/pages/Home.tsx",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:src/pages/Home.tsx",
+            "to": "file:src/pages/TaskPage.tsx",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:src/main.tsx",
+            "label": "src/main.tsx",
+            "kind": "file",
+            "refIds": ["r_1"]
+          }
+        ],
+        "edges": []
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"src/main.tsx\"]\n  g1[\"src/pages/Home.tsx\"]\n  g2[\"src/pages/TaskPage.tsx\"]\n  src/main.tsx --> src/pages/Home.tsx\n  src/pages/Home.tsx --> src/pages/TaskPage.tsx",
+        "nodeRefs": {
+          "g0": "src/main.tsx",
+          "g1": "src/pages/Home.tsx",
+          "g2": "src/pages/TaskPage.tsx"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_1"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through src/pages/Home.tsx.",
+        "objectives": ["Read src/pages/Home.tsx"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/pages/Home.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`src/pages/TaskPage.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "A block whose evidence is missing.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_missing"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_2",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "src/pages/Home.tsx"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites src/pages/Home.tsx as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "src/main.tsx",
+        "startLine": 5,
+        "endLine": 8,
+        "blobSha": "0000000000000000000000000000000000000000",
+        "symbolKey": "src/main.tsx#router"
+      },
+      "r_2": {
+        "path": "src/pages/Home.tsx",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "30f1286405b63f52996a41f871f74c2902781b20",
+        "symbolKey": "src/pages/Home.tsx#Home"
+      },
+      "r_3": {
+        "path": "src/pages/TaskPage.tsx",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "6d2cd045dc0de84519d93a7f30716c6425e7a513",
+        "symbolKey": "src/pages/TaskPage.tsx#TaskPage"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 360000,
+    "inputTokens": 120000,
+    "outputTokens": 60000
+  }
+}

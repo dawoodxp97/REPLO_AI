@@ -1,0 +1,215 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "commerce-platform",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/commerce-platform"
+  },
+  "shape": "rest-api",
+  "size": "medium",
+  "entryPoints": ["src/server.ts"],
+  "keyFlows": [
+    {
+      "name": "start the server",
+      "hops": ["src/server.ts", "src/app.ts", "src/config.ts"]
+    },
+    {
+      "name": "place an order",
+      "hops": [
+        "src/app.ts",
+        "src/routes/orders.ts",
+        "src/services/orders.ts",
+        "src/services/pricing.ts"
+      ]
+    },
+    {
+      "name": "list products",
+      "hops": ["src/app.ts", "src/routes/products.ts", "src/services/products.ts"]
+    },
+    {
+      "name": "reserve stock",
+      "hops": ["src/services/orders.ts", "src/services/inventory.ts", "src/domain/product.ts"]
+    }
+  ],
+  "coreModules": [
+    "src/app.ts",
+    "src/server.ts",
+    "src/routes/orders.ts",
+    "src/routes/products.ts",
+    "src/services/orders.ts",
+    "src/services/pricing.ts",
+    "src/services/inventory.ts",
+    "src/repositories/order-repository.ts",
+    "src/repositories/product-repository.ts"
+  ],
+  "facts": [
+    {
+      "claim": "The Express app is created in createApp.",
+      "evidencePath": "src/app.ts"
+    },
+    {
+      "claim": "The server listens on the configured port.",
+      "evidencePath": "src/server.ts"
+    },
+    {
+      "claim": "The health router answers GET /health.",
+      "evidencePath": "src/routes/health.ts"
+    },
+    {
+      "claim": "Orders are mounted under /api/orders.",
+      "evidencePath": "src/app.ts"
+    },
+    {
+      "claim": "The orders router answers GET and POST /orders.",
+      "evidencePath": "src/routes/orders.ts"
+    },
+    {
+      "claim": "Placing an order checks stock before reserving it.",
+      "evidencePath": "src/services/orders.ts"
+    },
+    {
+      "claim": "Order totals apply a 21 percent tax rate.",
+      "evidencePath": "src/services/orders.ts"
+    },
+    {
+      "claim": "The pricing service multiplies unit price by quantity.",
+      "evidencePath": "src/services/pricing.ts"
+    },
+    {
+      "claim": "The product repository reads from the products table.",
+      "evidencePath": "src/repositories/product-repository.ts"
+    },
+    {
+      "claim": "The schema declares products and orders.",
+      "evidencePath": "db/schema.sql"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "src/server.ts",
+        "kind": "script"
+      },
+      {
+        "path": "src/server.ts",
+        "kind": "main"
+      }
+    ],
+    "routes": [
+      {
+        "method": "ANY",
+        "pattern": "/health",
+        "path": "src/app.ts"
+      },
+      {
+        "method": "ANY",
+        "pattern": "/api/orders",
+        "path": "src/app.ts"
+      },
+      {
+        "method": "ANY",
+        "pattern": "/api/products",
+        "path": "src/app.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/health",
+        "path": "src/routes/health.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/orders",
+        "path": "src/routes/orders.ts"
+      },
+      {
+        "method": "POST",
+        "pattern": "/orders",
+        "path": "src/routes/orders.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/products",
+        "path": "src/routes/products.ts"
+      },
+      {
+        "method": "POST",
+        "pattern": "/products",
+        "path": "src/routes/products.ts"
+      }
+    ],
+    "imports": [
+      ["src/app.ts", "src/config.ts"],
+      ["src/app.ts", "src/db/client.ts"],
+      ["src/app.ts", "src/middleware/auth.ts"],
+      ["src/app.ts", "src/middleware/errors.ts"],
+      ["src/app.ts", "src/routes/health.ts"],
+      ["src/app.ts", "src/routes/orders.ts"],
+      ["src/app.ts", "src/routes/products.ts"],
+      ["src/db/client.ts", "src/config.ts"],
+      ["src/domain/order.ts", "src/domain/product.ts"],
+      ["src/repositories/order-repository.ts", "src/domain/order.ts"],
+      ["src/repositories/product-repository.ts", "src/domain/product.ts"],
+      ["src/routes/orders.ts", "src/repositories/order-repository.ts"],
+      ["src/routes/orders.ts", "src/repositories/product-repository.ts"],
+      ["src/routes/orders.ts", "src/services/orders.ts"],
+      ["src/routes/products.ts", "src/repositories/product-repository.ts"],
+      ["src/routes/products.ts", "src/services/products.ts"],
+      ["src/server.ts", "src/app.ts"],
+      ["src/server.ts", "src/config.ts"],
+      ["src/services/inventory.ts", "src/domain/product.ts"],
+      ["src/services/orders.ts", "src/domain/order.ts"],
+      ["src/services/orders.ts", "src/domain/product.ts"],
+      ["src/services/orders.ts", "src/services/inventory.ts"],
+      ["src/services/orders.ts", "src/services/pricing.ts"],
+      ["src/services/pricing.ts", "src/domain/order.ts"],
+      ["src/services/products.ts", "src/domain/product.ts"],
+      ["tests/orders.test.ts", "src/services/pricing.ts"]
+    ],
+    "symbols": [
+      "scripts/report.js#report",
+      "scripts/seed.js#pool",
+      "scripts/seed.js#seed",
+      "src/app.ts#createApp",
+      "src/config.ts#Config",
+      "src/config.ts#loadConfig",
+      "src/db/client.ts#createPool",
+      "src/domain/order.ts#OrderLine",
+      "src/domain/order.ts#Order",
+      "src/domain/order.ts#OrderInput",
+      "src/domain/product.ts#Product",
+      "src/domain/product.ts#ProductInput",
+      "src/middleware/auth.ts#auth",
+      "src/middleware/errors.ts#errorHandler",
+      "src/repositories/order-repository.ts#orderRepository",
+      "src/repositories/product-repository.ts#productRepository",
+      "src/routes/health.ts#healthRouter",
+      "src/routes/orders.ts#ordersRouter",
+      "src/routes/products.ts#productsRouter",
+      "src/server.ts#config",
+      "src/server.ts#app",
+      "src/services/inventory.ts#hasStock",
+      "src/services/inventory.ts#reserve",
+      "src/services/orders.ts#OrderDeps",
+      "src/services/orders.ts#createOrderService",
+      "src/services/pricing.ts#orderTotal",
+      "src/services/pricing.ts#withTax",
+      "src/services/products.ts#ProductDeps",
+      "src/services/products.ts#createProductService"
+    ],
+    "unresolvedImports": 1,
+    "parseErrors": []
+  },
+  "graphSymbols": [
+    "src/config.ts#Config",
+    "src/domain/order.ts#OrderLine",
+    "src/domain/order.ts#Order",
+    "src/domain/order.ts#OrderInput",
+    "src/domain/product.ts#Product",
+    "src/domain/product.ts#ProductInput",
+    "src/services/orders.ts#OrderDeps",
+    "src/services/products.ts#ProductDeps"
+  ]
+}

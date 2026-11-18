@@ -1,0 +1,17 @@
+{
+  "output": {
+    "entryPoints": [
+      "apps/api/src/server.ts",
+      "apps/worker/src/worker.js",
+      "packages/shared/src/index.js",
+      "packages/ui/src/index.ts"
+    ],
+    "routes": [
+      { "method": "POST", "pattern": "/auth/sign-in", "path": "apps/api/src/routes/auth.ts" },
+      { "method": "POST", "pattern": "/auth/register", "path": "apps/api/src/routes/auth.ts" },
+      { "method": "GET", "pattern": "/reports", "path": "apps/api/src/routes/reports.ts" },
+      { "method": "POST", "pattern": "/reports", "path": "apps/api/src/routes/reports.ts" },
+      { "method": "GET", "pattern": "/users/me", "path": "apps/api/src/routes/users.ts" }
+    ]
+  }
+}

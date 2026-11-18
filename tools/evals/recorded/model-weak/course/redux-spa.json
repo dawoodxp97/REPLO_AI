@@ -1,0 +1,499 @@
+{
+  "repo": "redux-spa",
+  "pipeline": "lite",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "redux-spa walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "redux-spa",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:index.html",
+          "kind": "file",
+          "label": "index.html",
+          "path": "index.html"
+        },
+        {
+          "id": "file:package.json",
+          "kind": "file",
+          "label": "package.json",
+          "path": "package.json"
+        },
+        {
+          "id": "file:src/App.tsx",
+          "kind": "file",
+          "label": "src/App.tsx",
+          "path": "src/App.tsx"
+        },
+        {
+          "id": "file:src/app/store.ts",
+          "kind": "file",
+          "label": "src/app/store.ts",
+          "path": "src/app/store.ts"
+        },
+        {
+          "id": "file:src/features/todos/todosSlice.test.ts",
+          "kind": "file",
+          "label": "src/features/todos/todosSlice.test.ts",
+          "path": "src/features/todos/todosSlice.test.ts"
+        },
+        {
+          "id": "file:src/features/todos/todosSlice.ts",
+          "kind": "file",
+          "label": "src/features/todos/todosSlice.ts",
+          "path": "src/features/todos/todosSlice.ts"
+        },
+        {
+          "id": "file:src/main.tsx",
+          "kind": "file",
+          "label": "src/main.tsx",
+          "path": "src/main.tsx"
+        },
+        {
+          "id": "group:index.html",
+          "kind": "module",
+          "label": "index.html"
+        },
+        {
+          "id": "group:package.json",
+          "kind": "module",
+          "label": "package.json"
+        },
+        {
+          "id": "group:src/App.tsx",
+          "kind": "module",
+          "label": "src/App.tsx"
+        },
+        {
+          "id": "group:src/app",
+          "kind": "module",
+          "label": "src/app"
+        },
+        {
+          "id": "group:src/features",
+          "kind": "module",
+          "label": "src/features"
+        },
+        {
+          "id": "group:src/main.tsx",
+          "kind": "module",
+          "label": "src/main.tsx"
+        },
+        {
+          "id": "sym:src/app/store.ts#RootState",
+          "kind": "symbol",
+          "label": "RootState",
+          "path": "src/app/store.ts",
+          "symbolKey": "src/app/store.ts#RootState"
+        },
+        {
+          "id": "sym:src/features/todos/todosSlice.ts#Todo",
+          "kind": "symbol",
+          "label": "Todo",
+          "path": "src/features/todos/todosSlice.ts",
+          "symbolKey": "src/features/todos/todosSlice.ts#Todo"
+        }
+      ],
+      "edges": [
+        {
+          "id": "imports|file:src/app/store.ts|file:src/features/todos/todosSlice.ts",
+          "from": "file:src/app/store.ts",
+          "to": "file:src/features/todos/todosSlice.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:src/features/todos/todosSlice.test.ts|file:src/features/todos/todosSlice.ts",
+          "from": "file:src/features/todos/todosSlice.test.ts",
+          "to": "file:src/features/todos/todosSlice.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:src/features/todos/todosSlice.test.ts|file:src/features/todos/todosSlice.ts",
+          "from": "file:src/features/todos/todosSlice.test.ts",
+          "to": "file:src/features/todos/todosSlice.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:src/main.tsx|file:src/App.tsx",
+          "from": "file:src/main.tsx",
+          "to": "file:src/App.tsx",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:src/main.tsx|file:src/app/store.ts",
+          "from": "file:src/main.tsx",
+          "to": "file:src/app/store.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:index.html|file:index.html",
+          "from": "group:index.html",
+          "to": "file:index.html",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:package.json|file:package.json",
+          "from": "group:package.json",
+          "to": "file:package.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/App.tsx|file:src/App.tsx",
+          "from": "group:src/App.tsx",
+          "to": "file:src/App.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/app|file:src/app/store.ts",
+          "from": "group:src/app",
+          "to": "file:src/app/store.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/features|file:src/features/todos/todosSlice.test.ts",
+          "from": "group:src/features",
+          "to": "file:src/features/todos/todosSlice.test.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/features|file:src/features/todos/todosSlice.ts",
+          "from": "group:src/features",
+          "to": "file:src/features/todos/todosSlice.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/main.tsx|file:src/main.tsx",
+          "from": "group:src/main.tsx",
+          "to": "file:src/main.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/app/store.ts|sym:src/app/store.ts#RootState",
+          "from": "file:src/app/store.ts",
+          "to": "sym:src/app/store.ts#RootState",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/features/todos/todosSlice.ts|sym:src/features/todos/todosSlice.ts#Todo",
+          "from": "file:src/features/todos/todosSlice.ts",
+          "to": "sym:src/features/todos/todosSlice.ts#Todo",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "src/features/todos/todosSlice.ts",
+            "summary": "Open src/features/todos/todosSlice.ts.",
+            "nodeId": "file:src/features/todos/todosSlice.ts"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:index.html",
+            "label": "index.html",
+            "kind": "file",
+            "refIds": ["r_2"]
+          },
+          {
+            "id": "file:package.json",
+            "label": "package.json",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:src/App.tsx",
+            "label": "src/App.tsx",
+            "kind": "file",
+            "refIds": ["r_4"]
+          },
+          {
+            "id": "file:src/app/store.ts",
+            "label": "src/app/store.ts",
+            "kind": "file",
+            "refIds": ["r_5"]
+          },
+          {
+            "id": "file:src/features/todos/todosSlice.test.ts",
+            "label": "src/features/todos/todosSlice.test.ts",
+            "kind": "file",
+            "refIds": ["r_6"]
+          },
+          {
+            "id": "file:src/features/todos/todosSlice.ts",
+            "label": "src/features/todos/todosSlice.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:index.html",
+            "to": "file:package.json",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:package.json",
+            "to": "file:src/App.tsx",
+            "refIds": []
+          },
+          {
+            "id": "a2",
+            "from": "file:src/App.tsx",
+            "to": "file:src/app/store.ts",
+            "refIds": []
+          },
+          {
+            "id": "a3",
+            "from": "file:src/app/store.ts",
+            "to": "file:src/features/todos/todosSlice.test.ts",
+            "refIds": []
+          },
+          {
+            "id": "a4",
+            "from": "file:src/features/todos/todosSlice.test.ts",
+            "to": "file:src/features/todos/todosSlice.ts",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:src/features/todos/todosSlice.ts",
+            "label": "src/features/todos/todosSlice.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          }
+        ],
+        "edges": []
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"index.html\"]\n  g1[\"package.json\"]\n  g2[\"src/App.tsx\"]\n  g3[\"src/app/store.ts\"]\n  g4[\"src/features/todos/todosSlice.test.ts\"]\n  g5[\"src/features/todos/todosSlice.ts\"]\n  index.html --> package.json\n  package.json --> src/App.tsx\n  src/App.tsx --> src/app/store.ts\n  src/app/store.ts --> src/features/todos/todosSlice.test.ts\n  src/features/todos/todosSlice.test.ts --> src/features/todos/todosSlice.ts",
+        "nodeRefs": {
+          "g0": "index.html",
+          "g1": "package.json",
+          "g2": "src/App.tsx",
+          "g3": "src/app/store.ts",
+          "g4": "src/features/todos/todosSlice.test.ts",
+          "g5": "src/features/todos/todosSlice.ts"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_2"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through src/app/store.ts.",
+        "objectives": ["Read src/app/store.ts"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/app/store.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_5"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`src/features/todos/todosSlice.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_1"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "A block whose evidence is missing.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_missing"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_5",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "src/app/store.ts"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites src/app/store.ts as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_5"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-2",
+        "title": "Chapter 2",
+        "summary": "The path through src/App.tsx.",
+        "objectives": ["Read src/App.tsx"],
+        "prerequisites": ["chapter-1"],
+        "lessons": [
+          {
+            "key": "chapter-2-lesson",
+            "title": "Lesson 2",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/App.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_4"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_4",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": []
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "src/features/todos/todosSlice.ts",
+        "startLine": 3,
+        "endLine": 7,
+        "blobSha": "0000000000000000000000000000000000000000",
+        "symbolKey": "src/features/todos/todosSlice.ts#Todo"
+      },
+      "r_2": {
+        "path": "index.html",
+        "startLine": 1,
+        "endLine": 9,
+        "blobSha": "65bff7ce8e1771b755010a1675693ca34fc897de"
+      },
+      "r_3": {
+        "path": "package.json",
+        "startLine": 1,
+        "endLine": 11,
+        "blobSha": "5ea8d5371ccc3633ef075b36e7c3bcc975a30fcc"
+      },
+      "r_4": {
+        "path": "src/App.tsx",
+        "startLine": 3,
+        "endLine": 5,
+        "blobSha": "96e315bb793eeac06fd90a289488c72d14964c03",
+        "symbolKey": "src/App.tsx#App"
+      },
+      "r_5": {
+        "path": "src/app/store.ts",
+        "startLine": 4,
+        "endLine": 6,
+        "blobSha": "2b4a418550796793dca77af360a9846b428ba819",
+        "symbolKey": "src/app/store.ts#store"
+      },
+      "r_6": {
+        "path": "src/features/todos/todosSlice.test.ts",
+        "startLine": 1,
+        "endLine": 14,
+        "blobSha": "09fa206ace17666d3177d46da9afc92bc1980f61"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 900000,
+    "inputTokens": 300000,
+    "outputTokens": 150000
+  }
+}

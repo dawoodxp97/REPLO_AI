@@ -41,19 +41,9 @@ export const TruthSheet = z.object({
     .min(3)
     .max(5),
   coreModules: z.array(z.string()).min(1),
+  graphSymbols: z.array(z.string()).default([]),
   facts: z.array(z.object({ claim: z.string(), evidencePath: z.string() })).length(10),
+  forbiddenStrings: z.array(z.string().min(1)).default([]),
   index: IndexExpectations,
 })
 export type TruthSheet = z.infer<typeof TruthSheet>
-
-export const PIPELINE_METRICS = [
-  'referenceValidityPost',
-  'referenceValidityPre',
-  'fabricatedIdentifiersPer1kWords',
-  'claimSupport',
-  'coverage',
-  'sequencing',
-  'quizQuality',
-  'costUsd',
-  'latencyMs',
-] as const

@@ -28,13 +28,14 @@ export function createModelsService(deps: { db: Db; catalog: Catalog }): ModelsS
   const { db, catalog } = deps
   const repo = modelsRepo(db)
 
+  const offered = (model: CatalogModel): boolean =>
+    model.supportsStructuredOutput &&
+    model.verified &&
+    (!model.free || catalog.file.freeAllowList.includes(model.id))
+
   const usable = (provider: Provider, modelId: string): CatalogModel | undefined =>
     catalog.file.models.find(
-      (model) =>
-        model.id === modelId &&
-        model.provider === provider &&
-        model.supportsStructuredOutput &&
-        model.verified,
+      (model) => model.id === modelId && model.provider === provider && offered(model),
     )
 
   const toDto = (row: { defaultModel: string | null } | undefined): ModelPreferences => ({
@@ -47,7 +48,7 @@ export function createModelsService(deps: { db: Db; catalog: Catalog }): ModelsS
   return {
     catalog() {
       return {
-        models: catalog.file.models.map((model) => ({
+        models: catalog.file.models.filter(offered).map((model) => ({
           id: model.id,
           provider: model.provider,
           label: model.label,
@@ -64,8 +65,7 @@ export function createModelsService(deps: { db: Db; catalog: Catalog }): ModelsS
     async setPreferences(userId, input) {
       if (input.defaultModel !== null) {
         const model = catalog.file.models.find((candidate) => candidate.id === input.defaultModel)
-        if (!model || !model.supportsStructuredOutput || !model.verified)
-          return refused({ modelId: input.defaultModel })
+        if (!model || !offered(model)) return refused({ modelId: input.defaultModel })
       }
       await repo.upsert(userId, { defaultModel: input.defaultModel })
       return ok(await getPreferences(userId))
@@ -74,7 +74,6 @@ export function createModelsService(deps: { db: Db; catalog: Catalog }): ModelsS
     plan(provider, modelId) {
       const model = usable(provider, modelId)
       if (!model) return undefined
-      // Free models run the lite path: deterministic summaries, system-built diagrams only.
       return {
         provider,
         pipeline: model.free ? 'lite' : 'full',

@@ -18,7 +18,7 @@ replo/
 │   ├── repo-analysis/  filters, path safety, tree-sitter, symbols, import graph, layers, tours
 │   ├── ui/             Base UI primitives, Tailwind v4 tokens, globals.css
 │   └── config/         tsconfig bases, ESLint flat config (incl. boundary rules)
-└── tools/evals/        golden-repo suite: graph, citation, diagram and course quality reports
+└── tools/evals/        golden-repo suite: index, graph, citation, diagram, course and quiz gates
 ```
 
 ### Dependency graph (enforced in lint)
@@ -175,7 +175,7 @@ Least-privilege read-only GitHub access · strict per-user scoping with cross-us
 | Staging     | Same VPS, separate Compose project, DB and GitHub App, basic auth | Skip until real users                                  |
 | Production  | The VPS                                                           | Nightly encrypted backups to R2, monthly restore drill |
 
-CI/CD: PR → install frozen → `turbo run lint typecheck test build --affected` (database integration tests bootstrap the committed DDL) → eval smoke (recorded fixtures). Main → build images (arm64 if Arm VPS) → GHCR → SSH deploy. Apply new DDL manually before deploying code that depends on it. Landing → Cloudflare Pages on push. Nightly → eval suite on the free-model allow-list + one paid model (D-121).
+CI/CD: PR → install frozen → `turbo run lint typecheck test build --affected` (database integration tests bootstrap the committed DDL) → eval smoke (recorded fixtures). Main → build images (arm64 if Arm VPS) → GHCR → SSH deploy. Apply new DDL manually before deploying code that depends on it. Landing → Cloudflare Pages on push. There is no scheduled eval (D-048); an operator runs the recorded matrix before changing the allow-list.
 
 Observability: pino JSON → stdout (rotated), Sentry free tier, admin UI reading user/job/stage/queue tables, scheduled alerts (failure rate > 20%/h, oldest queued > 15 min, disk > 80%, backup failed, key-validation failure spike).
 

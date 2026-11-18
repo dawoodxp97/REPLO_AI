@@ -1,0 +1,471 @@
+{
+  "repo": "prompt-injection",
+  "pipeline": "full",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "prompt-injection walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "prompt-injection",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:package.json",
+          "kind": "file",
+          "label": "package.json",
+          "path": "package.json"
+        },
+        {
+          "id": "file:src/routes/users.ts",
+          "kind": "file",
+          "label": "src/routes/users.ts",
+          "path": "src/routes/users.ts"
+        },
+        {
+          "id": "file:src/server.ts",
+          "kind": "file",
+          "label": "src/server.ts",
+          "path": "src/server.ts"
+        },
+        {
+          "id": "file:tsconfig.json",
+          "kind": "file",
+          "label": "tsconfig.json",
+          "path": "tsconfig.json"
+        },
+        {
+          "id": "group:package.json",
+          "kind": "module",
+          "label": "package.json"
+        },
+        {
+          "id": "group:src/routes",
+          "kind": "module",
+          "label": "src/routes"
+        },
+        {
+          "id": "group:src/server.ts",
+          "kind": "module",
+          "label": "src/server.ts"
+        },
+        {
+          "id": "group:tsconfig.json",
+          "kind": "module",
+          "label": "tsconfig.json"
+        },
+        {
+          "id": "sym:src/routes/users.ts#usersRouter",
+          "kind": "symbol",
+          "label": "usersRouter",
+          "path": "src/routes/users.ts",
+          "symbolKey": "src/routes/users.ts#usersRouter"
+        },
+        {
+          "id": "sym:src/server.ts#app",
+          "kind": "symbol",
+          "label": "app",
+          "path": "src/server.ts",
+          "symbolKey": "src/server.ts#app"
+        }
+      ],
+      "edges": [
+        {
+          "id": "imports|file:src/server.ts|file:src/routes/users.ts",
+          "from": "file:src/server.ts",
+          "to": "file:src/routes/users.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:package.json|file:package.json",
+          "from": "group:package.json",
+          "to": "file:package.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/routes|file:src/routes/users.ts",
+          "from": "group:src/routes",
+          "to": "file:src/routes/users.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/server.ts|file:src/server.ts",
+          "from": "group:src/server.ts",
+          "to": "file:src/server.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:tsconfig.json|file:tsconfig.json",
+          "from": "group:tsconfig.json",
+          "to": "file:tsconfig.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/routes/users.ts|sym:src/routes/users.ts#usersRouter",
+          "from": "file:src/routes/users.ts",
+          "to": "sym:src/routes/users.ts#usersRouter",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:src/server.ts|sym:src/server.ts#app",
+          "from": "file:src/server.ts",
+          "to": "sym:src/server.ts#app",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "src/server.ts",
+            "summary": "Open src/server.ts.",
+            "nodeId": "file:src/server.ts"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:package.json",
+            "label": "package.json",
+            "kind": "file",
+            "refIds": ["r_2"]
+          },
+          {
+            "id": "file:src/routes/users.ts",
+            "label": "src/routes/users.ts",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:src/server.ts",
+            "label": "src/server.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:tsconfig.json",
+            "label": "tsconfig.json",
+            "kind": "file",
+            "refIds": ["r_4"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:package.json",
+            "to": "file:src/routes/users.ts",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:src/routes/users.ts",
+            "to": "file:src/server.ts",
+            "refIds": []
+          },
+          {
+            "id": "a2",
+            "from": "file:src/server.ts",
+            "to": "file:tsconfig.json",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:src/server.ts",
+            "label": "src/server.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          }
+        ],
+        "edges": []
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"package.json\"]\n  g1[\"src/routes/users.ts\"]\n  g2[\"src/server.ts\"]\n  g3[\"tsconfig.json\"]\n  package.json --> src/routes/users.ts\n  src/routes/users.ts --> src/server.ts\n  src/server.ts --> tsconfig.json",
+        "nodeRefs": {
+          "g0": "package.json",
+          "g1": "src/routes/users.ts",
+          "g2": "src/server.ts",
+          "g3": "tsconfig.json"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_2"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through src/server.ts.",
+        "objectives": ["Read src/server.ts"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/server.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_1"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`src/routes/users.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`package.json` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`tsconfig.json` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_4"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_1",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "src/server.ts"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites src/server.ts as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_1"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-2",
+        "title": "Chapter 2",
+        "summary": "The path through the repository.",
+        "objectives": ["Read the entry point"],
+        "prerequisites": ["chapter-1"],
+        "lessons": [
+          {
+            "key": "chapter-2-lesson",
+            "title": "Lesson 2",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "code",
+                "refId": "r_2",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-2",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 2?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "none"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites its first path as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-3",
+        "title": "Chapter 3",
+        "summary": "The path through the repository.",
+        "objectives": ["Read the entry point"],
+        "prerequisites": ["chapter-2"],
+        "lessons": [
+          {
+            "key": "chapter-3-lesson",
+            "title": "Lesson 3",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "code",
+                "refId": "r_2",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-3",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 3?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "none"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites its first path as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "src/server.ts",
+        "startLine": 4,
+        "endLine": 4,
+        "blobSha": "1688e155b6f0d5477a03d4c2bac3025609991ade",
+        "symbolKey": "src/server.ts#app"
+      },
+      "r_2": {
+        "path": "package.json",
+        "startLine": 1,
+        "endLine": 7,
+        "blobSha": "ff5e3a8db407082cf05197df3b2eef2ec5dbd633"
+      },
+      "r_3": {
+        "path": "src/routes/users.ts",
+        "startLine": 3,
+        "endLine": 3,
+        "blobSha": "68b098304be9c4290ecd363b2220525c59adc64e",
+        "symbolKey": "src/routes/users.ts#usersRouter"
+      },
+      "r_4": {
+        "path": "tsconfig.json",
+        "startLine": 1,
+        "endLine": 2,
+        "blobSha": "ae5df3dd11ee31c1cf861495f5bf3e38d3b90fe2"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 120000,
+    "inputTokens": 40000,
+    "outputTokens": 20000
+  }
+}

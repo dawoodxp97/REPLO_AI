@@ -1,0 +1,291 @@
+{
+  "repo": "fastify-api",
+  "pipeline": "lite",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "fastify-api walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "fastify-api",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:package.json",
+          "kind": "file",
+          "label": "package.json",
+          "path": "package.json"
+        },
+        {
+          "id": "file:src/index.ts",
+          "kind": "file",
+          "label": "src/index.ts",
+          "path": "src/index.ts"
+        },
+        {
+          "id": "file:src/plugins/db.ts",
+          "kind": "file",
+          "label": "src/plugins/db.ts",
+          "path": "src/plugins/db.ts"
+        },
+        {
+          "id": "group:package.json",
+          "kind": "module",
+          "label": "package.json"
+        },
+        {
+          "id": "group:src/index.ts",
+          "kind": "module",
+          "label": "src/index.ts"
+        },
+        {
+          "id": "group:src/plugins",
+          "kind": "module",
+          "label": "src/plugins"
+        }
+      ],
+      "edges": [
+        {
+          "id": "imports|file:src/index.ts|file:src/plugins/db.ts",
+          "from": "file:src/index.ts",
+          "to": "file:src/plugins/db.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:package.json|file:package.json",
+          "from": "group:package.json",
+          "to": "file:package.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/index.ts|file:src/index.ts",
+          "from": "group:src/index.ts",
+          "to": "file:src/index.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/plugins|file:src/plugins/db.ts",
+          "from": "group:src/plugins",
+          "to": "file:src/plugins/db.ts",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "src/index.ts",
+            "summary": "Open src/index.ts.",
+            "nodeId": "file:src/index.ts"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:package.json",
+            "label": "package.json",
+            "kind": "file",
+            "refIds": ["r_2"]
+          },
+          {
+            "id": "file:src/index.ts",
+            "label": "src/index.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:src/plugins/db.ts",
+            "label": "src/plugins/db.ts",
+            "kind": "file",
+            "refIds": ["r_3"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:package.json",
+            "to": "file:src/index.ts",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:src/index.ts",
+            "to": "file:src/plugins/db.ts",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:src/index.ts",
+            "label": "src/index.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          }
+        ],
+        "edges": []
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"package.json\"]\n  g1[\"src/index.ts\"]\n  g2[\"src/plugins/db.ts\"]\n  package.json --> src/index.ts\n  src/index.ts --> src/plugins/db.ts",
+        "nodeRefs": {
+          "g0": "package.json",
+          "g1": "src/index.ts",
+          "g2": "src/plugins/db.ts"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_2"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through src/plugins/db.ts.",
+        "objectives": ["Read src/plugins/db.ts"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/plugins/db.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`package.json` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "A block whose evidence is missing.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_missing"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_3",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "src/plugins/db.ts"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites src/plugins/db.ts as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "src/index.ts",
+        "startLine": 4,
+        "endLine": 4,
+        "blobSha": "0000000000000000000000000000000000000000",
+        "symbolKey": "src/index.ts#app"
+      },
+      "r_2": {
+        "path": "package.json",
+        "startLine": 1,
+        "endLine": 6,
+        "blobSha": "12f2d6627fc3a4d5fef45a9abdcf31c75f666555"
+      },
+      "r_3": {
+        "path": "src/plugins/db.ts",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "0bc8dcc715cebb06c9b5320e0fb1f592d466e39f",
+        "symbolKey": "src/plugins/db.ts#dbPlugin"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 360000,
+    "inputTokens": 120000,
+    "outputTokens": 60000
+  }
+}

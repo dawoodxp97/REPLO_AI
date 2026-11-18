@@ -124,5 +124,6 @@
     ],
     "unresolvedImports": 0,
     "parseErrors": []
-  }
+  },
+  "graphSymbols": ["lib/posts.ts#Post"]
 }

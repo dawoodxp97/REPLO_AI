@@ -1,0 +1,649 @@
+{
+  "repo": "next-pages",
+  "pipeline": "full",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "next-pages walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "next-pages",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:lib/data.ts",
+          "kind": "file",
+          "label": "lib/data.ts",
+          "path": "lib/data.ts"
+        },
+        {
+          "id": "file:package.json",
+          "kind": "file",
+          "label": "package.json",
+          "path": "package.json"
+        },
+        {
+          "id": "file:pages/_app.tsx",
+          "kind": "file",
+          "label": "pages/_app.tsx",
+          "path": "pages/_app.tsx"
+        },
+        {
+          "id": "file:pages/api/hello.ts",
+          "kind": "file",
+          "label": "pages/api/hello.ts",
+          "path": "pages/api/hello.ts"
+        },
+        {
+          "id": "file:pages/index.tsx",
+          "kind": "file",
+          "label": "pages/index.tsx",
+          "path": "pages/index.tsx"
+        },
+        {
+          "id": "file:pages/posts/[id].tsx",
+          "kind": "file",
+          "label": "pages/posts/[id].tsx",
+          "path": "pages/posts/[id].tsx"
+        },
+        {
+          "id": "file:tsconfig.json",
+          "kind": "file",
+          "label": "tsconfig.json",
+          "path": "tsconfig.json"
+        },
+        {
+          "id": "group:lib/data.ts",
+          "kind": "module",
+          "label": "lib/data.ts"
+        },
+        {
+          "id": "group:package.json",
+          "kind": "module",
+          "label": "package.json"
+        },
+        {
+          "id": "group:pages/_app.tsx",
+          "kind": "module",
+          "label": "pages/_app.tsx"
+        },
+        {
+          "id": "group:pages/api",
+          "kind": "module",
+          "label": "pages/api"
+        },
+        {
+          "id": "group:pages/index.tsx",
+          "kind": "module",
+          "label": "pages/index.tsx"
+        },
+        {
+          "id": "group:pages/posts",
+          "kind": "module",
+          "label": "pages/posts"
+        },
+        {
+          "id": "group:tsconfig.json",
+          "kind": "module",
+          "label": "tsconfig.json"
+        },
+        {
+          "id": "sym:pages/_app.tsx#App",
+          "kind": "symbol",
+          "label": "App",
+          "path": "pages/_app.tsx",
+          "symbolKey": "pages/_app.tsx#App"
+        },
+        {
+          "id": "sym:pages/index.tsx#Home",
+          "kind": "symbol",
+          "label": "Home",
+          "path": "pages/index.tsx",
+          "symbolKey": "pages/index.tsx#Home"
+        },
+        {
+          "id": "sym:lib/data.ts#loadCatalog",
+          "kind": "symbol",
+          "label": "loadCatalog",
+          "path": "lib/data.ts",
+          "symbolKey": "lib/data.ts#loadCatalog"
+        },
+        {
+          "id": "sym:pages/api/hello.ts#handler",
+          "kind": "symbol",
+          "label": "handler",
+          "path": "pages/api/hello.ts",
+          "symbolKey": "pages/api/hello.ts#handler"
+        }
+      ],
+      "edges": [
+        {
+          "id": "calls|file:pages/index.tsx|file:lib/data.ts",
+          "from": "file:pages/index.tsx",
+          "to": "file:lib/data.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:pages/index.tsx|file:lib/data.ts",
+          "from": "file:pages/index.tsx",
+          "to": "file:lib/data.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:lib/data.ts|file:lib/data.ts",
+          "from": "group:lib/data.ts",
+          "to": "file:lib/data.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:package.json|file:package.json",
+          "from": "group:package.json",
+          "to": "file:package.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:pages/_app.tsx|file:pages/_app.tsx",
+          "from": "group:pages/_app.tsx",
+          "to": "file:pages/_app.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:pages/api|file:pages/api/hello.ts",
+          "from": "group:pages/api",
+          "to": "file:pages/api/hello.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:pages/index.tsx|file:pages/index.tsx",
+          "from": "group:pages/index.tsx",
+          "to": "file:pages/index.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:pages/posts|file:pages/posts/[id].tsx",
+          "from": "group:pages/posts",
+          "to": "file:pages/posts/[id].tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:tsconfig.json|file:tsconfig.json",
+          "from": "group:tsconfig.json",
+          "to": "file:tsconfig.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:pages/_app.tsx|sym:pages/_app.tsx#App",
+          "from": "file:pages/_app.tsx",
+          "to": "sym:pages/_app.tsx#App",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:pages/index.tsx|sym:pages/index.tsx#Home",
+          "from": "file:pages/index.tsx",
+          "to": "sym:pages/index.tsx#Home",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:lib/data.ts|sym:lib/data.ts#loadCatalog",
+          "from": "file:lib/data.ts",
+          "to": "sym:lib/data.ts#loadCatalog",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:pages/api/hello.ts|sym:pages/api/hello.ts#handler",
+          "from": "file:pages/api/hello.ts",
+          "to": "sym:pages/api/hello.ts#handler",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "pages/index.tsx",
+            "summary": "Open pages/index.tsx.",
+            "nodeId": "file:pages/index.tsx"
+          },
+          {
+            "title": "lib/data.ts",
+            "summary": "Open lib/data.ts.",
+            "nodeId": "file:lib/data.ts"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:lib/data.ts",
+            "label": "lib/data.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          },
+          {
+            "id": "file:package.json",
+            "label": "package.json",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:pages/_app.tsx",
+            "label": "pages/_app.tsx",
+            "kind": "file",
+            "refIds": ["r_4"]
+          },
+          {
+            "id": "file:pages/api/hello.ts",
+            "label": "pages/api/hello.ts",
+            "kind": "file",
+            "refIds": ["r_5"]
+          },
+          {
+            "id": "file:pages/index.tsx",
+            "label": "pages/index.tsx",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:pages/posts/[id].tsx",
+            "label": "pages/posts/[id].tsx",
+            "kind": "file",
+            "refIds": ["r_6"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:lib/data.ts",
+            "to": "file:package.json",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:package.json",
+            "to": "file:pages/_app.tsx",
+            "refIds": []
+          },
+          {
+            "id": "a2",
+            "from": "file:pages/_app.tsx",
+            "to": "file:pages/api/hello.ts",
+            "refIds": []
+          },
+          {
+            "id": "a3",
+            "from": "file:pages/api/hello.ts",
+            "to": "file:pages/index.tsx",
+            "refIds": []
+          },
+          {
+            "id": "a4",
+            "from": "file:pages/index.tsx",
+            "to": "file:pages/posts/[id].tsx",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:pages/index.tsx",
+            "label": "pages/index.tsx",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:lib/data.ts",
+            "label": "lib/data.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "e0",
+            "from": "file:pages/index.tsx",
+            "to": "file:lib/data.ts",
+            "refIds": []
+          }
+        ]
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"lib/data.ts\"]\n  g1[\"package.json\"]\n  g2[\"pages/_app.tsx\"]\n  g3[\"pages/api/hello.ts\"]\n  g4[\"pages/index.tsx\"]\n  g5[\"pages/posts/[id].tsx\"]\n  lib/data.ts --> package.json\n  package.json --> pages/_app.tsx\n  pages/_app.tsx --> pages/api/hello.ts\n  pages/api/hello.ts --> pages/index.tsx\n  pages/index.tsx --> pages/posts/[id].tsx",
+        "nodeRefs": {
+          "g0": "lib/data.ts",
+          "g1": "package.json",
+          "g2": "pages/_app.tsx",
+          "g3": "pages/api/hello.ts",
+          "g4": "pages/index.tsx",
+          "g5": "pages/posts/[id].tsx"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_2"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through pages/_app.tsx.",
+        "objectives": ["Read pages/_app.tsx"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`pages/_app.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_4"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`pages/index.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_1"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`lib/data.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`pages/api/hello.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_5"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_4",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "pages/_app.tsx"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites pages/_app.tsx as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_4"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-2",
+        "title": "Chapter 2",
+        "summary": "The path through pages/posts/[id].tsx.",
+        "objectives": ["Read pages/posts/[id].tsx"],
+        "prerequisites": ["chapter-1"],
+        "lessons": [
+          {
+            "key": "chapter-2-lesson",
+            "title": "Lesson 2",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`pages/posts/[id].tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_6"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`package.json` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`tsconfig.json` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_7"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_6",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-2",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 2?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "pages/posts/[id].tsx"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites pages/posts/[id].tsx as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_6"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-3",
+        "title": "Chapter 3",
+        "summary": "The path through the repository.",
+        "objectives": ["Read the entry point"],
+        "prerequisites": ["chapter-2"],
+        "lessons": [
+          {
+            "key": "chapter-3-lesson",
+            "title": "Lesson 3",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "code",
+                "refId": "r_3",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-3",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 3?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "none"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites its first path as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "pages/index.tsx",
+        "startLine": 3,
+        "endLine": 5,
+        "blobSha": "dc49ee5854e81672f51094da37bf09e56b2af33e",
+        "symbolKey": "pages/index.tsx#Home"
+      },
+      "r_2": {
+        "path": "lib/data.ts",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "2b36431d9036f265bceb5bb9d22bebe88608eb93",
+        "symbolKey": "lib/data.ts#loadCatalog"
+      },
+      "r_3": {
+        "path": "package.json",
+        "startLine": 1,
+        "endLine": 6,
+        "blobSha": "8c32043ee590a43a889ebec5c160a810f106a2b6"
+      },
+      "r_4": {
+        "path": "pages/_app.tsx",
+        "startLine": 3,
+        "endLine": 5,
+        "blobSha": "93928c3da70e2367557c82fc6aacfced7dd3266c",
+        "symbolKey": "pages/_app.tsx#App"
+      },
+      "r_5": {
+        "path": "pages/api/hello.ts",
+        "startLine": 3,
+        "endLine": 5,
+        "blobSha": "79ca767f2e8194b25250e0a420e8fbf1f32c9797",
+        "symbolKey": "pages/api/hello.ts#handler"
+      },
+      "r_6": {
+        "path": "pages/posts/[id].tsx",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "fa76fd4574644e9b1c47a7e4af8922ffc4b58528",
+        "symbolKey": "pages/posts/[id].tsx#Post"
+      },
+      "r_7": {
+        "path": "tsconfig.json",
+        "startLine": 1,
+        "endLine": 2,
+        "blobSha": "af8c5aab709b0f75b5e8d767ddbdfbabecc6d876"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 120000,
+    "inputTokens": 40000,
+    "outputTokens": 20000
+  }
+}

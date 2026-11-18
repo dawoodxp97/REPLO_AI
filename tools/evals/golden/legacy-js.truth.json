@@ -83,5 +83,6 @@
     "symbols": ["index.js#router", "lib/router.js#route"],
     "unresolvedImports": 0,
     "parseErrors": []
-  }
+  },
+  "graphSymbols": []
 }

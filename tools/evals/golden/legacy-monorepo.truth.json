@@ -1,0 +1,261 @@
+{
+  "repo": {
+    "owner": "synthetic",
+    "name": "legacy-monorepo",
+    "commitSha": "0000000000000000000000000000000000000000"
+  },
+  "source": {
+    "kind": "fixture",
+    "path": "packages/repo-analysis/fixtures/legacy-monorepo"
+  },
+  "shape": "monorepo",
+  "size": "large",
+  "entryPoints": [
+    "apps/api/src/server.ts",
+    "apps/worker/src/worker.js",
+    "packages/shared/src/index.js",
+    "packages/ui/src/index.ts"
+  ],
+  "keyFlows": [
+    {
+      "name": "register the worker jobs",
+      "hops": [
+        "apps/worker/src/worker.js",
+        "apps/worker/src/jobs/email.js",
+        "apps/worker/src/lib/logger.js"
+      ]
+    },
+    {
+      "name": "render the dashboard",
+      "hops": [
+        "apps/web/src/main.tsx",
+        "apps/web/src/App.tsx",
+        "apps/web/src/routes.tsx",
+        "apps/web/src/pages/dashboard.tsx",
+        "apps/web/src/components/chart.tsx"
+      ]
+    },
+    {
+      "name": "mount the HTTP API",
+      "hops": ["apps/api/src/server.ts", "apps/api/src/routes/reports.ts"]
+    },
+    {
+      "name": "export shared helpers",
+      "hops": ["packages/shared/src/index.js", "packages/shared/src/money.js"]
+    },
+    {
+      "name": "export UI primitives",
+      "hops": ["packages/ui/src/index.ts", "packages/ui/src/button.tsx"]
+    }
+  ],
+  "coreModules": [
+    "apps/api/src/server.ts",
+    "apps/api/src/routes/auth.ts",
+    "apps/api/src/routes/reports.ts",
+    "apps/api/src/services/reports.ts",
+    "apps/api/src/repositories/reports.ts",
+    "apps/worker/src/worker.js",
+    "apps/worker/src/lib/queue.js",
+    "apps/web/src/App.tsx",
+    "apps/web/src/routes.tsx",
+    "apps/web/src/pages/dashboard.tsx",
+    "packages/shared/src/index.js",
+    "packages/ui/src/index.ts"
+  ],
+  "facts": [
+    {
+      "claim": "The API listens on port 4200.",
+      "evidencePath": "apps/api/src/server.ts"
+    },
+    {
+      "claim": "The API mounts auth, users and reports routers.",
+      "evidencePath": "apps/api/src/server.ts"
+    },
+    {
+      "claim": "Reports are listed and created under /reports.",
+      "evidencePath": "apps/api/src/routes/reports.ts"
+    },
+    {
+      "claim": "The reports repository reads reports for one owner.",
+      "evidencePath": "apps/api/src/repositories/reports.ts"
+    },
+    {
+      "claim": "The worker registers email, export and cleanup jobs.",
+      "evidencePath": "apps/worker/src/worker.js"
+    },
+    {
+      "claim": "The queue throws on an unknown job name.",
+      "evidencePath": "apps/worker/src/lib/queue.js"
+    },
+    {
+      "claim": "The web routes map /login, / and /reports.",
+      "evidencePath": "apps/web/src/routes.tsx"
+    },
+    {
+      "claim": "The dashboard chart scales bars to the largest point.",
+      "evidencePath": "apps/web/src/components/chart.tsx"
+    },
+    {
+      "claim": "Shared money formatting uses Intl.NumberFormat.",
+      "evidencePath": "packages/shared/src/money.js"
+    },
+    {
+      "claim": "The UI package re-exports three primitives.",
+      "evidencePath": "packages/ui/src/index.ts"
+    }
+  ],
+  "index": {
+    "entryPoints": [
+      {
+        "path": "apps/api/src/server.ts",
+        "kind": "script"
+      },
+      {
+        "path": "apps/worker/src/worker.js",
+        "kind": "script"
+      },
+      {
+        "path": "apps/api/src/server.ts",
+        "kind": "main"
+      },
+      {
+        "path": "apps/worker/src/worker.js",
+        "kind": "main"
+      },
+      {
+        "path": "packages/shared/src/index.js",
+        "kind": "main"
+      },
+      {
+        "path": "packages/ui/src/index.ts",
+        "kind": "main"
+      },
+      {
+        "path": "apps/api/src/server.ts",
+        "kind": "server"
+      }
+    ],
+    "routes": [
+      {
+        "method": "POST",
+        "pattern": "/auth/sign-in",
+        "path": "apps/api/src/routes/auth.ts"
+      },
+      {
+        "method": "POST",
+        "pattern": "/auth/register",
+        "path": "apps/api/src/routes/auth.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/reports",
+        "path": "apps/api/src/routes/reports.ts"
+      },
+      {
+        "method": "POST",
+        "pattern": "/reports",
+        "path": "apps/api/src/routes/reports.ts"
+      },
+      {
+        "method": "GET",
+        "pattern": "/users/me",
+        "path": "apps/api/src/routes/users.ts"
+      }
+    ],
+    "imports": [
+      ["apps/api/src/repositories/reports.ts", "apps/api/src/models/report.ts"],
+      ["apps/api/src/repositories/users.ts", "apps/api/src/models/user.ts"],
+      ["apps/api/src/server.ts", "apps/api/src/middleware/errors.ts"],
+      ["apps/api/src/server.ts", "apps/api/src/routes/auth.ts"],
+      ["apps/api/src/server.ts", "apps/api/src/routes/reports.ts"],
+      ["apps/api/src/server.ts", "apps/api/src/routes/users.ts"],
+      ["apps/api/src/services/auth.ts", "apps/api/src/models/user.ts"],
+      ["apps/api/src/services/auth.ts", "apps/api/src/repositories/users.ts"],
+      ["apps/api/src/services/reports.ts", "apps/api/src/models/report.ts"],
+      ["apps/api/src/services/reports.ts", "apps/api/src/repositories/reports.ts"],
+      ["apps/api/src/services/users.ts", "apps/api/src/repositories/users.ts"],
+      ["apps/web/src/App.tsx", "apps/web/src/routes.tsx"],
+      ["apps/web/src/main.tsx", "apps/web/src/App.tsx"],
+      ["apps/web/src/pages/dashboard.tsx", "apps/web/src/components/chart.tsx"],
+      ["apps/web/src/pages/dashboard.tsx", "apps/web/src/store/session.ts"],
+      ["apps/web/src/pages/login.tsx", "apps/web/src/components/button.tsx"],
+      ["apps/web/src/pages/login.tsx", "apps/web/src/store/session.ts"],
+      ["apps/web/src/pages/reports.tsx", "apps/web/src/components/filter.tsx"],
+      ["apps/web/src/pages/reports.tsx", "apps/web/src/components/table.tsx"],
+      ["apps/web/src/routes.tsx", "apps/web/src/pages/dashboard.tsx"],
+      ["apps/web/src/routes.tsx", "apps/web/src/pages/login.tsx"],
+      ["apps/web/src/routes.tsx", "apps/web/src/pages/reports.tsx"],
+      ["apps/worker/src/jobs/cleanup.js", "apps/worker/src/lib/logger.js"],
+      ["apps/worker/src/jobs/email.js", "apps/worker/src/lib/logger.js"],
+      ["apps/worker/src/jobs/export.js", "apps/worker/src/lib/logger.js"],
+      ["apps/worker/src/lib/queue.js", "apps/worker/src/lib/logger.js"],
+      ["apps/worker/src/worker.js", "apps/worker/src/jobs/cleanup.js"],
+      ["apps/worker/src/worker.js", "apps/worker/src/jobs/email.js"],
+      ["apps/worker/src/worker.js", "apps/worker/src/jobs/export.js"],
+      ["apps/worker/src/worker.js", "apps/worker/src/lib/queue.js"],
+      ["packages/shared/src/index.js", "packages/shared/src/dates.js"],
+      ["packages/shared/src/index.js", "packages/shared/src/money.js"],
+      ["packages/shared/src/index.js", "packages/shared/src/validation.js"],
+      ["packages/ui/src/index.ts", "packages/ui/src/button.tsx"],
+      ["packages/ui/src/index.ts", "packages/ui/src/input.tsx"],
+      ["packages/ui/src/index.ts", "packages/ui/src/table.tsx"]
+    ],
+    "symbols": [
+      "apps/api/src/db.ts#pool",
+      "apps/api/src/middleware/auth.ts#requireAdmin",
+      "apps/api/src/middleware/errors.ts#errors",
+      "apps/api/src/models/report.ts#Report",
+      "apps/api/src/models/report.ts#ReportInput",
+      "apps/api/src/models/user.ts#User",
+      "apps/api/src/models/user.ts#UserInput",
+      "apps/api/src/repositories/reports.ts#reportsRepository",
+      "apps/api/src/repositories/users.ts#usersRepository",
+      "apps/api/src/routes/auth.ts#authRouter",
+      "apps/api/src/routes/reports.ts#reportsRouter",
+      "apps/api/src/routes/users.ts#usersRouter",
+      "apps/api/src/server.ts#app",
+      "apps/api/src/services/auth.ts#authService",
+      "apps/api/src/services/reports.ts#reportsService",
+      "apps/api/src/services/users.ts#usersService",
+      "apps/web/src/App.tsx#App",
+      "apps/web/src/api/client.ts#apiGet",
+      "apps/web/src/api/client.ts#apiPost",
+      "apps/web/src/components/button.tsx#Button",
+      "apps/web/src/components/chart.tsx#Chart",
+      "apps/web/src/components/filter.tsx#Filter",
+      "apps/web/src/components/table.tsx#Column",
+      "apps/web/src/components/table.tsx#Table",
+      "apps/web/src/pages/dashboard.tsx#DashboardPage",
+      "apps/web/src/pages/login.tsx#LoginPage",
+      "apps/web/src/pages/reports.tsx#columns",
+      "apps/web/src/pages/reports.tsx#ReportsPage",
+      "apps/web/src/routes.tsx#routes",
+      "apps/web/src/store/session.ts#SessionState",
+      "apps/web/src/store/session.ts#useSession",
+      "apps/worker/src/jobs/cleanup.js#cleanupSessions",
+      "apps/worker/src/jobs/email.js#sendEmail",
+      "apps/worker/src/jobs/export.js#exportReport",
+      "apps/worker/src/lib/logger.js#log",
+      "apps/worker/src/lib/queue.js#handlers",
+      "apps/worker/src/lib/queue.js#register",
+      "apps/worker/src/lib/queue.js#run",
+      "packages/shared/src/dates.js#monthRange",
+      "packages/shared/src/money.js#formatMoney",
+      "packages/shared/src/validation.js#EMAIL",
+      "packages/shared/src/validation.js#isEmail",
+      "packages/ui/src/button.tsx#PrimaryButton",
+      "packages/ui/src/input.tsx#TextInput",
+      "packages/ui/src/table.tsx#TableFrame",
+      "scripts/migrate.js#migrate"
+    ],
+    "unresolvedImports": 0,
+    "parseErrors": []
+  },
+  "graphSymbols": [
+    "apps/api/src/models/report.ts#Report",
+    "apps/api/src/models/report.ts#ReportInput",
+    "apps/api/src/models/user.ts#User",
+    "apps/api/src/models/user.ts#UserInput",
+    "apps/web/src/components/table.tsx#Column"
+  ]
+}

@@ -90,5 +90,6 @@
     "symbols": ["src/index.ts#app", "src/plugins/db.ts#dbPlugin"],
     "unresolvedImports": 0,
     "parseErrors": []
-  }
+  },
+  "graphSymbols": []
 }

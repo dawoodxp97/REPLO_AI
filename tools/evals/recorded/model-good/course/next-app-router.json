@@ -1,0 +1,801 @@
+{
+  "repo": "next-app-router",
+  "pipeline": "full",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "next-app-router walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "next-app-router",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:app/(marketing)/about/page.tsx",
+          "kind": "file",
+          "label": "app/(marketing)/about/page.tsx",
+          "path": "app/(marketing)/about/page.tsx"
+        },
+        {
+          "id": "file:app/api/posts/route.ts",
+          "kind": "file",
+          "label": "app/api/posts/route.ts",
+          "path": "app/api/posts/route.ts"
+        },
+        {
+          "id": "file:app/blog/[slug]/page.tsx",
+          "kind": "file",
+          "label": "app/blog/[slug]/page.tsx",
+          "path": "app/blog/[slug]/page.tsx"
+        },
+        {
+          "id": "file:app/layout.tsx",
+          "kind": "file",
+          "label": "app/layout.tsx",
+          "path": "app/layout.tsx"
+        },
+        {
+          "id": "file:app/page.tsx",
+          "kind": "file",
+          "label": "app/page.tsx",
+          "path": "app/page.tsx"
+        },
+        {
+          "id": "file:components/Button.test.tsx",
+          "kind": "file",
+          "label": "components/Button.test.tsx",
+          "path": "components/Button.test.tsx"
+        },
+        {
+          "id": "file:components/Button.tsx",
+          "kind": "file",
+          "label": "components/Button.tsx",
+          "path": "components/Button.tsx"
+        },
+        {
+          "id": "file:lib/posts.ts",
+          "kind": "file",
+          "label": "lib/posts.ts",
+          "path": "lib/posts.ts"
+        },
+        {
+          "id": "file:middleware.ts",
+          "kind": "file",
+          "label": "middleware.ts",
+          "path": "middleware.ts"
+        },
+        {
+          "id": "file:package.json",
+          "kind": "file",
+          "label": "package.json",
+          "path": "package.json"
+        },
+        {
+          "id": "file:tsconfig.json",
+          "kind": "file",
+          "label": "tsconfig.json",
+          "path": "tsconfig.json"
+        },
+        {
+          "id": "group:app/(marketing)",
+          "kind": "module",
+          "label": "app/(marketing)"
+        },
+        {
+          "id": "group:app/api",
+          "kind": "module",
+          "label": "app/api"
+        },
+        {
+          "id": "group:app/blog",
+          "kind": "module",
+          "label": "app/blog"
+        },
+        {
+          "id": "group:app/layout.tsx",
+          "kind": "module",
+          "label": "app/layout.tsx"
+        },
+        {
+          "id": "group:app/page.tsx",
+          "kind": "module",
+          "label": "app/page.tsx"
+        },
+        {
+          "id": "group:components/Button.test.tsx",
+          "kind": "module",
+          "label": "components/Button.test.tsx"
+        },
+        {
+          "id": "group:components/Button.tsx",
+          "kind": "module",
+          "label": "components/Button.tsx"
+        },
+        {
+          "id": "group:lib/posts.ts",
+          "kind": "module",
+          "label": "lib/posts.ts"
+        },
+        {
+          "id": "group:middleware.ts",
+          "kind": "module",
+          "label": "middleware.ts"
+        },
+        {
+          "id": "group:package.json",
+          "kind": "module",
+          "label": "package.json"
+        },
+        {
+          "id": "group:tsconfig.json",
+          "kind": "module",
+          "label": "tsconfig.json"
+        },
+        {
+          "id": "sym:app/layout.tsx#RootLayout",
+          "kind": "symbol",
+          "label": "RootLayout",
+          "path": "app/layout.tsx",
+          "symbolKey": "app/layout.tsx#RootLayout"
+        },
+        {
+          "id": "sym:app/page.tsx#Home",
+          "kind": "symbol",
+          "label": "Home",
+          "path": "app/page.tsx",
+          "symbolKey": "app/page.tsx#Home"
+        },
+        {
+          "id": "sym:lib/posts.ts#getPosts",
+          "kind": "symbol",
+          "label": "getPosts",
+          "path": "lib/posts.ts",
+          "symbolKey": "lib/posts.ts#getPosts"
+        },
+        {
+          "id": "sym:components/Button.tsx#Button",
+          "kind": "symbol",
+          "label": "Button",
+          "path": "components/Button.tsx",
+          "symbolKey": "components/Button.tsx#Button"
+        },
+        {
+          "id": "sym:lib/posts.ts#Post",
+          "kind": "symbol",
+          "label": "Post",
+          "path": "lib/posts.ts",
+          "symbolKey": "lib/posts.ts#Post"
+        }
+      ],
+      "edges": [
+        {
+          "id": "calls|file:app/api/posts/route.ts|file:lib/posts.ts",
+          "from": "file:app/api/posts/route.ts",
+          "to": "file:lib/posts.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:app/api/posts/route.ts|file:lib/posts.ts",
+          "from": "file:app/api/posts/route.ts",
+          "to": "file:lib/posts.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:app/page.tsx|file:components/Button.tsx",
+          "from": "file:app/page.tsx",
+          "to": "file:components/Button.tsx",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:app/page.tsx|file:lib/posts.ts",
+          "from": "file:app/page.tsx",
+          "to": "file:lib/posts.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:app/page.tsx|file:lib/posts.ts",
+          "from": "file:app/page.tsx",
+          "to": "file:lib/posts.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:components/Button.test.tsx|file:components/Button.tsx",
+          "from": "file:components/Button.test.tsx",
+          "to": "file:components/Button.tsx",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:components/Button.test.tsx|file:components/Button.tsx",
+          "from": "file:components/Button.test.tsx",
+          "to": "file:components/Button.tsx",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:app/(marketing)|file:app/(marketing)/about/page.tsx",
+          "from": "group:app/(marketing)",
+          "to": "file:app/(marketing)/about/page.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:app/api|file:app/api/posts/route.ts",
+          "from": "group:app/api",
+          "to": "file:app/api/posts/route.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:app/blog|file:app/blog/[slug]/page.tsx",
+          "from": "group:app/blog",
+          "to": "file:app/blog/[slug]/page.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:app/layout.tsx|file:app/layout.tsx",
+          "from": "group:app/layout.tsx",
+          "to": "file:app/layout.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:app/page.tsx|file:app/page.tsx",
+          "from": "group:app/page.tsx",
+          "to": "file:app/page.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:components/Button.test.tsx|file:components/Button.test.tsx",
+          "from": "group:components/Button.test.tsx",
+          "to": "file:components/Button.test.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:components/Button.tsx|file:components/Button.tsx",
+          "from": "group:components/Button.tsx",
+          "to": "file:components/Button.tsx",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:lib/posts.ts|file:lib/posts.ts",
+          "from": "group:lib/posts.ts",
+          "to": "file:lib/posts.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:middleware.ts|file:middleware.ts",
+          "from": "group:middleware.ts",
+          "to": "file:middleware.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:package.json|file:package.json",
+          "from": "group:package.json",
+          "to": "file:package.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:tsconfig.json|file:tsconfig.json",
+          "from": "group:tsconfig.json",
+          "to": "file:tsconfig.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:app/layout.tsx|sym:app/layout.tsx#RootLayout",
+          "from": "file:app/layout.tsx",
+          "to": "sym:app/layout.tsx#RootLayout",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:app/page.tsx|sym:app/page.tsx#Home",
+          "from": "file:app/page.tsx",
+          "to": "sym:app/page.tsx#Home",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:lib/posts.ts|sym:lib/posts.ts#getPosts",
+          "from": "file:lib/posts.ts",
+          "to": "sym:lib/posts.ts#getPosts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:components/Button.tsx|sym:components/Button.tsx#Button",
+          "from": "file:components/Button.tsx",
+          "to": "sym:components/Button.tsx#Button",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:lib/posts.ts|sym:lib/posts.ts#Post",
+          "from": "file:lib/posts.ts",
+          "to": "sym:lib/posts.ts#Post",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "app/page.tsx",
+            "summary": "Open app/page.tsx.",
+            "nodeId": "file:app/page.tsx"
+          },
+          {
+            "title": "lib/posts.ts",
+            "summary": "Open lib/posts.ts.",
+            "nodeId": "file:lib/posts.ts"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:app/(marketing)/about/page.tsx",
+            "label": "app/(marketing)/about/page.tsx",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:app/api/posts/route.ts",
+            "label": "app/api/posts/route.ts",
+            "kind": "file",
+            "refIds": ["r_4"]
+          },
+          {
+            "id": "file:app/blog/[slug]/page.tsx",
+            "label": "app/blog/[slug]/page.tsx",
+            "kind": "file",
+            "refIds": ["r_5"]
+          },
+          {
+            "id": "file:app/layout.tsx",
+            "label": "app/layout.tsx",
+            "kind": "file",
+            "refIds": ["r_6"]
+          },
+          {
+            "id": "file:app/page.tsx",
+            "label": "app/page.tsx",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:components/Button.test.tsx",
+            "label": "components/Button.test.tsx",
+            "kind": "file",
+            "refIds": ["r_7"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:app/(marketing)/about/page.tsx",
+            "to": "file:app/api/posts/route.ts",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:app/api/posts/route.ts",
+            "to": "file:app/blog/[slug]/page.tsx",
+            "refIds": []
+          },
+          {
+            "id": "a2",
+            "from": "file:app/blog/[slug]/page.tsx",
+            "to": "file:app/layout.tsx",
+            "refIds": []
+          },
+          {
+            "id": "a3",
+            "from": "file:app/layout.tsx",
+            "to": "file:app/page.tsx",
+            "refIds": []
+          },
+          {
+            "id": "a4",
+            "from": "file:app/page.tsx",
+            "to": "file:components/Button.test.tsx",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:app/page.tsx",
+            "label": "app/page.tsx",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:lib/posts.ts",
+            "label": "lib/posts.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "e0",
+            "from": "file:app/page.tsx",
+            "to": "file:lib/posts.ts",
+            "refIds": []
+          }
+        ]
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"app/(marketing)/about/page.tsx\"]\n  g1[\"app/api/posts/route.ts\"]\n  g2[\"app/blog/[slug]/page.tsx\"]\n  g3[\"app/layout.tsx\"]\n  g4[\"app/page.tsx\"]\n  g5[\"components/Button.test.tsx\"]\n  app/(marketing)/about/page.tsx --> app/api/posts/route.ts\n  app/api/posts/route.ts --> app/blog/[slug]/page.tsx\n  app/blog/[slug]/page.tsx --> app/layout.tsx\n  app/layout.tsx --> app/page.tsx\n  app/page.tsx --> components/Button.test.tsx",
+        "nodeRefs": {
+          "g0": "app/(marketing)/about/page.tsx",
+          "g1": "app/api/posts/route.ts",
+          "g2": "app/blog/[slug]/page.tsx",
+          "g3": "app/layout.tsx",
+          "g4": "app/page.tsx",
+          "g5": "components/Button.test.tsx"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_3"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through app/layout.tsx.",
+        "objectives": ["Read app/layout.tsx"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`app/layout.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_6"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`app/page.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_1"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`middleware.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_8"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`lib/posts.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_6",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "app/layout.tsx"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites app/layout.tsx as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_6"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-2",
+        "title": "Chapter 2",
+        "summary": "The path through components/Button.tsx.",
+        "objectives": ["Read components/Button.tsx"],
+        "prerequisites": ["chapter-1"],
+        "lessons": [
+          {
+            "key": "chapter-2-lesson",
+            "title": "Lesson 2",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`components/Button.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_9"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`app/api/posts/route.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_4"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`app/(marketing)/about/page.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`app/blog/[slug]/page.tsx` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_5"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_9",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-2",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 2?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "components/Button.tsx"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites components/Button.tsx as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_9"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-3",
+        "title": "Chapter 3",
+        "summary": "The path through tsconfig.json.",
+        "objectives": ["Read tsconfig.json"],
+        "prerequisites": ["chapter-2"],
+        "lessons": [
+          {
+            "key": "chapter-3-lesson",
+            "title": "Lesson 3",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`tsconfig.json` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_10"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_10",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-3",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 3?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "tsconfig.json"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites tsconfig.json as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_10"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "app/page.tsx",
+        "startLine": 4,
+        "endLine": 7,
+        "blobSha": "5045b1312438631eaf913538b91d109a1732e8a7",
+        "symbolKey": "app/page.tsx#Home"
+      },
+      "r_2": {
+        "path": "lib/posts.ts",
+        "startLine": 1,
+        "endLine": 4,
+        "blobSha": "f4caf330dea4c442e3016040ffd17dce98fa46b4",
+        "symbolKey": "lib/posts.ts#Post"
+      },
+      "r_3": {
+        "path": "app/(marketing)/about/page.tsx",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "263bfee442d045cf00a5f9ad7335a80c120499d4",
+        "symbolKey": "app/(marketing)/about/page.tsx#About"
+      },
+      "r_4": {
+        "path": "app/api/posts/route.ts",
+        "startLine": 3,
+        "endLine": 5,
+        "blobSha": "4c62ca33825fe811dad9bdb3d8c1e97f6a1e0821",
+        "symbolKey": "app/api/posts/route.ts#GET"
+      },
+      "r_5": {
+        "path": "app/blog/[slug]/page.tsx",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "1c9a998b5c04b5e48ac189dd33ced028b54a7d63",
+        "symbolKey": "app/blog/[slug]/page.tsx#Post"
+      },
+      "r_6": {
+        "path": "app/layout.tsx",
+        "startLine": 3,
+        "endLine": 9,
+        "blobSha": "0b605f1646c61f508d568290872e3541ea582544",
+        "symbolKey": "app/layout.tsx#RootLayout"
+      },
+      "r_7": {
+        "path": "components/Button.test.tsx",
+        "startLine": 1,
+        "endLine": 8,
+        "blobSha": "b452cb5fb11710385fc7b94b2afc252a6ede3d73"
+      },
+      "r_8": {
+        "path": "middleware.ts",
+        "startLine": 3,
+        "endLine": 5,
+        "blobSha": "1dd576f0c3a21f267eef9816de6207bd46247961",
+        "symbolKey": "middleware.ts#middleware"
+      },
+      "r_9": {
+        "path": "components/Button.tsx",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "38377309909714b32c5621aacb99e934cee8f5f7",
+        "symbolKey": "components/Button.tsx#Button"
+      },
+      "r_10": {
+        "path": "tsconfig.json",
+        "startLine": 1,
+        "endLine": 7,
+        "blobSha": "d6a893fedfe09909e58524ed9bb113b9f35d1ab0"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 300000,
+    "inputTokens": 100000,
+    "outputTokens": 50000
+  }
+}

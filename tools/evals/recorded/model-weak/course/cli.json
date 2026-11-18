@@ -1,0 +1,399 @@
+{
+  "repo": "cli",
+  "pipeline": "lite",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "cli walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "cli",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:package.json",
+          "kind": "file",
+          "label": "package.json",
+          "path": "package.json"
+        },
+        {
+          "id": "file:src/cli.ts",
+          "kind": "file",
+          "label": "src/cli.ts",
+          "path": "src/cli.ts"
+        },
+        {
+          "id": "file:src/format.ts",
+          "kind": "file",
+          "label": "src/format.ts",
+          "path": "src/format.ts"
+        },
+        {
+          "id": "file:src/index.ts",
+          "kind": "file",
+          "label": "src/index.ts",
+          "path": "src/index.ts"
+        },
+        {
+          "id": "group:package.json",
+          "kind": "module",
+          "label": "package.json"
+        },
+        {
+          "id": "group:src/cli.ts",
+          "kind": "module",
+          "label": "src/cli.ts"
+        },
+        {
+          "id": "group:src/format.ts",
+          "kind": "module",
+          "label": "src/format.ts"
+        },
+        {
+          "id": "group:src/index.ts",
+          "kind": "module",
+          "label": "src/index.ts"
+        }
+      ],
+      "edges": [
+        {
+          "id": "calls|file:src/cli.ts|file:src/format.ts",
+          "from": "file:src/cli.ts",
+          "to": "file:src/format.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:src/cli.ts|file:src/format.ts",
+          "from": "file:src/cli.ts",
+          "to": "file:src/format.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:src/index.ts|file:src/format.ts",
+          "from": "file:src/index.ts",
+          "to": "file:src/format.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:package.json|file:package.json",
+          "from": "group:package.json",
+          "to": "file:package.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/cli.ts|file:src/cli.ts",
+          "from": "group:src/cli.ts",
+          "to": "file:src/cli.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/format.ts|file:src/format.ts",
+          "from": "group:src/format.ts",
+          "to": "file:src/format.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:src/index.ts|file:src/index.ts",
+          "from": "group:src/index.ts",
+          "to": "file:src/index.ts",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "src/cli.ts",
+            "summary": "Open src/cli.ts.",
+            "nodeId": "file:src/cli.ts"
+          },
+          {
+            "title": "src/format.ts",
+            "summary": "Open src/format.ts.",
+            "nodeId": "file:src/format.ts"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:package.json",
+            "label": "package.json",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:src/cli.ts",
+            "label": "src/cli.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:src/format.ts",
+            "label": "src/format.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          },
+          {
+            "id": "file:src/index.ts",
+            "label": "src/index.ts",
+            "kind": "file",
+            "refIds": ["r_4"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:package.json",
+            "to": "file:src/cli.ts",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:src/cli.ts",
+            "to": "file:src/format.ts",
+            "refIds": []
+          },
+          {
+            "id": "a2",
+            "from": "file:src/format.ts",
+            "to": "file:src/index.ts",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:src/cli.ts",
+            "label": "src/cli.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:src/format.ts",
+            "label": "src/format.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "e0",
+            "from": "file:src/cli.ts",
+            "to": "file:src/format.ts",
+            "refIds": []
+          },
+          {
+            "id": "e-broken",
+            "from": "file:src/cli.ts",
+            "to": "file:missing.ts",
+            "refIds": []
+          }
+        ]
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"package.json\"]\n  g1[\"src/cli.ts\"]\n  g2[\"src/format.ts\"]\n  g3[\"src/index.ts\"]\n  package.json --> src/cli.ts\n  src/cli.ts --> src/format.ts\n  src/format.ts --> src/index.ts",
+        "nodeRefs": {
+          "g0": "package.json",
+          "g1": "src/cli.ts",
+          "g2": "src/format.ts",
+          "g3": "src/index.ts"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_3"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through src/index.ts.",
+        "objectives": ["Read src/index.ts"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`src/index.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_4"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`src/format.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "A block whose evidence is missing.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_missing"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_4",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "src/index.ts"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites src/index.ts as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_4"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-2",
+        "title": "Chapter 2",
+        "summary": "The path through package.json.",
+        "objectives": ["Read package.json"],
+        "prerequisites": ["chapter-1"],
+        "lessons": [
+          {
+            "key": "chapter-2-lesson",
+            "title": "Lesson 2",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`package.json` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_3",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": []
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "src/cli.ts",
+        "startLine": 1,
+        "endLine": 6,
+        "blobSha": "0000000000000000000000000000000000000000"
+      },
+      "r_2": {
+        "path": "src/format.ts",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "915dd20cd8bf4f7cc91f3c4322dada62fbb66c89",
+        "symbolKey": "src/format.ts#format"
+      },
+      "r_3": {
+        "path": "package.json",
+        "startLine": 1,
+        "endLine": 7,
+        "blobSha": "f715a33a408b9f34e5a21ac94bb15d82972de5c3"
+      },
+      "r_4": {
+        "path": "src/index.ts",
+        "startLine": 1,
+        "endLine": 2,
+        "blobSha": "313377d6b8dcaf30ac1a585c05e6153bc667a5da"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 360000,
+    "inputTokens": 120000,
+    "outputTokens": 60000
+  }
+}

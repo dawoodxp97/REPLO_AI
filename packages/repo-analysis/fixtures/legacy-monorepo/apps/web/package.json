@@ -1,0 +1,6 @@
+{
+  "name": "@legacy/web",
+  "private": true,
+  "scripts": { "dev": "vite", "build": "vite build" },
+  "dependencies": { "react": "19.0.0", "react-dom": "19.0.0" }
+}

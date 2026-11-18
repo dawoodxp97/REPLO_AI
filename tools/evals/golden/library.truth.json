@@ -95,5 +95,6 @@
     ],
     "unresolvedImports": 1,
     "parseErrors": ["src/broken.ts"]
-  }
+  },
+  "graphSymbols": ["src/util.ts#Shape", "src/util.ts#Id", "src/util.ts#Color", "src/util.ts#Store"]
 }

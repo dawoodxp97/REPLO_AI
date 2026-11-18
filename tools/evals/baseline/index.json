@@ -10,6 +10,17 @@
     "unresolvedMatches": 1,
     "parseErrorsMatch": 1
   },
+  "commerce-platform": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
   "express-api": {
     "entryRecall": 1,
     "entryPrecision": 1,
@@ -33,6 +44,17 @@
     "parseErrorsMatch": 1
   },
   "legacy-js": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "legacy-monorepo": {
     "entryRecall": 1,
     "entryPrecision": 1,
     "routeRecall": 1,
@@ -77,6 +99,17 @@
     "parseErrorsMatch": 1
   },
   "next-pages": {
+    "entryRecall": 1,
+    "entryPrecision": 1,
+    "routeRecall": 1,
+    "routePrecision": 1,
+    "importRecall": 1,
+    "importPrecision": 1,
+    "symbolRecall": 1,
+    "unresolvedMatches": 1,
+    "parseErrorsMatch": 1
+  },
+  "prompt-injection": {
     "entryRecall": 1,
     "entryPrecision": 1,
     "routeRecall": 1,

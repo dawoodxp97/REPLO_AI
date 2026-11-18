@@ -100,5 +100,6 @@
     ],
     "unresolvedImports": 0,
     "parseErrors": []
-  }
+  },
+  "graphSymbols": ["packages/core/src/types.ts#Product"]
 }

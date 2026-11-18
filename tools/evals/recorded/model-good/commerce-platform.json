@@ -1,0 +1,15 @@
+{
+  "output": {
+    "entryPoints": ["src/server.ts"],
+    "routes": [
+      { "method": "ANY", "pattern": "/health", "path": "src/app.ts" },
+      { "method": "ANY", "pattern": "/api/orders", "path": "src/app.ts" },
+      { "method": "ANY", "pattern": "/api/products", "path": "src/app.ts" },
+      { "method": "GET", "pattern": "/health", "path": "src/routes/health.ts" },
+      { "method": "GET", "pattern": "/orders", "path": "src/routes/orders.ts" },
+      { "method": "POST", "pattern": "/orders", "path": "src/routes/orders.ts" },
+      { "method": "GET", "pattern": "/products", "path": "src/routes/products.ts" },
+      { "method": "POST", "pattern": "/products", "path": "src/routes/products.ts" }
+    ]
+  }
+}

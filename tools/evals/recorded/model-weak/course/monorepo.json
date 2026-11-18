@@ -1,0 +1,483 @@
+{
+  "repo": "monorepo",
+  "pipeline": "lite",
+  "content": {
+    "schemaVersion": 2,
+    "meta": {
+      "title": "monorepo walkthrough",
+      "repo": {
+        "owner": "synthetic",
+        "name": "monorepo",
+        "commitSha": "0000000000000000000000000000000000000000"
+      },
+      "audience": "intermediate",
+      "objectives": ["Read the main modules", "Follow one flow"],
+      "prerequisites": ["TypeScript basics"]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "file:apps/web/src/catalog.ts",
+          "kind": "file",
+          "label": "apps/web/src/catalog.ts",
+          "path": "apps/web/src/catalog.ts"
+        },
+        {
+          "id": "file:apps/web/src/main.ts",
+          "kind": "file",
+          "label": "apps/web/src/main.ts",
+          "path": "apps/web/src/main.ts"
+        },
+        {
+          "id": "file:package.json",
+          "kind": "file",
+          "label": "package.json",
+          "path": "package.json"
+        },
+        {
+          "id": "file:packages/core/package.json",
+          "kind": "file",
+          "label": "packages/core/package.json",
+          "path": "packages/core/package.json"
+        },
+        {
+          "id": "file:packages/core/src/index.ts",
+          "kind": "file",
+          "label": "packages/core/src/index.ts",
+          "path": "packages/core/src/index.ts"
+        },
+        {
+          "id": "file:packages/core/src/types.ts",
+          "kind": "file",
+          "label": "packages/core/src/types.ts",
+          "path": "packages/core/src/types.ts"
+        },
+        {
+          "id": "group:apps/web",
+          "kind": "module",
+          "label": "apps/web"
+        },
+        {
+          "id": "group:package.json",
+          "kind": "module",
+          "label": "package.json"
+        },
+        {
+          "id": "group:packages/core",
+          "kind": "module",
+          "label": "packages/core"
+        },
+        {
+          "id": "sym:packages/core/src/types.ts#Product",
+          "kind": "symbol",
+          "label": "Product",
+          "path": "packages/core/src/types.ts",
+          "symbolKey": "packages/core/src/types.ts#Product"
+        }
+      ],
+      "edges": [
+        {
+          "id": "imports|file:apps/web/src/catalog.ts|file:packages/core/src/index.ts",
+          "from": "file:apps/web/src/catalog.ts",
+          "to": "file:packages/core/src/index.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "calls|file:apps/web/src/main.ts|file:apps/web/src/catalog.ts",
+          "from": "file:apps/web/src/main.ts",
+          "to": "file:apps/web/src/catalog.ts",
+          "kind": "calls"
+        },
+        {
+          "id": "imports|file:apps/web/src/main.ts|file:apps/web/src/catalog.ts",
+          "from": "file:apps/web/src/main.ts",
+          "to": "file:apps/web/src/catalog.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:apps/web/src/main.ts|file:packages/core/src/index.ts",
+          "from": "file:apps/web/src/main.ts",
+          "to": "file:packages/core/src/index.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "imports|file:packages/core/src/index.ts|file:packages/core/src/types.ts",
+          "from": "file:packages/core/src/index.ts",
+          "to": "file:packages/core/src/types.ts",
+          "kind": "imports"
+        },
+        {
+          "id": "contains|group:apps/web|file:apps/web/src/catalog.ts",
+          "from": "group:apps/web",
+          "to": "file:apps/web/src/catalog.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:apps/web|file:apps/web/src/main.ts",
+          "from": "group:apps/web",
+          "to": "file:apps/web/src/main.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:package.json|file:package.json",
+          "from": "group:package.json",
+          "to": "file:package.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:packages/core|file:packages/core/package.json",
+          "from": "group:packages/core",
+          "to": "file:packages/core/package.json",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:packages/core|file:packages/core/src/index.ts",
+          "from": "group:packages/core",
+          "to": "file:packages/core/src/index.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|group:packages/core|file:packages/core/src/types.ts",
+          "from": "group:packages/core",
+          "to": "file:packages/core/src/types.ts",
+          "kind": "contains"
+        },
+        {
+          "id": "contains|file:packages/core/src/types.ts|sym:packages/core/src/types.ts#Product",
+          "from": "file:packages/core/src/types.ts",
+          "to": "sym:packages/core/src/types.ts#Product",
+          "kind": "contains"
+        }
+      ]
+    },
+    "tours": [
+      {
+        "key": "orientation",
+        "title": "Start here",
+        "objective": "Follow one path through the repository.",
+        "steps": [
+          {
+            "title": "apps/web/src/main.ts",
+            "summary": "Open apps/web/src/main.ts.",
+            "nodeId": "file:apps/web/src/main.ts"
+          },
+          {
+            "title": "apps/web/src/catalog.ts",
+            "summary": "Open apps/web/src/catalog.ts.",
+            "nodeId": "file:apps/web/src/catalog.ts"
+          }
+        ]
+      }
+    ],
+    "diagrams": [
+      {
+        "id": "architecture",
+        "type": "architecture",
+        "title": "Architecture",
+        "caption": "How the main modules relate.",
+        "nodes": [
+          {
+            "id": "file:apps/web/src/catalog.ts",
+            "label": "apps/web/src/catalog.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          },
+          {
+            "id": "file:apps/web/src/main.ts",
+            "label": "apps/web/src/main.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:package.json",
+            "label": "package.json",
+            "kind": "file",
+            "refIds": ["r_3"]
+          },
+          {
+            "id": "file:packages/core/package.json",
+            "label": "packages/core/package.json",
+            "kind": "file",
+            "refIds": ["r_4"]
+          },
+          {
+            "id": "file:packages/core/src/index.ts",
+            "label": "packages/core/src/index.ts",
+            "kind": "file",
+            "refIds": ["r_5"]
+          },
+          {
+            "id": "file:packages/core/src/types.ts",
+            "label": "packages/core/src/types.ts",
+            "kind": "file",
+            "refIds": ["r_6"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "a0",
+            "from": "file:apps/web/src/catalog.ts",
+            "to": "file:apps/web/src/main.ts",
+            "refIds": []
+          },
+          {
+            "id": "a1",
+            "from": "file:apps/web/src/main.ts",
+            "to": "file:package.json",
+            "refIds": []
+          },
+          {
+            "id": "a2",
+            "from": "file:package.json",
+            "to": "file:packages/core/package.json",
+            "refIds": []
+          },
+          {
+            "id": "a3",
+            "from": "file:packages/core/package.json",
+            "to": "file:packages/core/src/index.ts",
+            "refIds": []
+          },
+          {
+            "id": "a4",
+            "from": "file:packages/core/src/index.ts",
+            "to": "file:packages/core/src/types.ts",
+            "refIds": []
+          }
+        ]
+      },
+      {
+        "id": "sequence-orientation",
+        "type": "sequence",
+        "title": "One request path",
+        "caption": "The entry point and the modules it reaches.",
+        "nodes": [
+          {
+            "id": "file:apps/web/src/main.ts",
+            "label": "apps/web/src/main.ts",
+            "kind": "file",
+            "refIds": ["r_1"]
+          },
+          {
+            "id": "file:apps/web/src/catalog.ts",
+            "label": "apps/web/src/catalog.ts",
+            "kind": "file",
+            "refIds": ["r_2"]
+          }
+        ],
+        "edges": [
+          {
+            "id": "e0",
+            "from": "file:apps/web/src/main.ts",
+            "to": "file:apps/web/src/catalog.ts",
+            "refIds": []
+          },
+          {
+            "id": "e-broken",
+            "from": "file:apps/web/src/main.ts",
+            "to": "file:missing.ts",
+            "refIds": []
+          }
+        ]
+      }
+    ],
+    "architecture": {
+      "diagram": {
+        "type": "diagram",
+        "mermaid": "flowchart LR\n  g0[\"apps/web/src/catalog.ts\"]\n  g1[\"apps/web/src/main.ts\"]\n  g2[\"package.json\"]\n  g3[\"packages/core/package.json\"]\n  g4[\"packages/core/src/index.ts\"]\n  g5[\"packages/core/src/types.ts\"]\n  apps/web/src/catalog.ts --> apps/web/src/main.ts\n  apps/web/src/main.ts --> package.json\n  package.json --> packages/core/package.json\n  packages/core/package.json --> packages/core/src/index.ts\n  packages/core/src/index.ts --> packages/core/src/types.ts",
+        "nodeRefs": {
+          "g0": "apps/web/src/catalog.ts",
+          "g1": "apps/web/src/main.ts",
+          "g2": "package.json",
+          "g3": "packages/core/package.json",
+          "g4": "packages/core/src/index.ts",
+          "g5": "packages/core/src/types.ts"
+        },
+        "caption": "The main modules in reading order."
+      },
+      "blocks": [
+        {
+          "type": "prose",
+          "md": "The architecture starts at the entry point.",
+          "kind": "observed",
+          "evidence": [
+            {
+              "refId": "r_2"
+            }
+          ]
+        }
+      ]
+    },
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter 1",
+        "summary": "The path through packages/core/src/index.ts.",
+        "objectives": ["Read packages/core/src/index.ts"],
+        "prerequisites": [],
+        "lessons": [
+          {
+            "key": "chapter-1-lesson",
+            "title": "Lesson 1",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`packages/core/src/index.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_5"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "`apps/web/src/catalog.ts` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_2"
+                  }
+                ]
+              },
+              {
+                "type": "prose",
+                "md": "A block whose evidence is missing.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_missing"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_5",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": [
+              {
+                "key": "q-1",
+                "kind": "multiple_choice",
+                "prompt": "Which module is covered in chapter 1?",
+                "options": [
+                  {
+                    "key": "a",
+                    "text": "packages/core/src/index.ts"
+                  },
+                  {
+                    "key": "b",
+                    "text": "An unrelated package"
+                  },
+                  {
+                    "key": "c",
+                    "text": "A file outside the repository"
+                  }
+                ],
+                "correct": "a",
+                "explanation": "The chapter cites packages/core/src/index.ts as evidence.",
+                "evidence": [
+                  {
+                    "refId": "r_5"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "chapter-2",
+        "title": "Chapter 2",
+        "summary": "The path through package.json.",
+        "objectives": ["Read package.json"],
+        "prerequisites": ["chapter-1"],
+        "lessons": [
+          {
+            "key": "chapter-2-lesson",
+            "title": "Lesson 2",
+            "minutes": 5,
+            "blocks": [
+              {
+                "type": "prose",
+                "md": "`package.json` takes part in this flow.",
+                "kind": "observed",
+                "evidence": [
+                  {
+                    "refId": "r_3"
+                  }
+                ]
+              },
+              {
+                "type": "code",
+                "refId": "r_3",
+                "caption": "Read the first source in this chapter."
+              },
+              {
+                "type": "callout",
+                "tone": "tip",
+                "md": "Open the evidence chip to see the exact lines."
+              }
+            ],
+            "quiz": []
+          }
+        ]
+      }
+    ],
+    "sourceRefs": {
+      "r_1": {
+        "path": "apps/web/src/main.ts",
+        "startLine": 4,
+        "endLine": 4,
+        "blobSha": "0000000000000000000000000000000000000000",
+        "symbolKey": "apps/web/src/main.ts#products"
+      },
+      "r_2": {
+        "path": "apps/web/src/catalog.ts",
+        "startLine": 4,
+        "endLine": 6,
+        "blobSha": "f1cacd9dc7a7442c0494921c7bd9a71908043124",
+        "symbolKey": "apps/web/src/catalog.ts#renderCatalog"
+      },
+      "r_3": {
+        "path": "package.json",
+        "startLine": 1,
+        "endLine": 7,
+        "blobSha": "dffb404e36da89dfbc3dac2645e0931d3c427653"
+      },
+      "r_4": {
+        "path": "packages/core/package.json",
+        "startLine": 1,
+        "endLine": 5,
+        "blobSha": "0f9fe7faa24b3ca3a6a02c93e83548afefa0c0e0"
+      },
+      "r_5": {
+        "path": "packages/core/src/index.ts",
+        "startLine": 1,
+        "endLine": 3,
+        "blobSha": "356efd20a25edd37b9927e99f5bf1ac7e6fdb18b"
+      },
+      "r_6": {
+        "path": "packages/core/src/types.ts",
+        "startLine": 1,
+        "endLine": 4,
+        "blobSha": "d370b93f1ad084c8561a577db9b4b637a6ca56a5",
+        "symbolKey": "packages/core/src/types.ts#Product"
+      }
+    },
+    "furtherReading": [],
+    "openQuestions": []
+  },
+  "telemetry": {
+    "latencyMs": 360000,
+    "inputTokens": 120000,
+    "outputTokens": 60000
+  }
+}

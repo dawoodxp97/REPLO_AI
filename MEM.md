@@ -193,17 +193,17 @@ Six small repos live in `packages/repo-analysis/fixtures/` (Next.js app router, 
 
 ROADMAP B4 lists "live outline on the user's key". The outline depends on the summaries and architecture stages, which are B4–B6 work, so a live outline now would be a second pipeline. B4 delivers the call path instead: `generateStructured` with budget reserve and settle, provider fallback only on retryable errors, and a usage sink into `llm_calls`. Those are tested with the AI SDK mock model and with the Postgres ledger. **How to apply:** B6 must wire the outline stage through this path, and remove the B2 fixture then.
 
-### D-046 · 2026-10-22 · active — The golden set is ten synthetic repos until real ones are reviewed
+### D-046 · 2026-11-18 · active — The golden set is thirteen synthetic repos until real ones are reviewed
 
-ROADMAP B5 asks for ten golden repos. The set is the six fixtures from B3 plus four new ones (`redux-spa`, `monorepo`, `cli`, `legacy-js`), covering the blueprint's shapes. Each has a `truth.json` in `tools/evals/golden/`. Their index expectations were checked against the source by hand, and the analyzer then matched them, so the index baseline guards against regressions and does not measure accuracy on real code. Real public repos (pinned SHA, person-written sheets) are the next step and must not be committed with private code. **How to apply:** do not quote index accuracy as a result until real repos are scored.
+R7 asks for golden repos across sizes and shapes. The set is the ten fixtures from R3 plus `commerce-platform`, `legacy-monorepo` and `prompt-injection`, covering the blueprint's shapes and the small/medium/large mix: `commerce-platform` is a medium mixed TS/JS/SQL/CSS repository and `legacy-monorepo` is a large JS/TS monorepo. Each has a `truth.json` in `tools/evals/golden/`. Their index expectations were checked against the source by hand, and the analyzer then matched them, so the index baseline guards against regressions and does not measure accuracy on real code. Real public repos (pinned SHA, person-written sheets) are the next step and must not be committed with private code. **How to apply:** do not quote index accuracy as a result until real repos are scored.
 
-### D-047 · 2026-10-22 · active — Model probes measure what the system can check, and the gate thresholds are provisional
+### D-047 · 2026-11-18 · active — Model probes and recorded courses share one gate, and the thresholds are provisional
 
-A probe shows a model the file list and scripts of a golden repo (never the truth sheet) and asks for entry points and routes. Each answer is scored for schema validity, reference validity before validation (share of returned paths that exist), fabricated paths, entry recall, route recall, latency and cost. The gate (`tools/evals/src/gate.ts`) requires schema validity ≥ 0.9, reference validity ≥ 0.95, entry recall ≥ 0.6 and at most 0.2 fabricated paths per call. These numbers are provisional and must be set from the first real runs. **Why:** "the model points, the system quotes" (RULES §0.5): what a model returns is checkable against the index, and that is the measurable part before B6. **How to apply:** change `GATE` only with a MEM entry and a before/after run.
+A probe shows a model the file list and scripts of a golden repo (never the truth sheet) and asks for entry points and routes. Each answer is scored for schema validity, reference validity before validation (share of returned paths that exist), fabricated paths, entry recall, route recall, latency and cost. A course artefact is the published `CourseContent` plus job telemetry; `scoreCourse` measures graph coverage and integrity, citation validity (100%), diagram validity (100%), claim support (≥ 0.95), course coherence (≥ 0.8), quiz quality (≥ 0.9), injection resistance (100%) and the per-size latency/token budget. The gate (`tools/evals/src/gate.ts`) requires both a passing probe and passing course artefacts on every golden repo. These numbers are provisional and must be set from the first real runs. **Why:** "the model points, the system quotes" (RULES §0.5): what a model returns is checkable against the index, and the published document is what ships. **How to apply:** change `GATE` only with a MEM entry and a before/after run.
 
 ### D-048 · 2026-10-22 · active — No nightly eval and no live model keys in CI
 
-The team decided that a nightly eval run is not required. CI runs `pnpm --filter @replo/evals smoke` on every change: the index is checked against the committed baseline, and the recorded model answers go through the allow-list gate as a dry run. No provider key is stored in CI, and no workflow runs on a schedule. **Why:** a nightly run that calls live models would need an operator key in CI secrets, which conflicts with ADR-007's rule that the platform holds no provider keys. **How to apply:** a model's place on the free allow-list changes only by a person running the gate with real answers and recording the result here. Do not add a scheduled eval or a CI secret for a provider without a new decision in this file.
+The team decided that a nightly eval run is not required. CI runs `pnpm --filter @replo/evals smoke` on every change: the index is checked against the committed baseline, and the recorded probe and course artefacts go through the allow-list gate. The run fails when the recorded good model misses a threshold or the recorded weak model passes. No provider key is stored in CI, and no workflow runs on a schedule. **Why:** a nightly run that calls live models would need an operator key in CI secrets, which conflicts with ADR-007's rule that the platform holds no provider keys. **How to apply:** a model's place on the free allow-list changes only by a person running the gate with real answers and recording the result here. Do not add a scheduled eval or a CI secret for a provider without a new decision in this file.
 
 ### D-049 · 2026-10-22 · active — Provider failures must never count as bad answers
 
@@ -528,9 +528,9 @@ Product language is **course**, not tutorial. Code and schema still say `tutoria
 
 `search.all` queries repositories, courses, lesson titles, snapshot file paths and saved dashboard names, grouped by type and ranked (`pg_trgm` + Postgres FTS). There is no public search. **Why:** one search box, not a library-local one; saved dashboards are findable like everything else. **How to apply:** index on write where the source table is mutable (dashboards); file/lesson text comes from snapshot and lesson tables. Keep user scoping in the service layer.
 
-### D-121 · 2026-11-16 · active — Evals gate the graph, not only the index
+### D-121 · 2026-11-18 · active — Evals gate the graph, not only the index
 
-`tools/evals` is the release gate: golden repositories with truth sheets; graph coverage (files/symbols/edges), citation validity (must be 100%), diagram validity (nodes/edges resolve), course coherence and quiz quality rubrics, latency and token ceilings; a per-model matrix including free models; CI thresholds and stored artefacts. **Why:** richer generation can fail in more places than the index; the gate must match what ships. **How to apply:** every allow-listed model must pass the gate; a regression blocks the release. Evals may call real providers; unit/worker tests never do.
+`tools/evals` is the release gate: thirteen golden repositories with truth sheets; graph coverage and integrity, citation validity (100%), diagram validity (100%), claim support, course coherence, quiz quality, injection resistance and per-size latency/token ceilings; a per-model matrix including free models; CI thresholds and stored artefacts. The evaluator scores the published `CourseContent` document plus the recorded probe answers, so it needs no database and cannot import `apps/api`. **Why:** richer generation can fail in more places than the index; the gate must match what ships. **How to apply:** every allow-listed model must pass the gate; a regression blocks the release. Evals may call real providers; unit/worker tests never do. A free model is offered only after it is named in `freeAllowList`, and `ModelsService` refuses to plan or store one that is absent.
 
 ### D-122 · 2026-11-16 · active — Landing is static and has no demo course
 
@@ -615,7 +615,6 @@ The landing now describes the graph, the eight typed diagrams and the course. Th
 ## Open items
 
 - [ ] Real worker-kill run: start the worker, kill it mid-stage, restart, confirm resume from checkpoint (R3 acceptance).
-- [ ] Repo-level prompt-injection fixture in `tools/evals` (R7).
 - [ ] Shared rate-limit store before a second API instance (D-058).
 - [ ] Decide the read credential for public-repo preflight; unauthenticated GitHub reads are 60/h per IP.
 - [ ] Email verification and password reset (needs a mail provider); `emailVerified` stays false for password accounts.
@@ -633,6 +632,6 @@ The landing now describes the graph, the eight typed diagrams and the course. Th
 - [ ] Branch protection on `main`.
 - [ ] First live run: `pnpm infra:up && pnpm db:migrate && pnpm dev`.
 - [ ] Run the Playwright journey against staging and capture responses for fixtures.
-- [ ] Real golden repos with truth sheets (R7); the ten synthetic repos exist (D-046).
+- [ ] Real golden repos with truth sheets (R7); the thirteen synthetic repos exist (D-046).
 - [ ] Sentry (free tier) with a redaction check, and Trusted Types (SECURITY.md #11).
 - [ ] Production deployment: VPS Compose, Caddy, worker hardening, backups and alerts (R9).
