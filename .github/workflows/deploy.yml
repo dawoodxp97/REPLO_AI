@@ -188,10 +188,12 @@ jobs:
           chunks=$(curl -fsS --max-time 20 "$PRODUCT_URL/login" \
             | grep -oE '/_next/static/chunks/[^"]+\.js' | sort -u)
           for chunk in $chunks; do
-            if curl -fsS --max-time 20 "$PRODUCT_URL$chunk" | grep -q "$API_URL"; then
-              echo "product references $API_URL"
-              exit 0
-            fi
+            body=$(curl -fsS --max-time 20 "$PRODUCT_URL$chunk")
+            # `curl | grep -q` reports curl's SIGPIPE as a failed pipeline under
+            # `pipefail`, so match against the body instead.
+            case "$body" in
+              *"$API_URL"*) echo "product references $API_URL ($chunk)"; exit 0 ;;
+            esac
           done
           echo "no product chunk references $API_URL — the bundle baked a dev URL"
           exit 1
