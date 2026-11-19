@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Release 1 plan. Requirements: [`PRD.md`](./PRD.md). Architecture: [`ARCHITECTURE.md`](./ARCHITECTURE.md). Decisions: [`MEM.md`](./MEM.md).
+Release 1 plan. Requirements: [`PRD.md`](./PRD.md). Architecture: [`ARCHITECTURE.md`](./ARCHITECTURE.md). Decisions: [`MEM.md`](./docs/archive/MEM.md).
 
 ## Shape of the plan
 

@@ -1,6 +1,6 @@
 # ARCHITECTURE.md
 
-How Replo fits together. Requirements live in [`PRD.md`](./PRD.md); research and alternatives in [`Replo_BluePrint.md`](./Replo_BluePrint.md) (§4–§14, §17).
+How Replo fits together. Requirements live in [`PRD.md`](./PRD.md); research and alternatives in [`Replo_BluePrint.md`](./docs/archive/Replo_BluePrint.md) (§4–§14, §17).
 
 ## 1. Shape
 

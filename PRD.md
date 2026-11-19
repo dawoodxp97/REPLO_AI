@@ -2,7 +2,7 @@
 
 > Status: **Current plan** (16 Nov 2026). Owner: @Dawood
 >
-> Sources and alternatives are in [`Replo_BluePrint.md`](./Replo_BluePrint.md). **This PRD is the build contract.** When the two disagree, fix the PRD deliberately and note the change in [`MEM.md`](./MEM.md). Requirement IDs (`FR-*`, `NFR-*`) are stable — reference them in commits, tests and PRs.
+> Sources and alternatives are in [`Replo_BluePrint.md`](./docs/archive/Replo_BluePrint.md). **This PRD is the build contract.** When the two disagree, fix the PRD deliberately and note the change in [`MEM.md`](./docs/archive/MEM.md). Requirement IDs (`FR-*`, `NFR-*`) are stable — reference them in commits, tests and PRs.
 
 ---
 

@@ -2,7 +2,7 @@
 
 Monorepo (pnpm 11 + Turborepo, Node 24, TypeScript 6). Product: grounded, chaptered **courses** for any GitHub repo; free for everyone, BYOK only (ADR-007), individual developers only.
 
-**Read first:** `RULES.md` (hard rules) → `PRD.md` (requirements, FR-/NFR- IDs) → `MEM.md` (decisions & gotchas). Then the `CLAUDE.md` in the app/package you're touching. Research background: `Replo_BluePrint.md` (big — search it, don't read it whole).
+**Read first:** `RULES.md` (hard rules) → `PRD.md` (requirements, FR-/NFR- IDs) → `docs/archive/MEM.md` (decisions & gotchas). Then the `CLAUDE.md` in the app/package you're touching. Research background: `docs/archive/Replo_BluePrint.md` (big — search it, don't read it whole).
 
 > **Updated in R8:** Replaced "tutorials" with "courses" throughout to reflect course-first system naming.
 

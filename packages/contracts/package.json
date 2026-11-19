@@ -2,7 +2,7 @@
   "name": "@replo/contracts",
   "version": "0.0.0",
   "private": true,
-  "description": "Zod schemas + oRPC contract + error codes + tutorial content schema. The ONLY thing frontend and backend share.",
+  "description": "Zod schemas + oRPC contract + error codes + course content schema. The ONLY thing frontend and backend share.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

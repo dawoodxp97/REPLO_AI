@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Decisions that are expensive to reverse. Format: **Context → Decision → Consequences → Revisit when.** The full 16-row decision matrix (alternatives, deciding criteria, cost of the choice) is in [`Replo_BluePrint.md` §17.1](../../Replo_BluePrint.md). Cheaper decisions and deviations live in [`MEM.md`](../../MEM.md).
+Decisions that are expensive to reverse. Format: **Context → Decision → Consequences → Revisit when.** The full 16-row decision matrix (alternatives, deciding criteria, cost of the choice) is in [`Replo_BluePrint.md` §17.1](../archive/Replo_BluePrint.md). Cheaper decisions and deviations live in [`MEM.md`](../archive/MEM.md).
 
 | ADR                                                  | Title                                                       | Status                   |
 | ---------------------------------------------------- | ----------------------------------------------------------- | ------------------------ |

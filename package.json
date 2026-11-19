@@ -1,7 +1,7 @@
 {
   "name": "replo",
   "private": true,
-  "description": "Replo — grounded, chaptered tutorials for any TypeScript/JavaScript repository",
+  "description": "Replo — graph-first understanding for any GitHub repository: knowledge graph, diagrams and a sequenced course",
   "packageManager": "pnpm@11.28.6",
   "engines": {
     "node": ">=24 <25"

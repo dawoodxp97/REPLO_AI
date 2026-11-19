@@ -1,6 +1,6 @@
 # RULES.md — Engineering rules for Replo
 
-These rules apply to every contributor, human or AI agent. They are short on purpose. If a rule blocks you, change the rule here in the same PR — don't route around it. Rationale lives in [`PRD.md`](./PRD.md) and [`Replo_BluePrint.md`](./Replo_BluePrint.md).
+These rules apply to every contributor, human or AI agent. They are short on purpose. If a rule blocks you, change the rule here in the same PR — don't route around it. Rationale lives in [`PRD.md`](./PRD.md) and [`Replo_BluePrint.md`](./docs/archive/Replo_BluePrint.md).
 
 ## 0. Hard rules (never violate)
 

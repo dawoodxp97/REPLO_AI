@@ -1,15 +1,21 @@
 # Replo
 
-Graph-first understanding for any GitHub repository. Paste a repo and get a knowledge graph, interactive diagrams and a sequenced course where every explanation links to the exact file and line at a pinned commit.
+**Graph-first understanding for any GitHub repository.** Paste a repo and get a knowledge graph, interactive diagrams and a sequenced course where every explanation links to the exact file and line at a pinned commit.
 
-Free for everyone. Bring your own provider key (BYOK) only. Built for individual developers.
+Free for everyone. Bring your own provider key (BYOK) only. Built for individual developers — no teams, no billing, no ads (ADR-007).
 
-> **Status:** Release 1 is in build; the sequence is R0–R9 in [`ROADMAP.md`](./ROADMAP.md). Not yet verified: the GitHub App round trip, real provider keys, staging and production deployment. See [`docs/adr/007-byok-only-no-billing.md`](./docs/adr/007-byok-only-no-billing.md).
+[![CI](https://github.com/dawoodxp97/REPLO_AI/actions/workflows/ci.yml/badge.svg)](https://github.com/dawoodxp97/REPLO_AI/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/badge/node-24-339933?logo=node.js&logoColor=white)](./.nvmrc)
+[![pnpm](https://img.shields.io/badge/pnpm-11.28.6-f69220?logo=pnpm&logoColor=white)](./package.json)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
-> **Updated in R8:** Documentation updated to reflect course-first system naming and removal of deprecated tutorial terminology.
+> **Status:** Release 1 is in build; the sequence is R0–R9 in [`ROADMAP.md`](./ROADMAP.md). Not yet verified end to end: the GitHub App round trip, real provider keys, staging and production deployment.
+
+---
 
 ## Contents
 
+- [Quick start](#quick-start)
 - [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Configure](#configure)
@@ -17,22 +23,44 @@ Free for everyone. Bring your own provider key (BYOK) only. Built for individual
 - [Run in development](#run-in-development)
 - [Build](#build)
 - [Run a production build locally](#run-a-production-build-locally)
+- [Deploy](#deploy)
 - [Test and check](#test-and-check)
 - [Database commands](#database-commands)
 - [Project layout](#project-layout)
-- [Troubleshooting](#troubleshooting)
 - [Documentation](#documentation)
+- [Ground rules](#ground-rules)
+- [Troubleshooting](#troubleshooting)
 - [Licence](#licence)
+
+## Quick start
+
+For a local checkout with Docker:
+
+```bash
+git clone https://github.com/dawoodxp97/REPLO_AI.git
+cd REPLO_AI
+corepack enable                 # installs the pinned pnpm
+pnpm install
+cp apps/api/.env.example apps/api/.env
+cp apps/product/.env.example apps/product/.env.local
+cp apps/landing/.env.example apps/landing/.env.local
+# set KEY_ENCRYPTION_KEY in apps/api/.env: openssl rand -base64 32
+pnpm infra:up                   # Postgres 17 + pgvector
+pnpm db:setup                   # create the schema
+pnpm dev                        # landing :7100 · product :7101 · api :7200 (+worker :7201)
+```
+
+Open <http://localhost:7101/login>. Each step is explained below.
 
 ## Prerequisites
 
-| Tool       | Version                                | Notes                                                                          |
-| ---------- | -------------------------------------- | ------------------------------------------------------------------------------ |
-| Node.js    | 24 (`.nvmrc`; `engines` is `>=24 <25`) | `nvm use` reads `.nvmrc`                                                       |
-| pnpm       | 11.28.6                                | Pinned by the `packageManager` field. Enable it with Corepack                  |
-| PostgreSQL | 17                                     | Either Docker (recommended, see below) or any local Postgres 17 with `pg_trgm` |
-| Docker     | Optional                               | Only used by `pnpm infra:up` to start Postgres                                 |
-| OpenSSL    | Any recent version                     | Generates the two secrets in step 4                                            |
+| Tool       | Version                                | Notes                                                                              |
+| ---------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
+| Node.js    | 24 (`.nvmrc`; `engines` is `>=24 <25`) | `nvm use` reads `.nvmrc`                                                           |
+| pnpm       | 11.28.6                                | Pinned by the `packageManager` field. Enable it with Corepack                      |
+| PostgreSQL | 17                                     | Docker (recommended, see below) or any local Postgres 17 with `pg_trgm`/`pgvector` |
+| Docker     | Optional                               | Only used by `pnpm infra:up` to start Postgres                                     |
+| OpenSSL    | Any recent version                     | Generates the encryption key in step 4                                             |
 
 You do not need a GitHub App or a provider key to run the app locally. Sign-in with GitHub needs a GitHub App (see [Run in development](#run-in-development)). Provider keys are added inside the app, not in an environment file.
 
@@ -57,7 +85,7 @@ cp apps/product/.env.example apps/product/.env.local
 cp apps/landing/.env.example apps/landing/.env.local
 ```
 
-Generate the two required secrets and put them in `apps/api/.env`:
+Generate the one required secret and put it in `apps/api/.env`:
 
 ```bash
 openssl rand -base64 32    # KEY_ENCRYPTION_KEY (must decode to exactly 32 bytes)
@@ -178,6 +206,38 @@ pnpm --filter @replo/landing start           # serves apps/landing/out on port 7
 
 The landing `start` script runs `npx serve@14.2.6`, which downloads that version the first time.
 
+## Deploy
+
+Production runs entirely on Cloudflare Workers (ADR-010): the API and generation pipeline as Workers/Workflows, Postgres on Neon (via Hyperdrive), blobs on R2, and one public origin served by the `apps/gateway` Worker.
+
+The gateway serves everything on a single `workers.dev` hostname (default `app.reploai.workers.dev`):
+
+| Path            | Serves                           |
+| --------------- | -------------------------------- |
+| `/`             | Landing (static export)          |
+| `/app`          | Product (OpenNext on Cloudflare) |
+| `/rpc`, `/auth` | API (Fastify on Workers)         |
+
+Deploy everything with:
+
+```bash
+pnpm cf:deploy            # landing → product → pipeline → api → gateway
+```
+
+Or deploy a single part:
+
+```bash
+pnpm cf:landing:deploy
+pnpm cf:product:deploy
+pnpm cf:pipeline:deploy
+pnpm cf:api:deploy
+pnpm cf:gateway:deploy
+```
+
+**One-time setup.** Create a Cloudflare API token (template "Edit Cloudflare Workers", plus D1/Hyperdrive/R2 edit scopes) and set these repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and `NEON_DATABASE_URL` (Neon Postgres 17 connection string). `.github/workflows/deploy.yml` runs the verify job and deploys on every push to `main`; `.github/workflows/preview.yml` builds preview versions for pull requests.
+
+The `NEXT_PUBLIC_*` values are inlined at build time, so the deploy scripts bake the production URLs. `node scripts/check-production-bundle.mjs` fails the deploy if a bundle picked up localhost. See [`CLAUDE.md`](./CLAUDE.md) for the full list of build-time gotchas.
+
 ## Test and check
 
 | Command                            | What it runs                                                                                  |
@@ -215,51 +275,51 @@ pnpm db:setup          # RESET the Compose app/replo public schema, then apply a
 
 ```
 apps/
-  landing/        Next.js 16 static export (Cloudflare Pages)         :7100
-  product/        Next.js 16 app, learning player and public pages     :7101
-  api/            Fastify 5 + oRPC; own auth (sessions, email and password, Google, GitHub); HTTP API and worker  :7200 (worker health :7201)
+  landing/        Next.js 16 static export (Cloudflare Worker)          :7100
+  product/        Next.js 16 app, learning player and public pages       :7101
+  api/            Fastify 5 + oRPC; own auth; HTTP API + generation worker :7200 (worker health :7201)
+  gateway/        Cloudflare Worker: single origin (landing /, product /app, api /rpc + /auth)
 packages/
-  contracts/      Zod 4 + oRPC contract, the only code the frontends and API share
+  contracts/      Zod 4 + oRPC contract — the only code the frontends and API share
   ai/             Model roles, catalogue and BYOK model resolution
   repo-analysis/  Source filters, path safety, tree-sitter index
   ui/             Base UI primitives and Tailwind v4 tokens
   config/         Shared TypeScript and ESLint configuration
 tools/evals/      Golden-repository evaluation harness
-docs/             Developer guide, API, database, decisions (ADRs)
-OLD_LEGACY_REPLO/ The legacy app, read only as a feature reference (MEM D-016)
+docs/             Developer guide, API, database, how generation works, decisions (ADRs)
+docs/archive/     Reference material kept for history (Replo_BluePrint.md, MEM.md)
 ```
+
+## Documentation
+
+| Doc                                                                                                                     | What it is                                                                |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md)                                                                                  | How the parts fit together: topology, modules, pipeline, jobs, deployment |
+| [`PRD.md`](./PRD.md)                                                                                                    | Product requirements, with FR- and NFR- IDs                               |
+| [`TECH_STACK.md`](./TECH_STACK.md)                                                                                      | Pinned versions, rationale, environment variables and ports               |
+| [`RULES.md`](./RULES.md)                                                                                                | Engineering rules for humans and AI agents                                |
+| [`DESIGN.md`](./DESIGN.md)                                                                                              | Design system: tokens, type, layout, accessibility checklist              |
+| [`SECURITY.md`](./SECURITY.md)                                                                                          | Threat model, controls and the secure-development checklist               |
+| [`ROADMAP.md`](./ROADMAP.md)                                                                                            | Phases with status and acceptance criteria                                |
+| [`docs/DEVELOPING.md`](./docs/DEVELOPING.md) · [`docs/HOW_GENERATION_WORKS.md`](./docs/HOW_GENERATION_WORKS.md)         | How to run it, add endpoints, and how a generation runs                   |
+| [`docs/DATABASE.md`](./docs/DATABASE.md) · [`docs/API.md`](./docs/API.md) · [`docs/adr/`](./docs/adr)                   | Data model, API surface and architecture decision records                 |
+| [`docs/archive/Replo_BluePrint.md`](./docs/archive/Replo_BluePrint.md) · [`docs/archive/MEM.md`](./docs/archive/MEM.md) | Original research/blueprint and the decision log (kept for history)       |
+| [`CLAUDE.md`](./CLAUDE.md)                                                                                              | Orientation for AI coding agents                                          |
+
+## Ground rules
+
+Never execute repository code. Never log secrets or private source. Provider keys are decrypted only in the worker, in memory, for one job. The platform holds no provider keys. Foreign IDs return 404. The model points and the system quotes. Frontends import only the contract types and the UI package. No pricing, billing, credits or ads. Details are in [`RULES.md`](./RULES.md).
 
 ## Troubleshooting
 
-- **`pnpm install` fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`.** The workspace refuses package versions younger than three days. This gate is intentional. Lower the version floor in the affected range instead of turning the gate off. [`MEM.md`](./MEM.md) decision D-010 explains the procedure.
-- **`pnpm install` fails with `ERR_PNPM_IGNORED_BUILDS`.** A package with an install script is not listed in `allowBuilds`. See D-011 in [`MEM.md`](./MEM.md).
+- **`pnpm install` fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`.** The workspace refuses package versions younger than three days. This gate is intentional. Lower the version floor in the affected range instead of turning the gate off. [`docs/archive/MEM.md`](./docs/archive/MEM.md) decision D-010 explains the procedure.
+- **`pnpm install` fails with `ERR_PNPM_IGNORED_BUILDS`.** A package with an install script is not listed in `allowBuilds`. See D-011 in [`docs/archive/MEM.md`](./docs/archive/MEM.md).
 - **The API exits at startup with a configuration error.** Check `apps/api/.env`. `KEY_ENCRYPTION_KEY` must decode to exactly 32 bytes.
 - **`/readyz` returns 503.** The API cannot reach the database. Check `DATABASE_URL`, and that `pnpm infra:up` or your local Postgres is running.
 - **`localhost` does not reach the server, but `127.0.0.1` does.** Some macOS setups resolve `localhost` to IPv6 (`::1`), where another process may already listen. Use `127.0.0.1` or stop the other process.
 - **Port 7100, 7101, 7200 or 7201 is already in use.** Find the process with `lsof -iTCP:7101 -sTCP:LISTEN -n -P` and stop it, or change the port in the matching environment file.
 - **TypeScript reports errors about routes after you rename a folder.** Delete `apps/product/.next` and run the command again.
 - **Playwright reports a missing browser.** Run `pnpm --filter @replo/product exec playwright install chromium`.
-
-## Documentation
-
-| Doc                                                                                                   | What it is                                                                |
-| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [`PRD.md`](./PRD.md)                                                                                  | Product requirements, with FR- and NFR- IDs                               |
-| [`ARCHITECTURE.md`](./ARCHITECTURE.md)                                                                | How the parts fit together: topology, modules, pipeline, jobs, deployment |
-| [`TECH_STACK.md`](./TECH_STACK.md)                                                                    | Pinned versions, rationale, environment variables and ports               |
-| [`RULES.md`](./RULES.md)                                                                              | Engineering rules for humans and AI agents                                |
-| [`DESIGN.md`](./DESIGN.md)                                                                            | Design system: tokens, type, layout, accessibility checklist              |
-| [`SECURITY.md`](./SECURITY.md)                                                                        | Threat model, controls and the secure-development checklist               |
-| [`ROADMAP.md`](./ROADMAP.md)                                                                          | Phases with status and acceptance criteria                                |
-| [`MEM.md`](./MEM.md)                                                                                  | Decision log, deviations from the blueprint, gotchas and open items       |
-| [`docs/DEVELOPING.md`](./docs/DEVELOPING.md)                                                          | How to run it, add endpoints, wire the frontend and add background jobs   |
-| [`docs/DATABASE.md`](./docs/DATABASE.md) · [`docs/API.md`](./docs/API.md) · [`docs/adr/`](./docs/adr) | Data model, API surface and architecture decision records                 |
-| [`Replo_BluePrint.md`](./Replo_BluePrint.md)                                                          | The original research and technical blueprint, the source for why         |
-| [`CLAUDE.md`](./CLAUDE.md)                                                                            | Orientation for AI coding agents                                          |
-
-## Ground rules
-
-Never execute repository code. Never log secrets or private source. Provider keys are decrypted only in the worker, in memory, for one job. The platform holds no provider keys. Foreign IDs return 404. The model points and the system quotes. Frontends import only the contract types and the UI package. No pricing, billing, credits or ads. Details are in [`RULES.md`](./RULES.md).
 
 ## Licence
 
