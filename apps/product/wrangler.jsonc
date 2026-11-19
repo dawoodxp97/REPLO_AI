@@ -39,8 +39,8 @@
     },
   ],
   "vars": {
-    "NEXT_PUBLIC_API_URL": "https://replo.dawoodmsam422.workers.dev",
-    "NEXT_PUBLIC_APP_URL": "https://replo.dawoodmsam422.workers.dev/app",
+    "NEXT_PUBLIC_API_URL": "https://app.reploai.workers.dev",
+    "NEXT_PUBLIC_APP_URL": "https://app.reploai.workers.dev/app",
   },
   // "routes": [
   //   { "pattern": "app.replo.example", "custom_domain": true }
@@ -73,8 +73,8 @@
         },
       ],
       "vars": {
-        "NEXT_PUBLIC_API_URL": "https://replo-api-preview.dawoodmsam422.workers.dev",
-        "NEXT_PUBLIC_APP_URL": "https://replo-product-preview.dawoodmsam422.workers.dev",
+        "NEXT_PUBLIC_API_URL": "https://replo-api-preview.reploai.workers.dev",
+        "NEXT_PUBLIC_APP_URL": "https://replo-product-preview.reploai.workers.dev",
       },
     },
   },

@@ -23,8 +23,8 @@
     "db:setup": "pnpm --filter @replo/api db:setup",
     "cf:api:deploy": "pnpm --filter @replo/api exec wrangler deploy -c wrangler.jsonc",
     "cf:pipeline:deploy": "pnpm --filter @replo/api exec wrangler deploy -c wrangler.pipeline.jsonc",
-    "cf:product:deploy": "NEXT_PUBLIC_BASE_PATH=/app NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://replo.dawoodmsam422.workers.dev} NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://replo.dawoodmsam422.workers.dev/app} pnpm --filter @replo/product exec opennextjs-cloudflare build && node scripts/check-production-bundle.mjs product && pnpm --filter @replo/product exec wrangler deploy",
-    "cf:landing:deploy": "NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://replo.dawoodmsam422.workers.dev/app} NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://replo.dawoodmsam422.workers.dev} pnpm --filter @replo/landing build && node scripts/check-production-bundle.mjs landing && pnpm --filter @replo/landing exec wrangler deploy",
+    "cf:product:deploy": "NEXT_PUBLIC_BASE_PATH=/app NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://app.reploai.workers.dev} NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://app.reploai.workers.dev/app} pnpm --filter @replo/product exec opennextjs-cloudflare build && node scripts/check-production-bundle.mjs product && pnpm --filter @replo/product exec wrangler deploy",
+    "cf:landing:deploy": "NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://app.reploai.workers.dev/app} NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://app.reploai.workers.dev} pnpm --filter @replo/landing build && node scripts/check-production-bundle.mjs landing && pnpm --filter @replo/landing exec wrangler deploy",
     "cf:gateway:deploy": "pnpm --filter @replo/gateway exec wrangler deploy",
     "cf:deploy": "pnpm cf:landing:deploy && pnpm cf:product:deploy && pnpm cf:pipeline:deploy && pnpm cf:api:deploy && pnpm cf:gateway:deploy",
     "evals": "pnpm --filter @replo/evals start"

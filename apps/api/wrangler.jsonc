@@ -38,7 +38,7 @@
     "LOG_LEVEL": "info",
     // The product app behind the gateway: redirects keep the /app prefix while
     // PRODUCT_ORIGIN (a secret) stays the bare origin used for CORS.
-    "PRODUCT_URL": "https://replo.dawoodmsam422.workers.dev/app",
+    "PRODUCT_URL": "https://app.reploai.workers.dev/app",
   },
   // "routes": [{ "pattern": "api.replo.example", "custom_domain": true }],
   "env": {

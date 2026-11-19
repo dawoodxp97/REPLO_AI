@@ -29,14 +29,11 @@ concurrency:
 permissions:
   contents: read
 
-# Override with repository variables when the workers.dev URLs change (or a
-# custom domain is attached). The defaults are the deployed Worker names.
+# Override with a repository variable if the public origin changes (custom
+# domain or a different workers.dev subdomain). The gateway serves landing at /,
+# the product at /app, and the API at /rpc and /auth.
 env:
-  API_URL: ${{ vars.API_URL || 'https://replo-api.dawoodmsam422.workers.dev' }}
-  PRODUCT_URL: ${{ vars.PRODUCT_URL || 'https://replo-product.dawoodmsam422.workers.dev' }}
-  LANDING_URL: ${{ vars.LANDING_URL || 'https://replo-landing.dawoodmsam422.workers.dev' }}
-  # The public origin: landing at /, product at /app, API at /rpc and /auth.
-  GATEWAY_URL: ${{ vars.GATEWAY_URL || 'https://replo.dawoodmsam422.workers.dev' }}
+  GATEWAY_URL: ${{ vars.GATEWAY_URL || 'https://app.reploai.workers.dev' }}
 
 jobs:
   verify:
@@ -92,9 +89,9 @@ jobs:
       # Keep these in sync with the cf:*:deploy scripts and
       # scripts/check-production-bundle.mjs. The gateway serves all three apps
       # on one origin: landing at /, product at /app, API at /rpc and /auth.
-      NEXT_PUBLIC_API_URL: ${{ vars.GATEWAY_URL || 'https://replo.dawoodmsam422.workers.dev' }}
-      NEXT_PUBLIC_APP_URL: ${{ vars.GATEWAY_URL || 'https://replo.dawoodmsam422.workers.dev' }}/app
-      NEXT_PUBLIC_SITE_URL: ${{ vars.GATEWAY_URL || 'https://replo.dawoodmsam422.workers.dev' }}
+      NEXT_PUBLIC_API_URL: ${{ vars.GATEWAY_URL || 'https://app.reploai.workers.dev' }}
+      NEXT_PUBLIC_APP_URL: ${{ vars.GATEWAY_URL || 'https://app.reploai.workers.dev' }}/app
+      NEXT_PUBLIC_SITE_URL: ${{ vars.GATEWAY_URL || 'https://app.reploai.workers.dev' }}
       NEXT_PUBLIC_BASE_PATH: /app
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

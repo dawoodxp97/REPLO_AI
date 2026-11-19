@@ -319,26 +319,24 @@ fi
 # ── 6 · URLs ──────────────────────────────────────────────────────────────
 if _should_run 6; then
 stage "App URLs"
-say "Workers.dev URLs work immediately; custom domains can be added later in"
-say "each wrangler.jsonc 'routes' block. Auth cookies need the final hostnames."
+say "One origin serves everything: the gateway Worker (landing at /, the app"
+say "at /app, the API at /rpc and /auth). A custom domain can replace it later."
 step "After the first deploy, Cloudflare prints the workers.dev subdomain."
-step "The defaults below use the replo-* worker names with a placeholder subdomain."
-ask CF_SUBDOMAIN "Your workers.dev subdomain (from wrangler whoami, e.g. dawood-ai):"
-API_PUBLIC_URL="https://replo-api.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
-PRODUCT_ORIGIN="https://replo-product.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
-LANDING_URL="https://replo-landing.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
-printf '  %sdefault:%s %s\n' "$DIM" "$RESET" "$API_PUBLIC_URL"
-ask API_PUBLIC_URL "API public URL [Enter = default]:"
-[[ -z "${API_PUBLIC_URL// /}" ]] && API_PUBLIC_URL="https://replo-api.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
-printf '  %sdefault:%s %s\n' "$DIM" "$RESET" "$PRODUCT_ORIGIN"
-ask PRODUCT_ORIGIN "Product origin [Enter = default]:"
-[[ -z "${PRODUCT_ORIGIN// /}" ]] && PRODUCT_ORIGIN="https://replo-product.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
-printf '  %sdefault:%s %s\n' "$DIM" "$RESET" "$LANDING_URL"
-ask LANDING_URL "Landing URL [Enter = default]:"
-[[ -z "${LANDING_URL// /}" ]] && LANDING_URL="https://replo-landing.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
+step "The default below uses the gateway Worker name 'app'."
+ask CF_SUBDOMAIN "Your workers.dev subdomain (from wrangler whoami, e.g. reploai):"
+GATEWAY_URL="https://app.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
+printf '  %sdefault:%s %s\n' "$DIM" "$RESET" "$GATEWAY_URL"
+ask GATEWAY_URL "Public URL [Enter = default]:"
+[[ -z "${GATEWAY_URL// /}" ]] && GATEWAY_URL="https://app.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
+API_PUBLIC_URL="$GATEWAY_URL"
+PRODUCT_ORIGIN="$GATEWAY_URL"
+LANDING_URL="$GATEWAY_URL"
+PRODUCT_URL="$GATEWAY_URL/app"
+write_env GATEWAY_URL "$GATEWAY_URL"
 write_env API_PUBLIC_URL "$API_PUBLIC_URL"
 write_env PRODUCT_ORIGIN "$PRODUCT_ORIGIN"
 write_env LANDING_URL "$LANDING_URL"
+write_env PRODUCT_URL "$PRODUCT_URL"
 note "These are baked into worker secrets and both frontends (NEXT_PUBLIC_*)."
 note "If you add custom domains later, re-run from this stage and redeploy."
 pause "URLs done — press Enter for resource creation."
@@ -473,18 +471,21 @@ if confirm "Apply the DDL to Neon now (pnpm --filter @replo/api db:migrate)?"; t
   DATABASE_URL="$NEON_DATABASE_URL" pnpm --filter @replo/api db:migrate
 fi
 if confirm "Deploy landing (build + wrangler deploy)?"; then
-  export NEXT_PUBLIC_APP_URL="$PRODUCT_ORIGIN" NEXT_PUBLIC_SITE_URL="$LANDING_URL"
+  export NEXT_PUBLIC_APP_URL="$PRODUCT_URL" NEXT_PUBLIC_SITE_URL="$LANDING_URL"
   pnpm cf:landing:deploy
 fi
 if confirm "Deploy product (OpenNext build + wrangler deploy)?"; then
-  export NEXT_PUBLIC_API_URL="$API_PUBLIC_URL" NEXT_PUBLIC_APP_URL="$PRODUCT_ORIGIN"
+  export NEXT_PUBLIC_API_URL="$API_PUBLIC_URL" NEXT_PUBLIC_APP_URL="$PRODUCT_URL"
   pnpm cf:product:deploy
 fi
 if confirm "Deploy API + pipeline workers (Fastify + Workflows)?"; then
   pnpm cf:pipeline:deploy
   pnpm cf:api:deploy
 fi
-ask API_HEALTH_URL "API URL to smoke-check (the deploy output prints it):"
+if confirm "Deploy gateway (one public origin)?"; then
+  pnpm cf:gateway:deploy
+fi
+ask API_HEALTH_URL "Public URL to smoke-check (the gateway, e.g. https://app.REPLACE.workers.dev):"
 if curl -fsS "$API_HEALTH_URL/healthz" >/dev/null 2>&1; then
   note "  ✓ API /healthz answered OK"
 else

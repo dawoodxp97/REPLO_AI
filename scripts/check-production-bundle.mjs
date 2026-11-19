@@ -18,9 +18,9 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const expected = {
-  api: process.env.NEXT_PUBLIC_API_URL ?? 'https://replo.dawoodmsam422.workers.dev',
-  app: process.env.NEXT_PUBLIC_APP_URL ?? 'https://replo.dawoodmsam422.workers.dev/app',
-  site: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://replo.dawoodmsam422.workers.dev',
+  api: process.env.NEXT_PUBLIC_API_URL ?? 'https://app.reploai.workers.dev',
+  app: process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.reploai.workers.dev/app',
+  site: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://app.reploai.workers.dev',
 }
 const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? '/app').replace(/\/$/, '')
 
