@@ -192,6 +192,14 @@ jobs:
           curl -fsS --max-time 20 -o /dev/null "$GATEWAY_URL/app/login"
           echo "landing at / and product at /app: 200"
 
+          # The GitHub App's Setup URL and the SSE streams are browser-level API
+          # routes outside /rpc; they must not fall through to the landing.
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$GATEWAY_URL/github/setup")
+          case "$code" in
+            302) echo "github setup redirects to the product: 302" ;;
+            *) echo "github /setup returned $code, expected a 302 to the product"; exit 1 ;;
+          esac
+
       - name: Product calls the API on its own origin
         run: |
           set -euo pipefail

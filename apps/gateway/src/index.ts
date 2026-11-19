@@ -9,8 +9,10 @@ export interface Env {
 }
 
 // One public origin: /app/* goes to the product (Next basePath /app), the API
-// subpaths below go to the API, and everything else is the landing.
-const API_ROUTES = ['/rpc', '/auth', '/healthz', '/readyz']
+// paths below go to the API, and everything else is the landing. The API also
+// serves browser-level routes outside /rpc: the GitHub App setup redirect, job
+// event SSE and the notification SSE.
+const API_ROUTES = ['/rpc', '/auth', '/github', '/jobs', '/notifications', '/healthz', '/readyz']
 
 const isUnder = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`)
