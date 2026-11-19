@@ -22,7 +22,7 @@ export interface AuthRouteDeps {
   auth: AuthService
   clients: OAuthClients
   sessionCookie: SessionCookie
-  productOrigin: string
+  productUrl: string
   apiPublicUrl: string
   secure: boolean
 }
@@ -124,9 +124,12 @@ export function registerAuthRoutes(app: App, deps: AuthRouteDeps) {
   })
 }
 
-export function createAuthRedirects(origins: { productOrigin: string; apiPublicUrl: string }) {
+export function createAuthRedirects(origins: { productUrl: string; apiPublicUrl: string }) {
+  // productUrl may carry a path prefix (the gateway serves the app at /app), so
+  // a leading slash in `path` must not reset it the way `new URL(path, base)` does.
+  const base = origins.productUrl.replace(/\/$/, '')
   const product = (path: string, params: Record<string, string> = {}) => {
-    const url = new URL(path, origins.productOrigin)
+    const url = new URL(`${base}${path.startsWith('/') ? path : `/${path}`}`)
     for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value)
     return url.toString()
   }

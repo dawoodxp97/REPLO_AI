@@ -28,6 +28,10 @@ const Env = z.object({
   API_PUBLIC_URL: z.url(),
   AUTH_COOKIE_DOMAIN: optionalString,
   PRODUCT_ORIGIN: z.url(),
+  // Where the product app is served when it sits under a path prefix (the
+  // gateway serves it at /app). Redirects use it; CORS and the origin guard
+  // keep using PRODUCT_ORIGIN, which must stay a bare origin.
+  PRODUCT_URL: z.preprocess(emptyToUndefined, z.url().optional()),
   TRUST_PROXY: trustProxy,
 
   GOOGLE_CLIENT_ID: optionalString,

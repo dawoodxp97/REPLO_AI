@@ -28,11 +28,11 @@ export function registerGithubSetup(
     auth: AuthService
     identity: IdentityService
     github: GithubService
-    productOrigin: string
+    productUrl: string
   },
 ) {
   const redirectTo = (status: SetupStatus) =>
-    `${deps.productOrigin}/import?github=${encodeURIComponent(status)}`
+    `${deps.productUrl}/import?github=${encodeURIComponent(status)}`
 
   const link = async (userId: string, installationId: number): Promise<SetupStatus> => {
     const userToken = await deps.identity.githubAccessToken(userId)
@@ -46,7 +46,7 @@ export function registerGithubSetup(
 
   app.get('/github/setup', async (request, reply) => {
     const session = await sessionFromRequest(deps.auth, request)
-    if (!session) return reply.redirect(`${deps.productOrigin}/login`)
+    if (!session) return reply.redirect(`${deps.productUrl}/login`)
 
     const query = SetupQuery.safeParse(request.query)
     if (!query.success) return reply.redirect(redirectTo('invalid'))

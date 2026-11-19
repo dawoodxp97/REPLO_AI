@@ -68,6 +68,7 @@ export async function buildHttpApp(deps: HttpAppDeps): Promise<HttpApp> {
     }
   }
   const secureCookies = config.NODE_ENV === 'production'
+  const productUrl = config.PRODUCT_URL ?? config.PRODUCT_ORIGIN
   const sessionCookie = createSessionCookie({
     secure: secureCookies,
     domain: config.AUTH_COOKIE_DOMAIN,
@@ -129,7 +130,7 @@ export async function buildHttpApp(deps: HttpAppDeps): Promise<HttpApp> {
     auth: services.auth,
     clients: oauth,
     sessionCookie,
-    productOrigin: config.PRODUCT_ORIGIN,
+    productUrl,
     apiPublicUrl: config.API_PUBLIC_URL,
     secure: secureCookies,
   })
@@ -137,7 +138,7 @@ export async function buildHttpApp(deps: HttpAppDeps): Promise<HttpApp> {
     auth: services.auth,
     identity: services.identity,
     github: services.github,
-    productOrigin: config.PRODUCT_ORIGIN,
+    productUrl,
   })
   registerJobEventsRoute(app, { db, auth: services.auth, productOrigin: config.PRODUCT_ORIGIN })
   registerNotificationsStream(app, {

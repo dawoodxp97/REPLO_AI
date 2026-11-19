@@ -54,6 +54,7 @@ Run `pnpm --filter <pkg> typecheck test lint` for what you touched before saying
 - Next 16: no `next lint`; use ESLint directly. Params/searchParams are Promises.
 - Landing is a static export: no route handlers, `headers()`/`cookies()`, ISR.
 - `NEXT_PUBLIC_*` is inlined by `next build`; wrangler `vars` only reach the Worker at runtime, so they cannot fix a bundle that baked localhost. Set them at build time (`deploy.yml` deploy job, `cf:product:deploy` / `cf:landing:deploy`); `node scripts/check-production-bundle.mjs` fails the deploy when it is missed. Local `.env.local` overrides `.env.production`, but never a process env var.
+- One public origin, no domain: the `apps/gateway` Worker serves the landing at `/`, the product at `/app` and the API at `/rpc` + `/auth` on its own `workers.dev` hostname. The product must be built with `NEXT_PUBLIC_BASE_PATH=/app` (assets land under `assets/app/_next`); the API's `PRODUCT_URL` carries the `/app` prefix for redirects while `PRODUCT_ORIGIN` stays the bare origin for CORS.
 - More in `MEM.md`.
 
 ## Keep docs current

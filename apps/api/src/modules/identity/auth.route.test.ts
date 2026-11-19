@@ -28,7 +28,11 @@ const issued = {
 }
 
 function buildApp(
-  overrides: { complete?: OAuthClient['complete']; auth?: Partial<AuthService> } = {},
+  overrides: {
+    complete?: OAuthClient['complete']
+    auth?: Partial<AuthService>
+    productUrl?: string
+  } = {},
 ) {
   const client: OAuthClient = {
     provider: 'github',
@@ -47,7 +51,7 @@ function buildApp(
     auth: auth as unknown as AuthService,
     clients: { github: client },
     sessionCookie: createSessionCookie({ secure: false, domain: undefined }),
-    productOrigin,
+    productUrl: overrides.productUrl ?? productOrigin,
     apiPublicUrl,
     secure: false,
   })
@@ -111,6 +115,13 @@ describe('OAuth start', () => {
     const res = await app.inject({ method: 'GET', url: '/auth/github/start?intent=link' })
     expect(res.statusCode).toBe(302)
     expect(res.headers.location).toBe(`${productOrigin}/login`)
+  })
+
+  it('keeps the product path prefix when the app is served under one', async () => {
+    const { app } = buildApp({ productUrl: 'https://gateway.test/app' })
+    const res = await app.inject({ method: 'GET', url: '/auth/github/start?intent=link' })
+    expect(res.statusCode).toBe(302)
+    expect(res.headers.location).toBe('https://gateway.test/app/login')
   })
 })
 

@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "replo",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-17",
+  "observability": { "enabled": true },
+  "services": [
+    { "binding": "LANDING", "service": "replo-landing" },
+    { "binding": "PRODUCT", "service": "replo-product" },
+    { "binding": "API", "service": "replo-api" },
+  ],
+}

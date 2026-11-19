@@ -35,6 +35,8 @@ env:
   API_URL: ${{ vars.API_URL || 'https://replo-api.dawoodmsam422.workers.dev' }}
   PRODUCT_URL: ${{ vars.PRODUCT_URL || 'https://replo-product.dawoodmsam422.workers.dev' }}
   LANDING_URL: ${{ vars.LANDING_URL || 'https://replo-landing.dawoodmsam422.workers.dev' }}
+  # The public origin: landing at /, product at /app, API at /rpc and /auth.
+  GATEWAY_URL: ${{ vars.GATEWAY_URL || 'https://replo.dawoodmsam422.workers.dev' }}
 
 jobs:
   verify:
@@ -88,10 +90,12 @@ jobs:
       # time. The same values in apps/*/wrangler.jsonc `vars` only reach the
       # Worker at runtime and cannot fix a bundle that baked localhost.
       # Keep these in sync with the cf:*:deploy scripts and
-      # scripts/check-production-bundle.mjs.
-      NEXT_PUBLIC_API_URL: ${{ vars.API_URL || 'https://replo-api.dawoodmsam422.workers.dev' }}
-      NEXT_PUBLIC_APP_URL: ${{ vars.PRODUCT_URL || 'https://replo-product.dawoodmsam422.workers.dev' }}
-      NEXT_PUBLIC_SITE_URL: ${{ vars.LANDING_URL || 'https://replo-landing.dawoodmsam422.workers.dev' }}
+      # scripts/check-production-bundle.mjs. The gateway serves all three apps
+      # on one origin: landing at /, product at /app, API at /rpc and /auth.
+      NEXT_PUBLIC_API_URL: ${{ vars.GATEWAY_URL || 'https://replo.dawoodmsam422.workers.dev' }}
+      NEXT_PUBLIC_APP_URL: ${{ vars.GATEWAY_URL || 'https://replo.dawoodmsam422.workers.dev' }}/app
+      NEXT_PUBLIC_SITE_URL: ${{ vars.GATEWAY_URL || 'https://replo.dawoodmsam422.workers.dev' }}
+      NEXT_PUBLIC_BASE_PATH: /app
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -140,11 +144,21 @@ jobs:
           workingDirectory: apps/api
           command: deploy -c wrangler.jsonc
 
+      # One public origin. Its service bindings need the other three Workers to
+      # exist, so it deploys last.
+      - name: Deploy gateway (landing /, product /app, api /rpc)
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/gateway
+          command: deploy
+
   smoke:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: API health and database readiness
+      - name: API health and database readiness through the gateway
         run: |
           set -euo pipefail
           check() {
@@ -160,40 +174,39 @@ jobs:
             echo "$label: expected 200, got $code from $url"
             return 1
           }
-          check "$API_URL/healthz" "api /healthz" 6 15
+          check "$GATEWAY_URL/healthz" "gateway /healthz" 6 15
           # /readyz opens a database connection, which can lag the version
           # promotion by a few seconds.
-          check "$API_URL/readyz" "api /readyz" 12 20
+          check "$GATEWAY_URL/readyz" "gateway /readyz" 12 20
+          check "$GATEWAY_URL/rpc/auth/providers" "gateway /rpc/auth/providers" 6 15
 
-      - name: Product and landing
+      - name: One origin serves landing, product and API
         run: |
           set -euo pipefail
-          curl -fsS --max-time 20 -o /dev/null "$PRODUCT_URL"
-          curl -fsS --max-time 20 -o /dev/null "$LANDING_URL"
-          echo "product and landing: 200"
-
           # The landing's sign-in CTA is baked at build time. A localhost link
           # here means the build ran without NEXT_PUBLIC_APP_URL.
-          landing=$(curl -fsS --max-time 20 "$LANDING_URL")
+          landing=$(curl -fsS --max-time 20 "$GATEWAY_URL")
           case "$landing" in
-            *"$PRODUCT_URL/login"*) echo "landing sign-in link: $PRODUCT_URL/login" ;;
-            *) echo "landing does not link to $PRODUCT_URL/login"; exit 1 ;;
+            *"$GATEWAY_URL/app/login"*) echo "landing sign-in link: $GATEWAY_URL/app/login" ;;
+            *) echo "landing does not link to $GATEWAY_URL/app/login"; exit 1 ;;
           esac
-          curl -fsS --max-time 20 "$LANDING_URL/sitemap.xml" | grep -q "$LANDING_URL/" \
-            || { echo "sitemap does not use $LANDING_URL"; exit 1; }
+          curl -fsS --max-time 20 "$GATEWAY_URL/sitemap.xml" | grep -q "$GATEWAY_URL/" \
+            || { echo "sitemap does not use $GATEWAY_URL"; exit 1; }
+          curl -fsS --max-time 20 -o /dev/null "$GATEWAY_URL/app/login"
+          echo "landing at / and product at /app: 200"
 
-      - name: Product calls the deployed API from the browser
+      - name: Product calls the API on its own origin
         run: |
           set -euo pipefail
-          chunks=$(curl -fsS --max-time 20 "$PRODUCT_URL/login" \
-            | grep -oE '/_next/static/chunks/[^"]+\.js' | sort -u)
+          chunks=$(curl -fsS --max-time 20 "$GATEWAY_URL/app/login" \
+            | grep -oE '/app/_next/static/chunks/[^"]+\.js' | sort -u)
           for chunk in $chunks; do
-            body=$(curl -fsS --max-time 20 "$PRODUCT_URL$chunk")
+            body=$(curl -fsS --max-time 20 "$GATEWAY_URL$chunk")
             # `curl | grep -q` reports curl's SIGPIPE as a failed pipeline under
             # `pipefail`, so match against the body instead.
             case "$body" in
-              *"$API_URL"*) echo "product references $API_URL ($chunk)"; exit 0 ;;
+              *"$GATEWAY_URL"*) echo "product references $GATEWAY_URL ($chunk)"; exit 0 ;;
             esac
           done
-          echo "no product chunk references $API_URL — the bundle baked a dev URL"
+          echo "no product chunk references $GATEWAY_URL — the bundle baked a dev URL"
           exit 1

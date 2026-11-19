@@ -1,0 +1,17 @@
+{
+  "name": "@replo/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "description": "One public origin on workers.dev: landing at /, product at /app, API at /rpc and /auth.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@replo/config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "wrangler": "^4.162.0"
+  }
+}

@@ -36,8 +36,8 @@
     },
   ],
   "vars": {
-    "NEXT_PUBLIC_API_URL": "https://replo-api.dawoodmsam422.workers.dev",
-    "NEXT_PUBLIC_APP_URL": "https://replo-product.dawoodmsam422.workers.dev",
+    "NEXT_PUBLIC_API_URL": "https://replo.dawoodmsam422.workers.dev",
+    "NEXT_PUBLIC_APP_URL": "https://replo.dawoodmsam422.workers.dev/app",
   },
   // "routes": [
   //   { "pattern": "app.replo.example", "custom_domain": true }

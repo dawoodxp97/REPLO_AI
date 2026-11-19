@@ -18,10 +18,11 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const expected = {
-  api: process.env.NEXT_PUBLIC_API_URL ?? 'https://replo-api.dawoodmsam422.workers.dev',
-  app: process.env.NEXT_PUBLIC_APP_URL ?? 'https://replo-product.dawoodmsam422.workers.dev',
-  site: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://replo-landing.dawoodmsam422.workers.dev',
+  api: process.env.NEXT_PUBLIC_API_URL ?? 'https://replo.dawoodmsam422.workers.dev',
+  app: process.env.NEXT_PUBLIC_APP_URL ?? 'https://replo.dawoodmsam422.workers.dev/app',
+  site: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://replo.dawoodmsam422.workers.dev',
 }
+const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? '/app').replace(/\/$/, '')
 
 const TEXT = new Set(['.html', '.txt', '.xml', '.json'])
 const SCRIPT = new Set(['.js', '.mjs', '.html'])
@@ -77,7 +78,19 @@ function checkProduct() {
     if (value.includes('localhost')) failures.push(`product: ${variable} is a dev URL: ${value}`)
   }
 
-  notes.push(`product: api=${resolved.get('API') ?? '?'} app=${resolved.get('APP') ?? '?'}`)
+  if (basePath) {
+    try {
+      statSync(join(dir, basePath, '_next'))
+    } catch {
+      failures.push(
+        `product: assets are not under ${basePath}/_next — build without NEXT_PUBLIC_BASE_PATH?`,
+      )
+    }
+  }
+
+  notes.push(
+    `product: api=${resolved.get('API') ?? '?'} app=${resolved.get('APP') ?? '?'} base=${basePath || '/'}`,
+  )
 }
 
 function checkLanding() {
