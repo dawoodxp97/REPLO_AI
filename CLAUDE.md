@@ -53,6 +53,7 @@ Run `pnpm --filter <pkg> typecheck test lint` for what you touched before saying
 - Base UI `Button` with `render={<a/>}` needs `nativeButton={false}` (our `Button` does this automatically).
 - Next 16: no `next lint`; use ESLint directly. Params/searchParams are Promises.
 - Landing is a static export: no route handlers, `headers()`/`cookies()`, ISR.
+- `NEXT_PUBLIC_*` is inlined by `next build`; wrangler `vars` only reach the Worker at runtime, so they cannot fix a bundle that baked localhost. Set them at build time (`deploy.yml` deploy job, `cf:product:deploy` / `cf:landing:deploy`); `node scripts/check-production-bundle.mjs` fails the deploy when it is missed. Local `.env.local` overrides `.env.production`, but never a process env var.
 - More in `MEM.md`.
 
 ## Keep docs current

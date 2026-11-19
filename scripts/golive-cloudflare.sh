@@ -326,16 +326,21 @@ step "The defaults below use the replo-* worker names with a placeholder subdoma
 ask CF_SUBDOMAIN "Your workers.dev subdomain (from wrangler whoami, e.g. dawood-ai):"
 API_PUBLIC_URL="https://replo-api.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
 PRODUCT_ORIGIN="https://replo-product.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
+LANDING_URL="https://replo-landing.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
 printf '  %sdefault:%s %s\n' "$DIM" "$RESET" "$API_PUBLIC_URL"
 ask API_PUBLIC_URL "API public URL [Enter = default]:"
 [[ -z "${API_PUBLIC_URL// /}" ]] && API_PUBLIC_URL="https://replo-api.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
 printf '  %sdefault:%s %s\n' "$DIM" "$RESET" "$PRODUCT_ORIGIN"
 ask PRODUCT_ORIGIN "Product origin [Enter = default]:"
 [[ -z "${PRODUCT_ORIGIN// /}" ]] && PRODUCT_ORIGIN="https://replo-product.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
+printf '  %sdefault:%s %s\n' "$DIM" "$RESET" "$LANDING_URL"
+ask LANDING_URL "Landing URL [Enter = default]:"
+[[ -z "${LANDING_URL// /}" ]] && LANDING_URL="https://replo-landing.${CF_SUBDOMAIN:-REPLACE}.workers.dev"
 write_env API_PUBLIC_URL "$API_PUBLIC_URL"
 write_env PRODUCT_ORIGIN "$PRODUCT_ORIGIN"
-note "These are baked into worker secrets and the product build (NEXT_PUBLIC_*)."
-note "If you add custom domains later, re-run from this stage."
+write_env LANDING_URL "$LANDING_URL"
+note "These are baked into worker secrets and both frontends (NEXT_PUBLIC_*)."
+note "If you add custom domains later, re-run from this stage and redeploy."
 pause "URLs done — press Enter for resource creation."
 fi
 
@@ -467,9 +472,12 @@ say "Deploys locally with the same scripts CI uses. Expect ~5 minutes."
 if confirm "Apply the DDL to Neon now (pnpm --filter @replo/api db:migrate)?"; then
   DATABASE_URL="$NEON_DATABASE_URL" pnpm --filter @replo/api db:migrate
 fi
-if confirm "Deploy landing (build + wrangler deploy)?"; then pnpm cf:landing:deploy; fi
+if confirm "Deploy landing (build + wrangler deploy)?"; then
+  export NEXT_PUBLIC_APP_URL="$PRODUCT_ORIGIN" NEXT_PUBLIC_SITE_URL="$LANDING_URL"
+  pnpm cf:landing:deploy
+fi
 if confirm "Deploy product (OpenNext build + wrangler deploy)?"; then
-  export NEXT_PUBLIC_API_URL="$API_PUBLIC_URL" NEXT_PUBLIC_APP_URL="$PRODUCT_ORIGIN" NEXT_PUBLIC_SITE_URL="$PRODUCT_ORIGIN"
+  export NEXT_PUBLIC_API_URL="$API_PUBLIC_URL" NEXT_PUBLIC_APP_URL="$PRODUCT_ORIGIN"
   pnpm cf:product:deploy
 fi
 if confirm "Deploy API + pipeline workers (Fastify + Workflows)?"; then

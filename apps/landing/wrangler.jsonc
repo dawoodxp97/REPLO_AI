@@ -7,8 +7,10 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
   },
+  // No `env.production` block: `wrangler deploy --env production` would create a
+  // second Worker (`replo-landing-production`) that nothing routes to. Production
+  // is the top-level config, deployed with plain `wrangler deploy`.
   "env": {
-    "production": {},
     "preview": {
       "name": "replo-landing-preview",
     },

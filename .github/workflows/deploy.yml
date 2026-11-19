@@ -84,6 +84,14 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # NEXT_PUBLIC_* is inlined by `next build`, so it must exist here, at build
+      # time. The same values in apps/*/wrangler.jsonc `vars` only reach the
+      # Worker at runtime and cannot fix a bundle that baked localhost.
+      # Keep these in sync with the cf:*:deploy scripts and
+      # scripts/check-production-bundle.mjs.
+      NEXT_PUBLIC_API_URL: ${{ vars.API_URL || 'https://replo-api.dawoodmsam422.workers.dev' }}
+      NEXT_PUBLIC_APP_URL: ${{ vars.PRODUCT_URL || 'https://replo-product.dawoodmsam422.workers.dev' }}
+      NEXT_PUBLIC_SITE_URL: ${{ vars.LANDING_URL || 'https://replo-landing.dawoodmsam422.workers.dev' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -93,6 +101,10 @@ jobs:
       - run: pnpm turbo run build
       # OpenNext transforms the Next build into .open-next/ (it runs next build itself).
       - run: pnpm --filter @replo/product exec opennextjs-cloudflare build
+
+      # Fails the deploy instead of shipping a bundle that calls localhost.
+      - name: Verify the build baked production URLs
+        run: node scripts/check-production-bundle.mjs
 
       - name: Deploy landing (Workers static assets)
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
@@ -159,3 +171,27 @@ jobs:
           curl -fsS --max-time 20 -o /dev/null "$PRODUCT_URL"
           curl -fsS --max-time 20 -o /dev/null "$LANDING_URL"
           echo "product and landing: 200"
+
+          # The landing's sign-in CTA is baked at build time. A localhost link
+          # here means the build ran without NEXT_PUBLIC_APP_URL.
+          landing=$(curl -fsS --max-time 20 "$LANDING_URL")
+          case "$landing" in
+            *"$PRODUCT_URL/login"*) echo "landing sign-in link: $PRODUCT_URL/login" ;;
+            *) echo "landing does not link to $PRODUCT_URL/login"; exit 1 ;;
+          esac
+          curl -fsS --max-time 20 "$LANDING_URL/sitemap.xml" | grep -q "$LANDING_URL/" \
+            || { echo "sitemap does not use $LANDING_URL"; exit 1; }
+
+      - name: Product calls the deployed API from the browser
+        run: |
+          set -euo pipefail
+          chunks=$(curl -fsS --max-time 20 "$PRODUCT_URL/login" \
+            | grep -oE '/_next/static/chunks/[^"]+\.js' | sort -u)
+          for chunk in $chunks; do
+            if curl -fsS --max-time 20 "$PRODUCT_URL$chunk" | grep -q "$API_URL"; then
+              echo "product references $API_URL"
+              exit 0
+            fi
+          done
+          echo "no product chunk references $API_URL — the bundle baked a dev URL"
+          exit 1

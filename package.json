@@ -23,8 +23,8 @@
     "db:setup": "pnpm --filter @replo/api db:setup",
     "cf:api:deploy": "pnpm --filter @replo/api exec wrangler deploy -c wrangler.jsonc",
     "cf:pipeline:deploy": "pnpm --filter @replo/api exec wrangler deploy -c wrangler.pipeline.jsonc",
-    "cf:product:deploy": "pnpm --filter @replo/product exec opennextjs-cloudflare build && pnpm --filter @replo/product exec wrangler deploy",
-    "cf:landing:deploy": "pnpm --filter @replo/landing build && pnpm --filter @replo/landing exec wrangler deploy",
+    "cf:product:deploy": "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://replo-api.dawoodmsam422.workers.dev} NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://replo-product.dawoodmsam422.workers.dev} pnpm --filter @replo/product exec opennextjs-cloudflare build && node scripts/check-production-bundle.mjs product && pnpm --filter @replo/product exec wrangler deploy",
+    "cf:landing:deploy": "NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://replo-product.dawoodmsam422.workers.dev} NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://replo-landing.dawoodmsam422.workers.dev} pnpm --filter @replo/landing build && node scripts/check-production-bundle.mjs landing && pnpm --filter @replo/landing exec wrangler deploy",
     "evals": "pnpm --filter @replo/evals start"
   },
   "devDependencies": {
