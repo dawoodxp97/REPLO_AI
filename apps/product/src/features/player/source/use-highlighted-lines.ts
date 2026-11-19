@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Highlighter } from 'shiki'
+import type { HighlighterCore } from 'shiki/core'
 import { useIsVisible } from '@/hooks/use-is-visible'
 import { languageForPath, type SourceLanguage } from './source-language'
 
@@ -18,7 +18,32 @@ interface HighlightedCode {
 type HighlightedLanguage = Exclude<SourceLanguage, 'text'>
 
 const THEMES = { light: 'github-light-high-contrast', dark: 'github-dark-default' } as const
-const highlighters = new Map<HighlightedLanguage, Promise<Highlighter>>()
+const highlighters = new Map<HighlightedLanguage, Promise<HighlighterCore>>()
+
+// Fine-grained Shiki: the full `shiki` entry pulls every grammar (~11 MB in the
+// Worker bundle) and the Worker then misses Cloudflare's startup CPU budget.
+const languageModule = (language: HighlightedLanguage) => {
+  switch (language) {
+    case 'typescript':
+      return import('shiki/langs/typescript.mjs')
+    case 'tsx':
+      return import('shiki/langs/tsx.mjs')
+    case 'javascript':
+      return import('shiki/langs/javascript.mjs')
+    case 'jsx':
+      return import('shiki/langs/jsx.mjs')
+    case 'json':
+      return import('shiki/langs/json.mjs')
+    case 'css':
+      return import('shiki/langs/css.mjs')
+    case 'html':
+      return import('shiki/langs/html.mjs')
+    case 'markdown':
+      return import('shiki/langs/markdown.mjs')
+    case 'yaml':
+      return import('shiki/langs/yaml.mjs')
+  }
+}
 
 export function useHighlightedViewport(
   lines: readonly string[],
@@ -61,14 +86,20 @@ function useHighlightedLines(
   return highlighted.lines
 }
 
-function highlighterFor(language: HighlightedLanguage): Promise<Highlighter> {
+function highlighterFor(language: HighlightedLanguage): Promise<HighlighterCore> {
   const cached = highlighters.get(language)
   if (cached) return cached
-  const created: Promise<Highlighter> = import('shiki')
-    .then(({ createHighlighter, createJavaScriptRegexEngine }) =>
-      createHighlighter({
-        themes: [THEMES.light, THEMES.dark],
-        langs: [language],
+  const created: Promise<HighlighterCore> = Promise.all([
+    import('shiki/core'),
+    import('shiki/engine/javascript'),
+    import('shiki/themes/github-light-high-contrast.mjs'),
+    import('shiki/themes/github-dark-default.mjs'),
+    languageModule(language),
+  ])
+    .then(([{ createHighlighterCore }, { createJavaScriptRegexEngine }, light, dark, lang]) =>
+      createHighlighterCore({
+        themes: [light.default, dark.default],
+        langs: [lang.default],
         engine: createJavaScriptRegexEngine(),
       }),
     )
