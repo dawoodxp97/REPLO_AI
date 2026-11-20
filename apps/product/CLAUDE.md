@@ -5,9 +5,9 @@ Next.js 16 App Router: dashboard, import, job progress, learning player, course 
 ## Layout
 
 ```
-src/proxy.ts                         per-request CSP nonce (D-068)
+src/proxy.ts                         per-request CSP nonce
 src/app/(app)/…                      signed-in shell (AuthGate + AppShell sidebar): /, /library, /repositories, /import, /jobs, /jobs/[jobId], /workspace/[owner]/[repo]/[slug], /settings/[section]
-src/app/operator/…                   operator screens; a server check returns 404 to everyone else (D-077)
+src/app/operator/…                   operator screens; a server check returns 404 to everyone else
 src/app/login/                       sign-in page (GitHub, Google, email and password)
 src/app/courses/[owner]/[repo]/[slug]/…   overview (SSR), learn/[chapterKey]/[lessonKey], code (source explorer), progress, opengraph-image
 src/components/                      shared composites: app-shell/ (sidebar, AppHeader, UserPill: account popover with theme and settings links), UserAvatar, StatusDot, Brand, PageHeader/SectionHeader, LinkButton,
@@ -27,23 +27,23 @@ e2e/                                 Playwright journeys; fixtures/ and support/
 
 ## Do / don't
 
-- Import only `@replo/contracts` (types for the client; Zod schemas at boundaries, D-071) and `@replo/ui`. Never `@replo/ai`, `@replo/repo-analysis`, or `apps/api` (lint enforces).
+- Import only `@replo/contracts` (types for the client; Zod schemas at boundaries) and `@replo/ui`. Never `@replo/ai`, `@replo/repo-analysis`, or `apps/api` (lint enforces).
 - Server state = TanStack Query via `orpc.<area>.<proc>.queryOptions()/mutationOptions()`. URL state in search params (`?ref`, `?share`, `?version`, `?resume`, `?path`). No global store.
 - Handle typed errors with `apiErrorDetails(err)` (`src/lib/api-error.ts`) and map codes to copy in the feature (see `import/import-errors.ts`).
-- A `Button` is for actions. Navigation is a `LinkButton` or `Link` (D-069).
+- A `Button` is for actions. Navigation is a `LinkButton` or `Link`.
 - UI comes from `@replo/ui` (shadcn-style kit) and the composites in `src/components`; don't hand-roll pending/error branches (`QueryBoundary`), paging (`lib/paging` + `LoadMore`) or confirmations (`ConfirmDialog`). Visual rules and the banned-patterns list: `DESIGN.md` §1.
-- No comments in code (D-070). Every page is dynamic (D-068): do not assume build-time prerendering.
-- No inline `style` props in server-rendered markup (the CSP forbids them). Heavy renderers load when visible and write styles through the CSS object model (D-076).
-- Public pages must read without JavaScript and must not show private data (FR-SHR-2).
-- No ads anywhere (ADR-007). Links in Markdown go through `isAllowedLink` only.
+- No comments in code. Every page is dynamic: do not assume build-time prerendering.
+- No inline `style` props in server-rendered markup (the CSP forbids them). Heavy renderers load when visible and write styles through the CSS object model.
+- Public pages must read without JavaScript and must not show private data.
+- No ads anywhere. Links in Markdown go through `isAllowedLink` only.
 
 ## Status
 
-R4 is implemented: the repository workspace (layer graph, tree, table, node detail, tours, diagram viewer), the course player, repositories and courses lists with counts, the analytics dashboard with saved dashboards, product-wide search, active generations, and settings. Sharing, visibility, budget/preset and revoke-sessions UI are removed. R5 is implemented: the role-gated `/admin` route group (overview, users, jobs, job detail, system) behind a server-side role check. R6 in [`ROADMAP.md`](../../ROADMAP.md) owns the landing.
+Implemented: the repository workspace (layer graph, tree, table, node detail, tours, diagram viewer), the course player, repositories and courses lists with counts, the analytics dashboard with saved dashboards, product-wide search, active generations, and settings. Sharing, visibility, budget/preset and revoke-sessions UI are removed. The role-gated `/admin` route group (overview, users, jobs, job detail, system) sits behind a server-side role check. The landing is owned by `apps/landing`.
 
 Verified locally (18 Nov 2026): unit tests (210), typecheck, lint. The admin e2e spec covers the non-admin 404 and the five admin pages. `e2e/accessibility.spec.ts` covers every route including `/admin/*` in both themes. Not verified: the production build (blocked by a Next.js security-upgrade nudge, unrelated to these changes), staging, the live API, the GitHub App and sign-in, real provider keys, Lighthouse.
 
-Open: notification counts pushed over SSE; the explorer renders the whole tree without virtualisation (MEM D-080). See [`ROADMAP.md`](../../ROADMAP.md) (R4) and [`MEM.md`](../../docs/archive/MEM.md) (D-074 to D-079).
+Open: notification counts pushed over SSE; the explorer renders the whole tree without virtualisation.
 
 ## Commands
 

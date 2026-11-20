@@ -1,8 +1,6 @@
 # DESIGN.md — Replo design system
 
-Source of truth for UI decisions across `apps/landing` and `apps/product`. Tokens are implemented in [`packages/ui/src/styles/tokens.css`](./packages/ui/src/styles/tokens.css); components in `packages/ui` (primitives only) and `apps/product/src/features/*` (composites). Blueprint reference: §4.2, §10.
-
-> **Updated in R8:** Updated terminology to reflect course-first system naming and removed references to deprecated visibility features.
+Source of truth for UI decisions across `apps/landing` and `apps/product`. Tokens are implemented in [`packages/ui/src/styles/tokens.css`](./packages/ui/src/styles/tokens.css); components in `packages/ui` (primitives only) and `apps/product/src/features/*` (composites).
 
 ## 1. Design principles
 
@@ -102,7 +100,7 @@ Status dots (`StatusDot`) follow the colour rule: green when something is in pla
 
 **`packages/ui` (shadcn-style primitives + tokens only, Base UI underneath):** Button · Badge · Card (Header, Title, Description, Action, Content, Footer) · Alert (Title, Description) · Input · Textarea · NativeSelect · Checkbox · Switch · RadioGroup · Label · Field (Set, Legend, Group, Label, Description, Error) + FormField · Dialog · AlertDialog · Sheet · Popover · DropdownMenu · Tooltip · Tabs · ToggleGroup · Collapsible · Skeleton · Spinner · Progress · Separator · Avatar · Kbd · Table · Empty · Item (Group, Media, Content, Title, Description, Actions) · Breadcrumb · `cn()`.
 
-Form controls (checkbox, radio, switch, select, progress) are **native elements styled with Tailwind**: they render without JavaScript on SSR pages and never emit inline `style` attributes, which the nonce CSP blocks (D-068). Overlays (dialog, sheet, menu, popover, tooltip) use Base UI; they render only on the client.
+Form controls (checkbox, radio, switch, select, progress) are **native elements styled with Tailwind**: they render without JavaScript on SSR pages and never emit inline `style` attributes, which the nonce CSP blocks. Overlays (dialog, sheet, menu, popover, tooltip) use Base UI; they render only on the client.
 
 **`apps/product/src/components` (shared composites):** AppShell (sidebar, `AppHeader`, `UserPill`), UserAvatar, StatusDot, Brand, PageHeader + SectionHeader, LinkButton, QueryBoundary, ErrorPanel, LoadMore, ConfirmDialog, RadioCardGroup, Sheet, SafeMarkdown.
 
@@ -145,7 +143,7 @@ Voice: plain, specific, developer-to-developer. No hype, no emoji in product UI.
 
 ## 9. Third-party UI rules
 
-No ads, ever (ADR-007). No third-party ad, tracking or embed scripts on any page. Anything new needs a reason recorded in `MEM.md` first.
+No ads, ever. No third-party ad, tracking or embed scripts on any page. Anything new needs a recorded reason first.
 
 ## 10. Brand placeholders (to finalise)
 

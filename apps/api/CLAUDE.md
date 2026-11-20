@@ -1,6 +1,6 @@
 # apps/api — CLAUDE.md
 
-Fastify 5 + oRPC + own auth (`modules/identity`) + Drizzle + pg-boss. Two processes from one package. Rules: root `RULES.md` §3–§4. Requirements: `PRD.md` §4–§5.
+Fastify 5 + oRPC + own auth (`modules/identity`) + Drizzle + pg-boss. Two processes from one package. Rules: root `RULES.md` §3–§4.
 
 ## Layout
 
@@ -20,8 +20,6 @@ src/modules/<m>/       *.service.ts (public API) · *.router.ts · *.repo.ts (pr
 db/ddl/                numbered PostgreSQL DDL files, applied manually
 ```
 
-How one course is generated, step by step: [`docs/HOW_GENERATION_WORKS.md`](../../docs/HOW_GENERATION_WORKS.md).
-
 ## Do / don't
 
 - Router handlers call **services**; services never touch another module's repo/tables.
@@ -33,11 +31,11 @@ How one course is generated, step by step: [`docs/HOW_GENERATION_WORKS.md`](../.
 - Webhooks: verify HMAC on the **raw** body first (own encapsulated Fastify scope); oRPC lives in its own scope (its body parser is "leave untouched").
 - `hijack()`ed responses (SSE) skip hooks — set CORS headers by hand and only for `PRODUCT_ORIGIN`.
 
-## Status (see ROADMAP.md)
+## Status
 
 The code carries the implemented backend: config and logging, key vault, one DDL baseline, SSE, worker with checkpoint/retry/cancel, auth including account deletion, GitHub App install and listing, repositories, jobs, ingest and index, BYOK keys and catalogue, notifications, settings, search, dashboard, operator read endpoints, the generation pipeline and learning progress.
 
-[`PRD.md`](../PRD.md) restructures the pipeline and data model: graph-first generation, the `course*` rename, snapshots instead of webhooks, no spend ledger, and the admin surface. R1–R3 in [`ROADMAP.md`](../ROADMAP.md) replace the affected modules; do not add code against the old stage names or a removed feature.
+The pipeline and data model are graph-first: generation, the `course*` rename, snapshots instead of webhooks, no spend ledger, and the admin surface. Do not add code against the old stage names or a removed feature.
 
 Still open: a worker-kill chaos run; live verification (GitHub App, real provider keys, live Google and GitHub sign-in, staging).
 Rules for new code: grounding (`modules/pipeline/grounding`) stays pure, with no database or network access. Stages reach the database and the model only through the services and the LLM session they are given.

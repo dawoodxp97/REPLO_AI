@@ -1,10 +1,8 @@
 # CLAUDE.md — Replo
 
-Monorepo (pnpm 11 + Turborepo, Node 24, TypeScript 6). Product: grounded, chaptered **courses** for any GitHub repo; free for everyone, BYOK only (ADR-007), individual developers only.
+Monorepo (pnpm 11 + Turborepo, Node 24, TypeScript 6). Product: grounded, chaptered **courses** for any GitHub repo; free for everyone, BYOK only, individual developers only.
 
-**Read first:** `RULES.md` (hard rules) → `PRD.md` (requirements, FR-/NFR- IDs) → `docs/archive/MEM.md` (decisions & gotchas). Then the `CLAUDE.md` in the app/package you're touching. Research background: `docs/archive/Replo_BluePrint.md` (big — search it, don't read it whole).
-
-> **Updated in R8:** Replaced "tutorials" with "courses" throughout to reflect course-first system naming.
+**Read first:** `RULES.md` (hard rules). Then the `CLAUDE.md` in the app/package you're touching.
 
 ## Hard rules (summary — full list in RULES.md §0)
 
@@ -13,7 +11,7 @@ Monorepo (pnpm 11 + Turborepo, Node 24, TypeScript 6). Product: grounded, chapte
 3. Provider keys: decrypt only in the worker, in memory (exception: the API may transiently decrypt to validate a key, via the validate-only vault). The platform holds no provider keys; a failing key never falls back to another key.
 4. Private reads go through user-scoped services; foreign IDs → **404**.
 5. "The model points, the system quotes" — no model-authored code excerpts or line numbers.
-6. Don't build outside the PRD non-goals (teams, other languages, code execution, chat, embeddings). Never build pricing, billing, credits, top-ups, ads or platform-funded AI.
+6. Don't build outside the agreed non-goals (teams, other languages, code execution, chat, embeddings). Never build pricing, billing, credits, top-ups, ads or platform-funded AI.
 
 ## Commands
 
@@ -49,14 +47,13 @@ Run `pnpm --filter <pkg> typecheck test lint` for what you touched before saying
 
 ## Gotchas learned the hard way
 
-- Blueprint code is a sketch; verify against installed types (pg-boss 10 `createQueue` needs `{ name }`, handlers get an **array**; `import PgBoss from 'pg-boss'` default import).
+- Design sketches can be out of date; verify against installed types (pg-boss 10 `createQueue` needs `{ name }`, handlers get an **array**; `import PgBoss from 'pg-boss'` default import).
 - Base UI `Button` with `render={<a/>}` needs `nativeButton={false}` (our `Button` does this automatically).
 - Next 16: no `next lint`; use ESLint directly. Params/searchParams are Promises.
 - Landing is a static export: no route handlers, `headers()`/`cookies()`, ISR.
 - `NEXT_PUBLIC_*` is inlined by `next build`; wrangler `vars` only reach the Worker at runtime, so they cannot fix a bundle that baked localhost. Set them at build time (`deploy.yml` deploy job, `cf:product:deploy` / `cf:landing:deploy`); `node scripts/check-production-bundle.mjs` fails the deploy when it is missed. Local `.env.local` overrides `.env.production`, but never a process env var.
 - One public origin, no domain: the `apps/gateway` Worker serves the landing at `/`, the product at `/app` and the API at `/rpc` + `/auth` on its own `workers.dev` hostname. The product must be built with `NEXT_PUBLIC_BASE_PATH=/app` (assets land under `assets/app/_next`); the API's `PRODUCT_URL` carries the `/app` prefix for redirects while `PRODUCT_ORIGIN` stays the bare origin for CORS.
-- More in `MEM.md`.
 
 ## Keep docs current
 
-Behaviour change ⇒ update the matching doc in the same change (`PRD.md`, `docs/API.md`, `docs/DATABASE.md`, `ROADMAP.md` status, `MEM.md` for decisions/gotchas).
+Behaviour change ⇒ update the matching doc in the same change (`ARCHITECTURE.md`, `TECH_STACK.md`, `DESIGN.md`).

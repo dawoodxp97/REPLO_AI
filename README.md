@@ -2,14 +2,14 @@
 
 **Graph-first understanding for any GitHub repository.** Paste a repo and get a knowledge graph, interactive diagrams and a sequenced course where every explanation links to the exact file and line at a pinned commit.
 
-Free for everyone. Bring your own provider key (BYOK) only. Built for individual developers — no teams, no billing, no ads (ADR-007).
+Free for everyone. Bring your own provider key (BYOK) only. Built for individual developers — no teams, no billing, no ads.
 
 [![CI](https://github.com/dawoodxp97/REPLO_AI/actions/workflows/ci.yml/badge.svg)](https://github.com/dawoodxp97/REPLO_AI/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-24-339933?logo=node.js&logoColor=white)](./.nvmrc)
 [![pnpm](https://img.shields.io/badge/pnpm-11.28.6-f69220?logo=pnpm&logoColor=white)](./package.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
-> **Status:** Release 1 is in build; the sequence is R0–R9 in [`ROADMAP.md`](./ROADMAP.md). Not yet verified end to end: the GitHub App round trip, real provider keys, staging and production deployment.
+> **Status:** Release 1 is in build. Not yet verified end to end: the GitHub App round trip, real provider keys, staging and production deployment.
 
 ---
 
@@ -150,7 +150,7 @@ pnpm dev:api          # API and worker together
 
 Stop everything with `Ctrl+C`. To stop the database: `pnpm infra:down`.
 
-**GitHub sign-in (optional).** The sign-in provider is only enabled when `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` are set. [`docs/DEVELOPING.md`](./docs/DEVELOPING.md#github-sign-in-needed-to-see-the-logged-in-ui) lists the GitHub App settings: the callback URL and the read-only permissions.
+**GitHub sign-in (optional).** The sign-in provider is only enabled when `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` are set. The GitHub App needs a callback URL and read-only Contents + Metadata permissions.
 
 ## Build
 
@@ -208,7 +208,7 @@ The landing `start` script runs `npx serve@14.2.6`, which downloads that version
 
 ## Deploy
 
-Production runs entirely on Cloudflare Workers (ADR-010): the API and generation pipeline as Workers/Workflows, Postgres on Neon (via Hyperdrive), blobs on R2, and one public origin served by the `apps/gateway` Worker.
+Production runs entirely on Cloudflare Workers: the API and generation pipeline as Workers/Workflows, Postgres on Neon (via Hyperdrive), blobs on R2, and one public origin served by the `apps/gateway` Worker.
 
 The gateway serves everything on a single `workers.dev` hostname (default `app.reploai.workers.dev`):
 
@@ -269,7 +269,7 @@ pnpm --filter @replo/product test:e2e
 pnpm db:setup          # RESET the Compose app/replo public schema, then apply apps/api/db/ddl/*.sql
 ```
 
-`pnpm db:setup` deletes all objects in the `public` schema of the Compose `app/replo` database every time it runs. Start the Postgres service first and use only with a disposable development database. For schema changes, update the Drizzle table definitions and add a numbered DDL file; run that new file manually on existing databases. Read [`docs/DATABASE.md`](./docs/DATABASE.md) before changing the schema.
+`pnpm db:setup` deletes all objects in the `public` schema of the Compose `app/replo` database every time it runs. Start the Postgres service first and use only with a disposable development database. For schema changes, update the Drizzle table definitions and add a numbered DDL file; run that new file manually on existing databases.
 
 ## Project layout
 
@@ -286,25 +286,17 @@ packages/
   ui/             Base UI primitives and Tailwind v4 tokens
   config/         Shared TypeScript and ESLint configuration
 tools/evals/      Golden-repository evaluation harness
-docs/             Developer guide, API, database, how generation works, decisions (ADRs)
-docs/archive/     Reference material kept for history (Replo_BluePrint.md, MEM.md)
 ```
 
 ## Documentation
 
-| Doc                                                                                                                     | What it is                                                                |
-| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [`ARCHITECTURE.md`](./ARCHITECTURE.md)                                                                                  | How the parts fit together: topology, modules, pipeline, jobs, deployment |
-| [`PRD.md`](./PRD.md)                                                                                                    | Product requirements, with FR- and NFR- IDs                               |
-| [`TECH_STACK.md`](./TECH_STACK.md)                                                                                      | Pinned versions, rationale, environment variables and ports               |
-| [`RULES.md`](./RULES.md)                                                                                                | Engineering rules for humans and AI agents                                |
-| [`DESIGN.md`](./DESIGN.md)                                                                                              | Design system: tokens, type, layout, accessibility checklist              |
-| [`SECURITY.md`](./SECURITY.md)                                                                                          | Threat model, controls and the secure-development checklist               |
-| [`ROADMAP.md`](./ROADMAP.md)                                                                                            | Phases with status and acceptance criteria                                |
-| [`docs/DEVELOPING.md`](./docs/DEVELOPING.md) · [`docs/HOW_GENERATION_WORKS.md`](./docs/HOW_GENERATION_WORKS.md)         | How to run it, add endpoints, and how a generation runs                   |
-| [`docs/DATABASE.md`](./docs/DATABASE.md) · [`docs/API.md`](./docs/API.md) · [`docs/adr/`](./docs/adr)                   | Data model, API surface and architecture decision records                 |
-| [`docs/archive/Replo_BluePrint.md`](./docs/archive/Replo_BluePrint.md) · [`docs/archive/MEM.md`](./docs/archive/MEM.md) | Original research/blueprint and the decision log (kept for history)       |
-| [`CLAUDE.md`](./CLAUDE.md)                                                                                              | Orientation for AI coding agents                                          |
+| Doc                                    | What it is                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | How the parts fit together: topology, modules, pipeline, jobs, deployment |
+| [`TECH_STACK.md`](./TECH_STACK.md)     | Pinned versions, rationale, environment variables and ports               |
+| [`RULES.md`](./RULES.md)               | Engineering rules, including security, for humans and AI agents           |
+| [`DESIGN.md`](./DESIGN.md)             | Design system: tokens, type, layout, accessibility checklist              |
+| [`CLAUDE.md`](./CLAUDE.md)             | Orientation for AI coding agents                                          |
 
 ## Ground rules
 
@@ -312,8 +304,8 @@ Never execute repository code. Never log secrets or private source. Provider key
 
 ## Troubleshooting
 
-- **`pnpm install` fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`.** The workspace refuses package versions younger than three days. This gate is intentional. Lower the version floor in the affected range instead of turning the gate off. [`docs/archive/MEM.md`](./docs/archive/MEM.md) decision D-010 explains the procedure.
-- **`pnpm install` fails with `ERR_PNPM_IGNORED_BUILDS`.** A package with an install script is not listed in `allowBuilds`. See D-011 in [`docs/archive/MEM.md`](./docs/archive/MEM.md).
+- **`pnpm install` fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`.** The workspace refuses package versions younger than three days. This gate is intentional. Lower the version floor in the affected range instead of turning the gate off.
+- **`pnpm install` fails with `ERR_PNPM_IGNORED_BUILDS`.** A package with an install script is not listed in `allowBuilds`. Add it there.
 - **The API exits at startup with a configuration error.** Check `apps/api/.env`. `KEY_ENCRYPTION_KEY` must decode to exactly 32 bytes.
 - **`/readyz` returns 503.** The API cannot reach the database. Check `DATABASE_URL`, and that `pnpm infra:up` or your local Postgres is running.
 - **`localhost` does not reach the server, but `127.0.0.1` does.** Some macOS setups resolve `localhost` to IPv6 (`::1`), where another process may already listen. Use `127.0.0.1` or stop the other process.

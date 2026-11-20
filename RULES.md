@@ -1,16 +1,16 @@
 # RULES.md — Engineering rules for Replo
 
-These rules apply to every contributor, human or AI agent. They are short on purpose. If a rule blocks you, change the rule here in the same PR — don't route around it. Rationale lives in [`PRD.md`](./PRD.md) and [`Replo_BluePrint.md`](./docs/archive/Replo_BluePrint.md).
+These rules apply to every contributor, human or AI agent. They are short on purpose. If a rule blocks you, change the rule here in the same PR — don't route around it.
 
 ## 0. Hard rules (never violate)
 
 1. **Never execute repository code.** No `npm install`, build, test, script or sandbox run on a user's repo, on any product infrastructure. Repo content is untrusted **data**, never instructions.
 2. **Never log or persist secrets or private source.** No API keys, tokens, source code, or private-repo prompts/completions in logs, errors, Sentry events or DB rows (hashes + token counts only).
-3. **Provider keys are decrypted only in the worker, in memory, for one job.** The one exception is transient validation: the API process may decrypt a key in memory to run `keys.validate` and the re-check inside `repositories.import`, through the validate-only vault, and drops it immediately. The platform holds no provider keys. A failing key fails the job; it is never swapped for another key or provider, and models never change silently (ADR-007).
+3. **Provider keys are decrypted only in the worker, in memory, for one job.** The one exception is transient validation: the API process may decrypt a key in memory to run `keys.validate` and the re-check inside `repositories.import`, through the validate-only vault, and drops it immediately. The platform holds no provider keys. A failing key fails the job; it is never swapped for another key or provider, and models never change silently.
 4. **Every private read goes through a user-scoped service.** Foreign IDs return **404**, not 403. Authorisation lives in the service layer, never only in the UI.
 5. **The model points, the system quotes.** Models never author repo code or line numbers; the validator resolves refs and inserts excerpts. No path around validation for any model.
-6. **No scope creep past the PRD.** Propose in `MEM.md` first.
-7. **No pricing, billing, subscriptions, credits, top-ups, ads or platform-funded AI, ever** (ADR-007). Not behind a flag, not "after validation".
+6. **No scope creep.** Agree any new scope before building it.
+7. **No pricing, billing, subscriptions, credits, top-ups, ads or platform-funded AI, ever.** Not behind a flag, not "after validation".
 
 ## 1. Repository and dependency graph
 
@@ -30,10 +30,10 @@ apps/landing ─▶ ui                     tools/evals ─▶ ai, repo-analysis,
 
 - `strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `isolatedModules`. No `any` (use `unknown` + Zod). No `// @ts-ignore` (use `@ts-expect-error` with a reason).
 - Avoid options deprecated in TS 6.0 so the TS 7 native compiler is a drop-in.
-- Use `import type` for types. ESM only. Relative imports are **extensionless** (`./foo`): every package is bundled (tsdown / Next) or run through `tsx`, so `moduleResolution: Bundler` is used everywhere (see `MEM.md` D-004).
+- Use `import type` for types. ESM only. Relative imports are **extensionless** (`./foo`): every package is bundled (tsdown / Next) or run through `tsx`, so `moduleResolution: Bundler` is used everywhere.
 - Prefer small pure functions; side effects at the edges (routers, workers, repos).
 - Names: files `kebab-case.ts`; types/components `PascalCase`; functions/vars `camelCase`; constants `SCREAMING_SNAKE`; DB columns `snake_case`, TS fields `camelCase`.
-- Comments are rare. Names, types and tests carry the meaning; decisions and their history go in `MEM.md`. Write a `//` comment only for what the code cannot say: which race a guard closes, why at-least-once delivery needs this check, which security rule or external quirk forces this shape. One or two lines, plain words.
+- Comments are rare. Names, types and tests carry the meaning. Write a `//` comment only for what the code cannot say: which race a guard closes, why at-least-once delivery needs this check, which security rule or external quirk forces this shape. One or two lines, plain words.
 - Never restate the code, never JSDoc a signature, no section dividers, no `TODO`. Block comments (`/* */`, `/** */`) fail lint (`replo/no-comments`), as do banner and `TODO` line comments.
 
 ## 3. Validation boundaries (types are not trust)
@@ -67,7 +67,7 @@ DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services m
 - Server state in TanStack Query; URL state (chapter, lesson, ref) in search params/`nuqs`; forms with react-hook-form + Zod resolver. Don't add a global store without a written reason.
 - Styling: Tailwind v4 + tokens from `packages/ui`. **No hard-coded colours or spacing** that bypass tokens. See [`DESIGN.md`](./DESIGN.md).
 - Markdown rendering: allow-list renderer, **no raw HTML**; Mermaid with `securityLevel: 'strict'`; links only to repo permalinks or allow-listed domains.
-- **No ads anywhere**, including public tutorial pages and the landing site (ADR-007).
+- **No ads anywhere**, including public course pages and the landing site.
 - Accessibility is a requirement, not polish: keyboard path, labelled controls, visible focus, reduced-motion, contrast in both themes.
 - Heavy client libs (Mermaid, CodeMirror, Shiki on client) load lazily.
 
@@ -75,9 +75,9 @@ DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services m
 
 - Business code asks for **roles** (`planner`, `author`, `summarizer`), never vendors. Model lists live in config, not code. One user-chosen model serves the course; roles may share it.
 - Every job runs on the user's key. `modelFor({ provider, decryptedKey }, modelId)` is the only place a key becomes a client.
-- Every LLM call checks the per-job wall-clock and token ceiling; there is no dollar budget or spend ledger (D-116).
+- Every LLM call checks the per-job wall-clock and token ceiling; there is no dollar budget or spend ledger.
 - Repo text is wrapped in labelled data sections in prompts; models get only read-only, snapshot-scoped tools. Do not rely on prompts for security.
-- A model enters the registry/allow-list **only after it passes the eval gate**. Evals can drop it, on a run with real answers (MEM D-048).
+- A model enters the registry/allow-list **only after it passes the eval gate**. Evals can drop it, on a run with real answers.
 - Prompts are versioned; the version and prompt hashes are stored with each `course_version`.
 
 ## 7. Testing
@@ -98,27 +98,106 @@ DB row types (`InferSelectModel`) never leave a module's `*.repo.ts`; services m
 
 - pnpm 11 defaults stay on: `minimumReleaseAge` (3 days here), `strictDepBuilds` with an explicit `allowBuilds` list. Adding to `allowBuilds` needs a reason in the PR.
 - Shared versions go through the `catalog:` in `pnpm-workspace.yaml`.
-- Pin majors per [`TECH_STACK.md`](./TECH_STACK.md): oRPC 1.x (not 2.0 beta), Drizzle 0.45.x, AI SDK 6, Next 16.x (patch promptly), Wrangler 4.x. From R9 the runtime targets Cloudflare Workers/Workflows, Neon Postgres (Hyperdrive) and R2 (ADR-010); pg-boss is retired with the VPS. Majors change only via an entry in `MEM.md`.
+- Pin majors per [`TECH_STACK.md`](./TECH_STACK.md): oRPC 1.x (not 2.0 beta), Drizzle 0.45.x, AI SDK 6, Next 16.x (patch promptly), Wrangler 4.x. The runtime targets Cloudflare Workers/Workflows, Neon Postgres (Hyperdrive) and R2; pg-boss is retired with the VPS. Majors change only via a deliberate, documented decision.
 - Commit `pnpm-lock.yaml`. CI uses `--frozen-lockfile`. Pin GitHub Actions to commit SHAs.
 - New dependency checklist: maintained? licence OK? install scripts? bundle impact (frontend)? could ~20 lines replace it?
 
 ## 9. Git, PRs and CI
 
 - Branches `feat/…`, `fix/…`, `chore/…`. Conventional Commits (`feat(api): …`). Small PRs; one concern each.
-- PR must: pass `pnpm verify` (lint, typecheck, test, build) · include tests · update docs it touches (`PRD.md`, `docs/*`, `MEM.md`) · note any threat-model impact.
+- PR must: pass `pnpm verify` (lint, typecheck, test, build) · include tests · update docs it touches (`ARCHITECTURE.md`, `TECH_STACK.md`, `DESIGN.md`) · note any threat-model impact.
 - CI: install frozen → `turbo run lint typecheck test build --affected` → eval smoke on recorded fixtures. Database integration tests bootstrap the committed DDL against the CI Postgres service.
 - Never commit `.env*` (except `.env.example`), keys, or fixtures containing real private code.
 
 ## 10. Documentation hygiene
 
-- `PRD.md` = what & why (requirements). `ARCHITECTURE.md` = how it fits together. `TECH_STACK.md` = versions & rationale. `DESIGN.md` = UI system. `SECURITY.md` = threats & controls. `ROADMAP.md` = phases. `MEM.md` = decisions, assumptions and gotchas log.
-- Decisions that are expensive to reverse get an ADR (`docs/adr/NNN-title.md`).
+- `ARCHITECTURE.md` = how it fits together. `TECH_STACK.md` = versions & rationale. `DESIGN.md` = UI system. This file (RULES) = engineering rules, including security.
+- Record decisions that are expensive to reverse in the PR description and commit history.
 - When behaviour changes, update the doc in the same PR. Stale docs are bugs.
 
 ## 11. Instructions for AI coding agents
 
 - Read `CLAUDE.md`, then the relevant app/package `CLAUDE.md`, before editing.
-- Prefer the smallest change that satisfies the requirement ID. Don't refactor unrelated code or add features outside the PRD.
-- Don't invent library APIs — check the installed version's types/docs (this stack moves fast; blueprint code is a sketch, not gospel).
+- Prefer the smallest change that satisfies the requirement. Don't refactor unrelated code or add features outside the agreed scope.
+- Don't invent library APIs — check the installed version's types/docs (this stack moves fast; design sketches are not gospel).
 - Run `pnpm --filter <pkg> typecheck test lint` for what you touched before declaring done. State what you did **not** verify.
-- Record non-obvious findings and decisions in `MEM.md`.
+- Record non-obvious findings and decisions in the PR.
+
+## 12. Security
+
+Two risks could end Replo: **leaking a customer's private source code** and **executing attacker-controlled code on our infrastructure**. The design answers both structurally. This section is the checklist reviewers and agents use; update it in the same PR as any change that touches a control.
+
+### Core principles
+
+1. Repository content is **untrusted data**: never instructions, never executed, never installed.
+2. Least privilege everywhere: GitHub **Contents + Metadata read-only**, per-repo token scope, per-role DB users, worker egress allow-list.
+3. Strict tenant scoping: every private row has `user_id`; foreign IDs → **404**.
+4. A hijacked model can at worst produce a wrong lesson: tools are read-only and snapshot-scoped, output is schema-validated, refs are re-resolved by code, links are allow-listed, the renderer escapes text.
+5. User API keys are the most valuable secret after GitHub tokens: envelope-encrypted, worker-only, never returned, never logged.
+
+### Threat model and release-1 controls
+
+| #   | Threat                                             | Controls                                                                                                                                | Verify with                                         |
+| --- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| 1   | Private source exposure (tenants, logs, providers) | User-scoped services; private blobs only via authorised API; no prompt/completion logging for private repos; no-training provider terms | Cross-user tests; log scan                          |
+| 2   | Excessive GitHub permissions                       | Read-only Contents + Metadata; per-repo selection                                                                                       | GitHub App manifest review                          |
+| 3   | Leaked GitHub App key / installation tokens        | App key in secret store; tokens minted per job, scoped to one repo, in memory only, redacted                                            | Log redaction test                                  |
+| 4   | Cross-user access (IDOR)                           | `scoped(userId)` repo helper; auth in every service call; 404 on foreign IDs                                                            | **CI cross-user tests for every private procedure** |
+| 5   | Prompt injection in repo content                   | Labelled data sections; read-only snapshot-scoped tools; schema-validated output; system inserts excerpts; link allow-list              | Injection cases in `tools/evals`                    |
+| 6   | Malicious dependencies / install scripts           | **Never install or run repo deps**; our repo uses pnpm `strictDepBuilds` + release-age gate                                             | CI lockfile + audit                                 |
+| 7   | Remote code execution                              | No execution of repo code; tree-sitter as WASM with per-file timeouts; non-root, read-only FS, `no-new-privileges`                      | Container config review                             |
+| 8   | SSRF                                               | GitHub URLs only, parsed to owner/repo; egress allow-list; fixed provider base URLs                                                     | URL-parser unit tests                               |
+| 9   | Path traversal / archive bombs                     | Reject abs paths, `..`, symlinks, hardlinks, device entries; byte, entry-count, ratio caps; patched tar lib                             | `repo-analysis` fixtures (`isSafeArchivePath`)      |
+| 10  | Poisoned/misleading generated content              | Grounding validation; interpretation labels; commands rendered as text with warning; report + takedown                                  | Eval suite                                          |
+| 11  | Unsafe Markdown / XSS                              | Allow-list renderer, no raw HTML; Mermaid `strict`; strict CSP with nonces                                                              | CSP header test; renderer tests                     |
+| 12  | DoS via huge repos                                 | Pre-flight caps; streaming abort; per-stage timeouts; per-user concurrency                                                              | Fixture tests                                       |
+| 13  | Abuse of expensive AI ops (OWASP LLM10)            | Per-job budget ceiling; import rate limits; account-age/velocity checks; per-user and per-IP limits                                     | Budget concurrency test                             |
+| 14  | Webhook spoofing / replay                          | HMAC-SHA256 over **raw** body, constant-time compare; dedupe `X-GitHub-Delivery`                                                        | `github/webhook` tests                              |
+| 15  | Secrets in repos or in our logs                    | Exclude `.env*`; secret-pattern scan before generation; redact excerpts; log redaction                                                  | Scanner + log tests                                 |
+| 16  | Unauthorised **course** access                     | Visibility check on every read; unguessable share tokens; `Cache-Control: private` for non-public; OG only for public                   | Service tests                                       |
+| 17  | Session / CSRF                                     | httpOnly, Secure, SameSite=Lax; Origin check on state-changing RPC                                                                      | Integration test                                    |
+| 18  | Deletion/revocation not honoured                   | Webhook-driven `revoked_at`, immediate hide, scheduled blob purge; cascading account delete                                             | Webhook + deletion tests                            |
+
+### BYOK keys and provider use
+
+| Risk                         | Controls                                                                                                                                                                                                                    |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stolen user keys             | AES-256-GCM envelope encryption; KEK only in server secret store (never DB/backups); decrypted only in worker memory for that job; masked `…last4`; **test fails if a key-shaped string reaches logs**; delete is immediate |
+| Keys sent to the wrong place | Fixed provider base URLs; no custom endpoints; no platform-owned keys; a failing user key never falls back to another key or provider                                                                                       |
+| Keys used beyond their job   | Each job uses only the key it started with; keys are decrypted only in the worker, for that job; deleting a key fails its running jobs with `KEY_REMOVED`                                                                   |
+| Surprise provider bills      | Estimate before every run; user-chosen budget ceiling (default $2); tokens and cost recorded per LLM call from the provider's own usage; no retries beyond policy                                                           |
+| Repo code sent to a provider | The user chooses the provider and sees which one will receive their code; the key guide states that code goes to that provider under its terms                                                                              |
+| Ads and tracking             | None. No ads, ever. Third-party scripts need a recorded reason first                                                                                                                                                        |
+
+### Controls by layer
+
+| Layer      | Controls                                                                                                                                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| API        | Own sessions (hashed tokens, httpOnly cookies); scrypt passwords; OAuth with state and PKCE; authz per procedure; Zod via contracts; rate limits (IP + user); idempotency keys; Origin checks; strict CORS to product origin; webhook HMAC |
+| Database   | Separate least-privilege roles (api / worker / migrator); TLS; per-user scoping; no tokens stored; backups; RLS as future defence in depth                                                                                                 |
+| Worker     | Non-root; read-only root FS + `noexec` temp volume; egress allow-list; per-job temp dir wiped; no installs; per-stage timeouts and memory limits                                                                                           |
+| Model      | Read-only snapshot-scoped tools; budgets; output schemas; no private prompts logged; vendor terms checked                                                                                                                                  |
+| Storage    | Private buckets; SSE; keys namespaced by repo; lifecycle deletion; access only through the API                                                                                                                                             |
+| Deployment | Secrets in platform store; separate staging/prod credentials and GitHub Apps; pinned images; dependency scanning in CI                                                                                                                     |
+
+### Retention and deletion
+
+Tarballs ≤ 24 h · private blobs only while a version/link references them · `job_events` and `job_llm_calls` 90 days · prompts/completions for private repos **not stored** (hashes + token counts) · uninstall/repo-removal webhook sets `revoked_at`, hides **courses**, schedules purge · account deletion removes keys, progress, private **courses**, blobs.
+
+### Licensing (public **courses**)
+
+Public **courses** only for repos with an OSI-approved licence; show licence + attribution; takedown process. _Not legal advice — confirm with counsel before public launch._
+
+### Secure-development checklist (every PR touching these areas)
+
+- [ ] No secret/key/source-code/private-prompt in logs, errors or Sentry events
+- [ ] New private procedure has a cross-user 404 test
+- [ ] New external URL/host is allow-listed and constructed server-side
+- [ ] New Markdown/HTML sink uses the allow-list renderer
+- [ ] New dependency reviewed (scripts, maintainers, licence); `allowBuilds` change justified
+- [ ] New shared counter enforced atomically in SQL
+- [ ] Threat table above updated if a control changed
+
+### Reporting
+
+Pre-launch: report issues to the repo owner privately. Add a `security.txt` and a public security page before open beta (users hesitating to connect private code is a top risk).

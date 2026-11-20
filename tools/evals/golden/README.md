@@ -2,7 +2,7 @@
 
 Thirteen repositories with ground truth, one `<name>.truth.json` each, validated by `TruthSheet` (`tools/evals/src/truth-sheet.ts`).
 
-The source of each repo is a fixture under `packages/repo-analysis/fixtures/<name>`, so the set runs offline and in CI. The `commitSha` is all zeros because a fixture has no commit. These are **synthetic** repos, written to cover the shapes in blueprint §8.4 and the size mix in R7. They are not real projects. Real public repos, pinned to a commit, come next with human-reviewed sheets.
+The source of each repo is a fixture under `packages/repo-analysis/fixtures/<name>`, so the set runs offline and in CI. The `commitSha` is all zeros because a fixture has no commit. These are **synthetic** repos, written to cover the expected shapes and size mix. They are not real projects. Real public repos, pinned to a commit, come next with human-reviewed sheets.
 
 | Shape (`shape`)  | Repo                | Size   | What it stresses                                             |
 | ---------------- | ------------------- | ------ | ------------------------------------------------------------ |
@@ -66,7 +66,7 @@ pnpm --filter @replo/evals start -- --models recorded/openrouter-free
 
 The directory name is the model label in the report, so use the provider model id for a real run, such as `recorded/openrouter/meta-llama-3.3-70b-instruct:free`.
 
-The recorded fixtures in this repository are controlled fixtures written to exercise the gate, not claims about a live provider. No provider key is used in CI (MEM D-048).
+The recorded fixtures in this repository are controlled fixtures written to exercise the gate, not claims about a live provider. No provider key is used in CI.
 
 ## Caveats
 
